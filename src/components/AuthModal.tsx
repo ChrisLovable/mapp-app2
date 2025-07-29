@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseAvailable } from '../lib/supabase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -32,42 +32,66 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
     setMessage('');
     setMessageType('');
 
+    // Validate inputs
+    if (!email || !password) {
+      setMessage('Please fill in all fields');
+      setMessageType('error');
+      setLoading(false);
+      return;
+    }
+
     try {
       if (isSignUp) {
-        // Sign up
+        // Sign up with proper email verification
         const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: email.trim(),
+          password: password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            data: {
+              email_confirm: true
+            }
           }
         });
 
         if (error) {
-          setMessage(error.message);
+          console.error('Sign up error:', error);
+          setMessage(error.message || 'Failed to create account');
           setMessageType('error');
-        } else {
+        } else if (data.user && !data.session) {
+          // Email confirmation required
           setShowVerificationMessage(true);
-          setMessage('Please check your email for verification link!');
+          setMessage('Please check your email for verification link! Check your spam folder if you don\'t see it.');
           setMessageType('success');
+        } else if (data.session) {
+          // Auto-confirmed (if email confirmation is disabled)
+          onAuthSuccess(data.user);
+          onClose();
         }
       } else {
-        // Sign in
+        // Sign in with proper error handling
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
+          email: email.trim(),
+          password: password
         });
 
         if (error) {
-          setMessage(error.message);
-          setMessageType('error');
+          console.error('Sign in error:', error);
+          if (error.message.includes('Email not confirmed')) {
+            setMessage('Please verify your email address first. Check your inbox and spam folder.');
+            setMessageType('error');
+          } else {
+            setMessage(error.message || 'Failed to sign in');
+            setMessageType('error');
+          }
         } else if (data.user) {
           onAuthSuccess(data.user);
           onClose();
         }
       }
     } catch (error) {
-      setMessage('An unexpected error occurred');
+      console.error('Auth error:', error);
+      setMessage('An unexpected error occurred. Please try again.');
       setMessageType('error');
     } finally {
       setLoading(false);
@@ -83,19 +107,21 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: `${window.location.origin}/auth/reset-password`
       });
 
       if (error) {
-        setMessage(error.message);
+        console.error('Password reset error:', error);
+        setMessage(error.message || 'Failed to send reset email');
         setMessageType('error');
       } else {
-        setMessage('Password reset email sent!');
+        setMessage('Password reset email sent! Check your inbox and spam folder.');
         setMessageType('success');
       }
     } catch (error) {
-      setMessage('Failed to send reset email');
+      console.error('Password reset error:', error);
+      setMessage('Failed to send reset email. Please try again.');
       setMessageType('error');
     } finally {
       setLoading(false);
@@ -153,6 +179,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
           </div>
         ) : (
           <form onSubmit={handleAuth} className="space-y-6">
+            {!isSupabaseAvailable && (
+              <div className="p-4 rounded-xl text-sm backdrop-blur-sm border bg-yellow-500/20 text-yellow-200 border-yellow-400/30">
+                <p className="font-medium mb-2">⚠️ Supabase Not Configured</p>
+                <p className="text-xs">
+                  Authentication is in demo mode. To enable real authentication, add your Supabase credentials to the environment variables.
+                </p>
+              </div>
+            )}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-white/90 mb-2">
                 Email
