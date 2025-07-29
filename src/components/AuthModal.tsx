@@ -43,6 +43,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
     try {
       if (isSignUp) {
         // Sign up with proper email verification
+        console.log('Signing up with:', email.trim(), password.length > 0 ? '[PASSWORD_PROVIDED]' : '[NO_PASSWORD]');
+        
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password: password,
@@ -54,26 +56,38 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
           }
         });
 
+        console.log('Sign up response:', { data, error });
+
         if (error) {
           console.error('Sign up error:', error);
           setMessage(error.message || 'Failed to create account');
           setMessageType('error');
         } else if (data.user && !data.session) {
           // Email confirmation required
+          console.log('Email confirmation required for user:', data.user.email);
           setShowVerificationMessage(true);
           setMessage('Please check your email for verification link! Check your spam folder if you don\'t see it.');
           setMessageType('success');
         } else if (data.session) {
           // Auto-confirmed (if email confirmation is disabled)
+          console.log('User auto-confirmed:', data.user.email);
           onAuthSuccess(data.user);
           onClose();
+        } else {
+          console.log('Unexpected sign up response:', data);
+          setMessage('Account created but verification status unclear. Please check your email.');
+          setMessageType('success');
         }
       } else {
         // Sign in with proper error handling
+        console.log('Signing in with:', email.trim(), password.length > 0 ? '[PASSWORD_PROVIDED]' : '[NO_PASSWORD]');
+        
         const { data, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password: password
         });
+
+        console.log('Sign in response:', { data, error });
 
         if (error) {
           console.error('Sign in error:', error);
@@ -85,8 +99,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
             setMessageType('error');
           }
         } else if (data.user) {
+          console.log('User signed in successfully:', data.user.email);
           onAuthSuccess(data.user);
           onClose();
+        } else {
+          console.log('Unexpected sign in response:', data);
+          setMessage('Sign in completed but user data is missing.');
+          setMessageType('error');
         }
       }
     } catch (error) {
