@@ -361,7 +361,7 @@ export default function CreateDiaryEntryModal({ isOpen, onClose, currentText }: 
       const { error, data: upsertData } = await supabase
         .from('diary_entries')
         .upsert(entryData, { onConflict: 'user_id,entry_date,diary_chapter' });
-      if (error && error.code === '23505') {
+      if (error && (error as any).code === '23505') {
         // Duplicate key error: show replace/cancel modal
         setPendingEntryData(entryData);
         setShowReplaceConfirm(true);
