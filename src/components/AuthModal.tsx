@@ -42,6 +42,23 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
 
     try {
       if (isSignUp) {
+        // Check if email already exists before attempting sign-up
+        console.log('Checking if email already exists...');
+        const emailExists = await checkEmailExists(email);
+        
+        if (emailExists) {
+          setMessage('An account with this email already exists. Please sign in instead or use a different email address.');
+          setMessageType('error');
+          // Automatically switch to sign in mode after 3 seconds
+          setTimeout(() => {
+            setIsSignUp(false);
+            setMessage('');
+            setMessageType('');
+          }, 3000);
+          setLoading(false);
+          return;
+        }
+        
         // Sign up with proper email verification
         console.log('Signing up with:', email.trim(), password.length > 0 ? '[PASSWORD_PROVIDED]' : '[NO_PASSWORD]');
         
@@ -60,8 +77,27 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
 
         if (error) {
           console.error('Sign up error:', error);
-          setMessage(error.message || 'Failed to create account');
-          setMessageType('error');
+          
+          // Handle specific error cases
+          if (error.message.includes('User already registered') || 
+              error.message.includes('already been registered') ||
+              error.message.includes('already exists')) {
+            setMessage('An account with this email already exists. Please sign in instead or use a different email address.');
+            setMessageType('error');
+            // Automatically switch to sign in mode
+            setTimeout(() => {
+              setIsSignUp(false);
+            }, 3000);
+          } else if (error.message.includes('Invalid email')) {
+            setMessage('Please enter a valid email address.');
+            setMessageType('error');
+          } else if (error.message.includes('Password')) {
+            setMessage('Password must be at least 6 characters long.');
+            setMessageType('error');
+          } else {
+            setMessage(error.message || 'Failed to create account. Please try again.');
+            setMessageType('error');
+          }
         } else if (data.user && !data.session) {
           // Email confirmation required
           console.log('Email confirmation required for user:', data.user.email);
@@ -114,6 +150,28 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
       setMessageType('error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Helper function to check if email is already registered
+  const checkEmailExists = async (email: string) => {
+    try {
+      // Try to sign in with a dummy password to check if user exists
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: 'dummy-password-for-check'
+      });
+      
+      // If we get a specific error, the user exists but password is wrong
+      if (error && (error.message.includes('Invalid login credentials') || 
+                    error.message.includes('Invalid email or password'))) {
+        return true; // User exists
+      }
+      
+      return false; // User doesn't exist or other error
+    } catch (error) {
+      console.error('Error checking email existence:', error);
+      return false;
     }
   };
 
@@ -245,7 +303,21 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                   ? 'bg-green-500/20 text-green-200 border-green-400/30' 
                   : 'bg-red-500/20 text-red-200 border-red-400/30'
               }`}>
-                {message}
+                <div className="flex flex-col space-y-2">
+                  <div>{message}</div>
+                  {messageType === 'error' && message.includes('already exists') && (
+                    <button
+                      onClick={() => {
+                        setIsSignUp(false);
+                        setMessage('');
+                        setMessageType('');
+                      }}
+                      className="text-xs text-blue-300 hover:text-blue-200 underline mt-1"
+                    >
+                      Switch to Sign In
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
