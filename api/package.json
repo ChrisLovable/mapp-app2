@@ -1,0 +1,9 @@
+{
+  "name": "umbukulo-api",
+  "version": "1.0.0",
+  "description": "API functions for UmBukulo PWA",
+  "main": "index.js",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+} 

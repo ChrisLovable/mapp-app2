@@ -1,0 +1,891 @@
+ 
+  @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap');
+@import './components/GridButton.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+  /* Theme Variables */
+  :root {
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --accent-color: #3b82f6;
+    --bg-color: #000000;
+    --text-color: #ffffff;
+    --border-color: #3b82f6;
+    --favourite-blue: #0000FF;
+    
+    /* Border Customization Variables */
+    --border-animation-duration: 3s;
+    --border-blur: 1px;
+    --border-width: 2px;
+    
+    /* Rainbow Border Colors */
+    --rainbow-color-1: #00ff00;
+    --rainbow-color-2: lime;
+    --rainbow-color-3: #00ffff;
+    --rainbow-color-4: #0080ff;
+    --rainbow-color-5: #8000ff;
+    --rainbow-color-6: #ff0080;
+    --rainbow-color-7: #ff8000;
+    --rainbow-color-8: #ffff00;
+    
+    /* Neon Colors */
+    --neon-blue: #00ffff;
+    --neon-green: #00ff00;
+    --neon-purple: #8000ff;
+    --neon-yellow: #ffff00;
+    --neon-pink: #ff0080;
+    --neon-orange: #ff8000;
+  }
+
+  /* Dark Theme (Default) */
+  .theme-dark {
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --accent-color: #3b82f6;
+    --bg-color: #000000;
+    --text-color: #ffffff;
+    --border-color: #3b82f6;
+  }
+
+  /* Light Theme */
+  .theme-light {
+    --primary-color: #1e40af;
+    --primary-hover: #1e3a8a;
+    --accent-color: #2563eb;
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --border-color: #1e40af;
+  }
+
+  /* Light mode specific overrides */
+  .theme-light button {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+
+  .theme-light select {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+
+  /* Pink Theme */
+  .theme-pink {
+    --primary-color: #ec4899;
+    --primary-hover: #db2777;
+    --accent-color: #f472b6;
+    --bg-color: #000000;
+    --text-color: #ffffff;
+    --border-color: #ec4899;
+  }
+
+  /* Red Theme */
+  .theme-red {
+    --primary-color: #dc2626;
+    --primary-hover: #b91c1c;
+    --accent-color: #ef4444;
+    --bg-color: #000000;
+    --text-color: #ffffff;
+    --border-color: #dc2626;
+  }
+
+  /* Blue Theme (Current) */
+  .theme-blue {
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --accent-color: #3b82f6;
+    --bg-color: #000000;
+    --text-color: #ffffff;
+    --border-color: #3b82f6;
+  }
+
+  /* Green Theme */
+  .theme-green {
+    --primary-color: #16a34a;
+    --primary-hover: #15803d;
+    --accent-color: #22c55e;
+    --bg-color: #000000;
+    --text-color: #ffffff;
+    --border-color: #16a34a;
+  }
+
+  html, body {
+    @apply h-screen overflow-hidden;
+    font-family: 'Outfit', sans-serif;
+    background-color: #000;
+    color: var(--text-color);
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  body {
+    background-color: #000;
+  }
+
+  html {
+    background-color: #000;
+  }
+
+  /* Enhanced TouchDragSelect Styles */
+  .selection-highlight {
+    background: linear-gradient(45deg, #3b82f6, #1d4ed8);
+    color: white;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: 0 1px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  .selection-handle {
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(45deg, #3b82f6, #1d4ed8);
+    border-radius: 50%;
+    cursor: grab;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 2px solid white;
+    transition: all 0.2s ease;
+  }
+
+  .selection-handle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .selection-handle:active {
+    cursor: grabbing;
+    transform: scale(0.95);
+  }
+
+  .floating-actions {
+    background: rgba(0, 0, 0, 0.95);
+    border-radius: 12px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: fadeInUp 0.2s ease-out;
+  }
+
+  .floating-actions button {
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 16px;
+  }
+
+  .floating-actions button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px) translateX(-50%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) translateX(-50%);
+    }
+  }
+
+  /* Apply theme colors to common elements */
+  .theme-dark,
+  .theme-light,
+  .theme-pink,
+  .theme-red,
+  .theme-blue,
+  .theme-green {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+  }
+
+ 
+
+
+
+
+  /* Handwriting Font */
+  .font-handwriting {
+    font-family: 'Caveat', cursive;
+    font-weight: 500;
+    line-height: 1.6;
+  }
+
+  /* Flipbook Styles */
+  .flipbook {
+    height: 100% !important;
+    width: 100% !important;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .flipbook .page {
+    height: 100% !important;
+    width: 100% !important;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .flipbook .page-wrapper {
+    height: 100% !important;
+    width: 100% !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Flipbook Page Styles */
+  .flip-page {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(to bottom, #fef3c7, #ffffff);
+    border: 1px solid #d1d5db;
+    border-radius: 1.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .binder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40px;
+    height: 100%;
+    background: linear-gradient(90deg, 
+      #8B4513 0%, 
+      #A0522D 20%, 
+      #CD853F 40%, 
+      #DEB887 60%, 
+      #F5DEB3 80%, 
+      #F5DEB3 100%
+    );
+    background-size: 100% 100%;
+    border-top-left-radius: 1.5rem;
+    border-bottom-left-radius: 1.5rem;
+    z-index: 1;
+    box-shadow: inset -2px 0 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .binder::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 69, 19, 0.1) 2px,
+      rgba(139, 69, 19, 0.1) 4px
+    );
+    border-top-left-radius: 1.5rem;
+    border-bottom-left-radius: 1.5rem;
+  }
+
+  .page-content {
+    padding-left: 48px;
+    padding: 1rem;
+    z-index: 2;
+    position: relative;
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  /* Legacy demoPage class for backward compatibility */
+  .demoPage {
+    background: linear-gradient(to bottom, #fef3c7, #ffffff);
+    border: 1px solid #d1d5db;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    height: 100%;
+    width: 100%;
+    max-height: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .demoPage::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .demoPage::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+    }
+
+  .demoPage::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+  }
+
+  .demoPage::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+
+
+
+
+@keyframes rainbowBorder {
+  0% { 
+    background-position: 0% 50%; 
+    filter: blur(1.5px) hue-rotate(0deg);
+  }
+  25% { 
+    background-position: 50% 100%; 
+    filter: blur(1.5px) hue-rotate(90deg);
+  }
+  50% { 
+    background-position: 100% 50%; 
+    filter: blur(1.5px) hue-rotate(180deg);
+  }
+  75% { 
+    background-position: 50% 0%; 
+    filter: blur(1.5px) hue-rotate(270deg);
+  }
+  100% { 
+    background-position: 0% 50%; 
+    filter: blur(1.5px) hue-rotate(360deg);
+  }
+}
+
+@keyframes neonBlueBorder {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes neonGreenBorder {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes neonPurpleBorder {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes neonYellowBorder {
+  0%, 100% { box-shadow: 0 0 5px #ffff00, 0 0 10px #ffff00, 0 0 15px #ffff00; }
+  50% { box-shadow: 0 0 10px #ffff00, 0 0 20px #ffff00, 0 0 30px #ffff00; }
+}
+
+@keyframes pulse-green {
+  0%, 100% { 
+    box-shadow: 0 0 16px 4px #10b981, 0 0 32px 8px #10b981cc, 0 1px 4px 0 #05966988, 0 1.5px 3px rgba(5, 150, 105, 0.3), 0 0 2px rgba(255, 255, 255, 0.1);
+    background: #059669;
+  }
+  50% { 
+    box-shadow: 0 0 24px 6px #10b981, 0 0 48px 12px #10b981cc, 0 2px 6px 0 #05966988, 0 2px 4px rgba(5, 150, 105, 0.4), 0 0 3px rgba(255, 255, 255, 0.2);
+    background: #10b981;
+  }
+}
+
+.react-datepicker {
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* kill the neon border & glow on the calendar popup */
+.react-datepicker__month-container > div[style*="border: 2px solid rgb(0, 255, 247)"],
+div[style*="box-shadow: rgb(0, 255, 247)"] {
+  border: 1px solid #333 !important;
+  box-shadow: none !important;
+}
+
+/* Animated Rainbow Border Style */
+.animated-rainbow-border {
+  position: relative;
+  background: #111;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.animated-rainbow-border::before {
+  content: '';
+  position: absolute;
+  top: -18px;
+  left: -18px;
+  right: -18px;
+  bottom: -18px;
+  background: linear-gradient(45deg, 
+    #ff0000, #ff4000, #ff8000, #ffbf00, #ffff00, #bfff00, #80ff00, #40ff00, #00ff00, #00ff40, #00ff80, #00ffbf, #00ffff, #00bfff, #0080ff, #0040ff, #0000ff, #4000ff, #8000ff, #bf00ff, #ff00ff, #ff00bf, #ff0080, #ff0040, #ff0000
+  );
+  background-size: 300% 300%;
+  border-radius: 1rem;
+  z-index: -1;
+  animation: rainbowBorder 2s linear infinite;
+  filter: blur(1.5px);
+  box-shadow: 
+    0 0 10px rgba(255, 0, 0, 0.8),
+    0 0 20px rgba(255, 0, 0, 0.6),
+    0 0 30px rgba(255, 0, 0, 0.4),
+    0 0 40px rgba(255, 0, 0, 0.2);
+}
+
+.animated-rainbow-border::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #111;
+  border-radius: 1rem;
+  z-index: -1;
+  margin: 8px;
+}
+
+/* Neon Blue Border */
+.animated-neon-blue-border {
+  position: relative;
+  background: #111;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.animated-neon-blue-border::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, 
+    var(--neon-blue), #0080ff, var(--neon-blue), #00bfff, var(--neon-blue)
+  );
+  background-size: 400% 400%;
+  border-radius: 1rem;
+  z-index: -1;
+  animation: neonBlueBorder 2s ease-in-out infinite;
+  filter: blur(1px);
+}
+
+.animated-neon-blue-border::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #111;
+  border-radius: 1rem;
+  z-index: -1;
+  margin: 2px;
+}
+
+/* Neon Green Border */
+.animated-neon-green-border {
+  position: relative;
+  background: #111;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.animated-neon-green-border::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, 
+    var(--neon-green), #00cc00, var(--neon-green), #66ff66, var(--neon-green)
+  );
+  background-size: 400% 400%;
+  border-radius: 1rem;
+  z-index: -1;
+  animation: neonGreenBorder 2s ease-in-out infinite;
+  filter: blur(1px);
+}
+
+.animated-neon-green-border::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #111;
+  border-radius: 1rem;
+  z-index: -1;
+  margin: 2px;
+}
+
+/* Neon Purple Border */
+.animated-neon-purple-border {
+  position: relative;
+  background: #111;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.animated-neon-purple-border::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, 
+    var(--neon-purple), #9933ff, var(--neon-purple), #cc66ff, var(--neon-purple)
+  );
+  background-size: 400% 400%;
+  border-radius: 1rem;
+  z-index: -1;
+  animation: neonPurpleBorder 2s ease-in-out infinite;
+  filter: blur(1px);
+}
+
+.animated-neon-purple-border::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #111;
+  border-radius: 1rem;
+  z-index: -1;
+  margin: 2px;
+}
+
+/* Neon Yellow Border */
+.animated-neon-yellow-border {
+  position: relative;
+  background: #111;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.animated-neon-yellow-border::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, 
+    var(--neon-yellow), #ffcc00, var(--neon-yellow), #ffff66, var(--neon-yellow)
+  );
+  background-size: 400% 400%;
+  border-radius: 1rem;
+  z-index: -1;
+  animation: neonYellowBorder 2s ease-in-out infinite;
+  filter: blur(1px);
+}
+
+.animated-neon-yellow-border::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #111;
+  border-radius: 1rem;
+  z-index: -1;
+  margin: 2px;
+}
+
+/* Rainbow and Glow Animations for Animated Title */
+@keyframes rainbow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes glow {
+  0% { 
+    text-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 20px rgba(255,255,255,0.6), 0 0 30px rgba(255,255,255,0.4);
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.6));
+  }
+  50% { 
+    text-shadow: 0 0 15px rgba(255,255,255,1), 0 0 25px rgba(255,255,255,0.8), 0 0 35px rgba(255,255,255,0.6);
+    filter: drop-shadow(0 0 12px rgba(255,255,255,0.8));
+  }
+  100% { 
+    text-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 20px rgba(255,255,255,0.6), 0 0 30px rgba(255,255,255,0.4);
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.6));
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.custom-selection::selection {
+  background: #6ea8fe !important; /* Lighter blue than var(--favourite-blue) */
+  color: #fff;
+}
+
+/* Custom Selection Styles */
+.custom-selection::selection {
+  background: linear-gradient(45deg, #3b82f6, #1d4ed8);
+  color: white;
+}
+
+/* PDF Reader Modal Textarea Scrolling Fix */
+.pdf-reader-textarea {
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 #1f2937;
+}
+
+.pdf-reader-textarea::selection {
+  background-color: var(--favourite-blue) !important;
+  color: white !important;
+}
+
+.pdf-reader-textarea::-moz-selection {
+  background-color: var(--favourite-blue) !important;
+  color: white !important;
+}
+
+.pdf-reader-textarea::-webkit-scrollbar {
+  width: 8px;
+}
+
+.pdf-reader-textarea::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 4px;
+}
+
+.pdf-reader-textarea::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 4px;
+}
+
+.pdf-reader-textarea::-webkit-scrollbar-thumb:hover {
+  background: #1d4ed8;
+}
+
+/* Show FullCalendar's default header for all views */
+.fc-header-toolbar {
+  display: flex !important;
+}
+
+.fc-col-header {
+  display: table-row !important;
+}
+
+.fc-day-header {
+  display: table-cell !important;
+}
+
+/* Custom styling for day headers */
+.fc-day-header {
+  background-color: #1a1a1a !important;
+  color: white !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  padding: 12px 4px !important;
+  border: 1px solid #333 !important;
+  vertical-align: middle !important;
+  height: 60px !important;
+  min-height: 60px !important;
+}
+
+/* Ensure our custom dayHeaderContent is visible */
+.fc-day-header-custom {
+  display: block !important;
+}
+
+/* Calendar Font Colors - Ensure all text is white */
+.calendar-container {
+  color: white !important;
+}
+
+.calendar-header h3 {
+  color: white !important;
+}
+
+.calendar-days-header {
+  color: white !important;
+}
+
+.calendar-days-header div {
+  color: white !important;
+}
+
+.calendar-grid {
+  color: white !important;
+}
+
+.calendar-day {
+  color: white !important;
+}
+
+.calendar-day div {
+  color: white !important;
+}
+
+.timeline-hour {
+  color: white !important;
+}
+
+.timeline-hour div {
+  color: white !important;
+}
+
+.calendar-day-header {
+  color: white !important;
+}
+
+.calendar-day-header div {
+  color: white !important;
+}
+
+/* Calendar View Specific Styles */
+.calendar-month-view {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.calendar-week-view {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.calendar-day-view {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.day-timeline {
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+}
+
+/* Event Block Styles */
+.event-block {
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  margin: 1px;
+  overflow: hidden;
+}
+
+.event-block:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Time Column Styles */
+.time-column {
+  border-right: 1px solid #333;
+}
+
+.day-column {
+  border-right: 1px solid #333;
+}
+
+.day-column:last-child {
+  border-right: none;
+}
+
+/* Event Indicators */
+.event-indicators {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Calendar Grid Improvements */
+.calendar-day {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.calendar-day:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Week View Improvements */
+.calendar-week-view .grid {
+  border: 1px solid #333;
+}
+
+/* Day View Improvements */
+.timeline-hour {
+  border-left: 1px solid #333;
+  transition: all 0.2s ease;
+}
+
+.timeline-hour:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Week View Specific Improvements */
+.calendar-week-view .time-column {
+  background-color: #1a1a1a;
+  border-right: 2px solid #333;
+}
+
+.calendar-week-view .day-column {
+  background-color: #000;
+  position: relative;
+}
+
+.calendar-week-view .day-column:hover {
+  background-color: #0a0a0a;
+}
+
+/* Event positioning improvements */
+.event-block {
+  position: relative;
+  z-index: 10;
+}
+
+.event-block:hover {
+  z-index: 20;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Week view event blocks */
+.calendar-week-view .event-block {
+  margin: 1px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Day view event blocks */
+.calendar-day-view .event-block {
+  margin: 2px 0;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .calendar-week-view .grid {
+    font-size: 0.75rem;
+  }
+  
+  .calendar-week-view .time-column {
+    width: 60px;
+  }
+  
+  .calendar-day-view .timeline-hour {
+    height: 60px;
+  }
+}
