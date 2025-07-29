@@ -1,28 +1,46 @@
-const CACHE_NAME = 'umbukulo-v2';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/static/js/bundle.js',
-  '/static/css/main.css'
-];
+const CACHE_NAME = 'video-cache-v1';
+const VIDEO_URL = '/hologram1.mp4';
 
-// Install event - cache resources
+// Install event - cache the video file
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        console.log('Caching video file...');
+        return cache.add(VIDEO_URL);
+      })
+      .then(() => {
+        console.log('Video cached successfully');
+      })
+      .catch((error) => {
+        console.log('Failed to cache video:', error);
       })
   );
-  // Force the waiting service worker to become the active service worker
-  self.skipWaiting();
+});
+
+// Fetch event - serve cached video
+self.addEventListener('fetch', (event) => {
+  if (event.request.url.includes('hologram1.mp4')) {
+    event.respondWith(
+      caches.match(event.request)
+        .then((response) => {
+          if (response) {
+            console.log('Serving video from cache');
+            return response;
+          }
+          console.log('Video not in cache, fetching from network');
+          return fetch(event.request);
+        })
+        .catch((error) => {
+          console.log('Cache fetch failed:', error);
+          return fetch(event.request);
+        })
+    );
+  }
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -35,39 +53,4 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  // Take control of all clients immediately
-  self.clients.claim();
-});
-
-// Fetch event - serve from cache, fallback to network
-self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') return;
-
-  // Skip chrome-extension requests
-  if (event.request.url.startsWith('chrome-extension://')) return;
-
-  // Skip data URLs
-  if (event.request.url.startsWith('data:')) return;
-
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      })
-      .catch(() => {
-        // If both cache and network fail, return offline page
-        if (event.request.destination === 'document') {
-          return caches.match('/');
-        }
-      })
-  );
-});
-
-// Handle service worker updates
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
 }); 

@@ -118,6 +118,99 @@ export default function Home({ onShowAuth }: HomeProps) {
     // });
   }, []);
 
+  // Ensure video plays automatically with enhanced buffering and caching
+  useEffect(() => {
+    const videoElement = document.querySelector('video');
+    if (videoElement) {
+      // Set video properties for better playback
+      videoElement.muted = true;
+      videoElement.loop = true;
+      videoElement.playsInline = true;
+      videoElement.preload = 'auto';
+      
+      // Check if service worker is available for caching
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then((registration) => {
+          console.log('✅ Service Worker ready for video caching');
+        });
+      }
+      
+      const playVideo = async () => {
+        try {
+          // Wait for video to be ready with more data
+          if (videoElement.readyState >= 3) { // HAVE_FUTURE_DATA
+            await videoElement.play();
+            console.log('✅ Video autoplay successful (fully buffered)');
+          } else if (videoElement.readyState >= 2) { // HAVE_CURRENT_DATA
+            await videoElement.play();
+            console.log('✅ Video autoplay successful (partially buffered)');
+          } else {
+            console.log('⏳ Video not ready yet, waiting for more data...');
+            // Wait for video to load more data
+            setTimeout(playVideo, 1000);
+          }
+        } catch (error) {
+          console.log('❌ Autoplay failed, user interaction required:', error);
+          
+          // Add click listener to start video on first user interaction
+          const handleFirstClick = async () => {
+            try {
+              await videoElement.play();
+              console.log('✅ Video started on user interaction');
+              document.removeEventListener('click', handleFirstClick);
+            } catch (e) {
+              console.log('❌ Still failed to play:', e);
+            }
+          };
+          document.addEventListener('click', handleFirstClick);
+        }
+      };
+      
+      // Enhanced event listeners for better buffering
+      const handleCanPlay = () => {
+        console.log('🎬 Video can play, attempting autoplay...');
+        playVideo();
+      };
+      
+      const handleLoadedData = () => {
+        console.log('📦 Video data loaded, attempting autoplay...');
+        playVideo();
+      };
+      
+      const handleCanPlayThrough = () => {
+        console.log('🚀 Video can play through, attempting autoplay...');
+        playVideo();
+      };
+      
+      const handleProgress = () => {
+        if (videoElement.buffered.length > 0) {
+          const bufferedEnd = videoElement.buffered.end(videoElement.buffered.length - 1);
+          const duration = videoElement.duration;
+          const bufferedPercent = (bufferedEnd / duration) * 100;
+          console.log(`📊 Video buffered: ${bufferedPercent.toFixed(1)}%`);
+        }
+      };
+      
+      videoElement.addEventListener('canplay', handleCanPlay);
+      videoElement.addEventListener('loadeddata', handleLoadedData);
+      videoElement.addEventListener('canplaythrough', handleCanPlayThrough);
+      videoElement.addEventListener('progress', handleProgress);
+      
+      // Multiple retry attempts with increasing delays
+      playVideo();
+      setTimeout(playVideo, 2000);
+      setTimeout(playVideo, 5000);
+      setTimeout(playVideo, 10000); // Final attempt after 10 seconds
+      
+      return () => {
+        videoElement.removeEventListener('canplay', handleCanPlay);
+        videoElement.removeEventListener('loadeddata', handleLoadedData);
+        videoElement.removeEventListener('canplaythrough', handleCanPlayThrough);
+        videoElement.removeEventListener('progress', handleProgress);
+      };
+    }
+  }, []);
+
   // Handler for Ask Me button
   const handleAskMeClick = async () => {
     if (!message.trim()) {
@@ -328,25 +421,57 @@ export default function Home({ onShowAuth }: HomeProps) {
             
 
             
-            {/* Title Images Container */}
-            <div className="flex justify-center mt-4 mb-1">
-              <div className="flex items-right gap-2">
-                <img 
-                  src="/mapapp.jpg" 
-                  alt="Map App" 
-                  className="w-30 h-8 object-contain rounded-lg border border-black"
-                  style={{ width: '150px', height: '30px', objectFit: 'fill', marginLeft: '50px' }}
-                />
-                <img 
-                  src="/handshakeROUND.jpg" 
-                  alt="Handshake" 
-                  className="w-16 h-10 rounded-full shadow-lg bg-black m-2 object-cover"
-                />
-              </div>
+            {/* Video Title Container - Hologram MP4 */}
+            <div className="flex justify-center mt-4 mb-1 px-12">
+              <video 
+                autoPlay 
+                muted 
+                loop 
+                playsInline
+                preload="auto"
+                className="rounded-lg shadow-lg"
+                style={{ 
+                  width: '690px', 
+                  height: '80px', 
+                  objectFit: 'fill',
+                  backgroundColor: '#000'
+                }}
+                onLoadStart={() => console.log('Video loading started')}
+                onCanPlay={() => {
+                  console.log('Video can play');
+                  // Try to play again when it's ready
+                  const video = document.querySelector('video');
+                  if (video) {
+                    video.play().catch(e => console.log('Play failed:', e));
+                  }
+                }}
+                onPlay={() => console.log('Video started playing')}
+                onPause={() => console.log('Video paused')}
+                onEnded={(e) => {
+                  console.log('Video ended, restarting...');
+                  e.currentTarget.currentTime = 0;
+                  e.currentTarget.play().catch(e => console.log('Restart failed:', e));
+                }}
+                onError={(e) => {
+                  console.log('Video failed to load:', e);
+                  console.log('Video error details:', e.currentTarget.error);
+                }}
+              >
+                <source src="/hologram1.mp4" type="video/mp4" />
+                <div style={{ 
+                  width: '690px', 
+                  height: '80px', 
+                  backgroundColor: '#000', 
+                  color: '#fff', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  fontSize: '12px'
+                }}>
+                  Video not found
+                </div>
+              </video>
             </div>
-            
-            {/* Animated Title - absolutely positioned, does not affect layout */}
-            <AnimatedTitle />
             
             <div className="mt-2">
               <MessageBox 
@@ -375,7 +500,7 @@ export default function Home({ onShowAuth }: HomeProps) {
           </div>
           
           {/* Grid section */}
-          <div className="flex-1 min-h-0 pb-24 mt-2">
+          <div className="flex-1 min-h-0 pb-24 -mt-3">
             <AppGrid 
               onAskMeClick={handleAskMeClick}
               onTranslateClick={handleTranslateClick}
