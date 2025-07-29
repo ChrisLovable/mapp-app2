@@ -40,9 +40,18 @@ export default function AskMeTest() {
     }
   };
 
-  const handleChoice = async (mode: 'realtime' | 'general') => {
+  const handleChoice = async (questionData: string) => {
     // Close the choice modal first
     setShowModal(false);
+    
+    // Parse the question data
+    let parsedData;
+    try {
+      parsedData = JSON.parse(questionData);
+    } catch {
+      // If it's not JSON, treat it as a plain question
+      parsedData = { question: questionData, useRealTimeSearch: false };
+    }
     
     // Open the response modal and start loading
     setIsLoading(true);
@@ -53,10 +62,10 @@ export default function AskMeTest() {
     try {
       let response: string;
       
-      if (mode === 'realtime') {
-        response = await getRealTimeAnswer(question);
+      if (parsedData.useRealTimeSearch) {
+        response = await getRealTimeAnswer(parsedData.question);
       } else {
-        response = await getGPTAnswer(question);
+        response = await getGPTAnswer(parsedData.question);
       }
       
       setAnswer(response);
@@ -112,7 +121,7 @@ export default function AskMeTest() {
           isOpen={showModal}
           onClose={() => setShowModal(false)}
           question={question}
-          onSelect={handleChoice}
+          onConfirm={handleChoice}
         />
 
         <AskMeResponseModal

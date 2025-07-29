@@ -841,7 +841,7 @@ Example output format:
     return futureDate.toISOString().split('T')[0];
   };
 
-  const getNextWeekday = (weekday: string): string => {
+  const _getNextWeekday = (weekday: string): string => {
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const targetDay = days.indexOf(weekday.toLowerCase());
     const today = new Date();
@@ -953,7 +953,7 @@ Example output format:
               {/* Parsed Tasks Display */}
               {parsedTasks.length > 0 ? (
                 <div className="space-y-3">
-                  {parsedTasks.map((task, index) => (
+                  {parsedTasks.map((task, _index) => (
                     <div key={task.id} className="bg-black border-2 border-[var(--favourite-blue)] rounded-2xl p-4">
                       <div className="space-y-3">
                         {/* Description */}

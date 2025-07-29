@@ -1,21 +1,28 @@
 declare module 'react-speech-recognition' {
-  export interface SpeechRecognitionOptions {
+  interface SpeechRecognitionOptions {
     continuous?: boolean;
     interimResults?: boolean;
     lang?: string;
   }
 
-  export interface UseSpeechRecognitionReturn {
+  interface Command {
+    command: string;
+    callback: () => void;
+    matchInterim?: boolean;
+  }
+
+  interface SpeechRecognitionHook {
+    startListening(options?: SpeechRecognitionOptions): void;
+    stopListening(): void;
     transcript: string;
     listening: boolean;
-    resetTranscript: () => void;
+    resetTranscript(): void;
     browserSupportsSpeechRecognition: boolean;
   }
 
-  export function useSpeechRecognition(): UseSpeechRecognitionReturn;
-  
-  export default {
-    startListening: (options?: SpeechRecognitionOptions) => void;
-    stopListening: () => void;
-  };
-} 
+  function useSpeechRecognition(options?: {
+    commands?: Command[];
+  }): SpeechRecognitionHook;
+
+  export { useSpeechRecognition };
+}

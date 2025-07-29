@@ -52,21 +52,15 @@ export default function VoiceOutput({ message, language }: Props) {
   };
 
   // Show server status indicator
-  const getButtonStyle = () => {
+  const _getButtonStyle = () => {
     if (serverAvailable === false) {
       return {
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        borderColor: 'rgba(255, 255, 255, 0.8)',
-        color: '#ef4444',
+        background: '#333',
+        color: '#666',
         cursor: 'not-allowed'
       };
     }
-    return {
-      backgroundColor: speaking ? '#16a34a' : 'rgba(255, 255, 255, 0.1)',
-      borderColor: 'rgba(255, 255, 255, 0.8)',
-      color: speaking ? 'white' : 'var(--text-color)',
-      boxShadow: speaking ? '0 0 0 4px rgba(22, 163, 74, 0.6)' : '0 4px 6px rgba(0, 0, 0, 0.1)',
-    };
+    return {};
   };
 
   const getTooltipText = () => {

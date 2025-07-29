@@ -93,12 +93,12 @@ export function scheduleAlarm(
   targetTime: Date, 
   onTrigger: () => void,
   alarmId: string
-): NodeJS.Timeout | null {
+): NodeJS.Timeout | undefined {
   const delay = targetTime.getTime() - Date.now();
   
   if (delay <= 0) {
     console.warn("Alarm time is in the past or invalid");
-    return null;
+    return undefined;
   }
 
   const timeoutId = setTimeout(() => {

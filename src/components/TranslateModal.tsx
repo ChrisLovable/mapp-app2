@@ -1,6 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { getGPTAnswer } from '../lib/AskMeLogic';
-import { apiUsageTracker } from '../lib/ApiUsageTracker';
+import { useState, useRef, useEffect } from 'react';
 
 interface TranslateModalProps {
   isOpen: boolean;

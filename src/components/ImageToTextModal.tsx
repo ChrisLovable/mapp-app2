@@ -74,8 +74,11 @@ export default function ImageToTextModal({ isOpen, onClose }: ImageToTextModalPr
         quality: 0.8
       });
       
+      // Ensure convertedBlob is a single Blob, not an array
+      const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+      
       // Create a new File object from the converted blob
-      const convertedFile = new File([convertedBlob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+      const convertedFile = new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
         type: 'image/jpeg',
         lastModified: file.lastModified
       });

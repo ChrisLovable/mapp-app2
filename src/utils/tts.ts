@@ -51,7 +51,7 @@ class TTSService {
         signal: AbortSignal.timeout(3000)
       });
       return response.ok;
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn('TTS server not available:', error);
       return false;
     }
@@ -104,20 +104,22 @@ class TTSService {
       );
 
       return { success: true, audioUrl };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('TTS Error:', error);
       
       let errorMessage = 'Failed to generate speech';
       
-      if (error.name === 'AbortError') {
-        errorMessage = 'Request timed out. Please try again.';
-      } else if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
-        this.serverAvailable = false; // Update server status
-        errorMessage = 'Voice server is down. Please ensure the Azure TTS proxy is running on port 4000. You can start it by running: node azure-tts-proxy.js';
-      } else if (error.message.includes('No voice found')) {
-        errorMessage = 'Voice not available for this language. Please try a different language.';
-      } else {
-        errorMessage = `Failed to generate speech: ${error.message}`;
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timed out. Please try again.';
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+          this.serverAvailable = false; // Update server status
+          errorMessage = 'Voice server is down. Please ensure the Azure TTS proxy is running on port 4000. You can start it by running: node azure-tts-proxy.js';
+        } else if (error.message.includes('No voice found')) {
+          errorMessage = 'Voice not available for this language. Please try a different language.';
+        } else {
+          errorMessage = `Failed to generate speech: ${error.message}`;
+        }
       }
 
       // Track failed Azure TTS usage
@@ -170,7 +172,7 @@ export const generateAndPlaySpeech = async (options: TTSOptions): Promise<TTSRes
   if (result.success && result.audioUrl) {
     try {
       await ttsService.playAudio(result.audioUrl);
-    } catch (error) {
+    } catch (error: unknown) {
       return { success: false, error: 'Failed to play audio' };
     }
   }

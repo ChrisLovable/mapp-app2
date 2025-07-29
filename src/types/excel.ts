@@ -9,6 +9,7 @@ export interface ExcelFile {
 export interface ChunkingResult {
   totalChunks: number;
   chunks: Chunk[];
+  processingTime?: number;
 }
 
 export interface Chunk {

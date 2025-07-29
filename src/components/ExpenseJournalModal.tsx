@@ -442,7 +442,7 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
               onDateSelect={setEndDate}
               isOpen={showEndCalendar}
               onClose={() => setShowEndCalendar(false)}
-              minDate={startDate}
+              minDate={startDate || undefined}
               maxDate={new Date()}
             />
           </div>

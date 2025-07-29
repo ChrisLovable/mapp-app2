@@ -97,7 +97,7 @@ export class OpenAIImageService {
         console.log('Request Body:', JSON.stringify(requestBody, null, 2));
         console.log('===========================================');
 
-        const response = await fetch(endpoint, {
+        const _response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -124,7 +124,7 @@ export class OpenAIImageService {
            console.log('=====================================');
         }
 
-        const response = await fetch(endpoint, {
+        const _response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -134,13 +134,13 @@ export class OpenAIImageService {
         });
 
         console.log('=== API RESPONSE STATUS ===');
-        console.log('Response Status:', response.status);
-        console.log('Response Status Text:', response.statusText);
+        console.log('Response Status:', _response.status);
+        console.log('Response Status Text:', _response.statusText);
         console.log('===========================');
         
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          const errorMessage = errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+        if (!_response.ok) {
+          const errorData = await _response.json().catch(() => ({}));
+          const errorMessage = errorData.error?.message || `HTTP ${_response.status}: ${_response.statusText}`;
           
           console.error('OpenAI API error:', errorMessage);
           console.log('Error Data:', JSON.stringify(errorData, null, 2));
@@ -163,7 +163,7 @@ export class OpenAIImageService {
           };
         }
 
-        const data = await response.json();
+        const data = await _response.json();
         
         console.log('=== API RESPONSE DATA ===');
         console.log('Response Data:', JSON.stringify(data, null, 2));
@@ -241,7 +241,7 @@ export class OpenAIImageService {
   }
 
   // Helper method to convert base64 to blob
-  private async base64ToBlob(base64: string, mimeType: string): Promise<Blob> {
+  private async _base64ToBlob(base64: string, mimeType: string): Promise<Blob> {
     const byteCharacters = atob(base64);
     const byteNumbers = new Array(byteCharacters.length);
     for (let i = 0; i < byteCharacters.length; i++) {

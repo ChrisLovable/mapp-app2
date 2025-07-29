@@ -112,15 +112,10 @@ Answer:`)
     context += `File Size: ${formatFileSize(file.size)}\n\n`
     
     context += `SHEETS INFORMATION:\n`
-    file.sheets.forEach((sheet, index) => {
-      context += `\nSheet ${index + 1}: ${sheet.name}\n`
-      context += `  Rows: ${sheet.rowCount}\n`
-      context += `  Columns: ${sheet.columnCount}\n`
-      context += `  Headers: ${sheet.headers.join(', ')}\n`
-      context += `  Preview Data:\n`
-      sheet.previewData.forEach((row, rowIndex) => {
-        context += `    Row ${rowIndex + 1}: ${row.join(' | ')}\n`
-      })
+    file.sheets.forEach((sheetName, index) => {
+      context += `\nSheet ${index + 1}: ${sheetName}\n`
+      // Since we don't have detailed sheet info, we'll just show the sheet name
+      context += `  Sheet Name: ${sheetName}\n`
     })
     
     return context

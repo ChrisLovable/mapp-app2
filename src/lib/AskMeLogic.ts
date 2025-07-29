@@ -7,11 +7,6 @@ interface WebSearchResult {
   url: string;
 }
 
-interface GPTResponse {
-  answer: string;
-  model: string;
-}
-
 // Model suggestion type
 export interface ModelSuggestion {
   modelId: string;

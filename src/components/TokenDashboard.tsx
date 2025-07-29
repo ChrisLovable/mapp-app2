@@ -51,7 +51,7 @@ export default function TokenDashboard({ isOpen, onClose }: TokenDashboardProps)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
+  const [_timeRange, _setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
   
   const liveUpdateInterval = useRef<NodeJS.Timeout | null>(null);
   const apiBaseUrl = 'http://localhost:4002/api';

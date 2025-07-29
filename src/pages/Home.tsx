@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import AppGrid from '../components/AppGrid';
 import MessageBox from '../components/MessageBox';
 import CommandButtons from '../components/CommandButtons';
-import AskMeModal, { containsTrigger } from '../components/AskMeModal';
+import AskMeModal from '../components/AskMeModal';
 import AskMeResponseModal from '../components/AskMeResponseModal';
 import AIModelSelectorModal from '../components/AIModelSelectorModal';
 import TranslateModal from '../components/TranslateModal';
@@ -16,11 +16,8 @@ import ExpenseModal from '../components/ExpenseModal';
 import SmartMeetingRecorder from '../components/SmartMeetingRecorder';
 import ImageGeneratorModal from '../components/ImageGeneratorModal';
 import AdminDashboard from '../components/AdminDashboard';
-import TokenDashboard from '../components/TokenDashboard';
 import CalendarModal from '../components/CalendarModal';
 import DiaryModal from '../components/CreateDiaryEntryModal';
-import ExpenseJournalModal from '../components/ExpenseJournalModal';
-import MeetingMinutesModal from '../components/MeetingMinutesModal';
 import { getGPTAnswer, getRealTimeAnswer } from '../lib/AskMeLogic';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -73,20 +70,20 @@ interface HomeProps {
 }
 
 export default function Home({ onShowAuth }: HomeProps) {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const [message, setMessage] = useState('');
-  const [language, setLanguage] = useState('en-GB');
-  const [languages, setLanguages] = useState<LanguageOption[]>([]);
+  const [language, _setLanguage] = useState('en-GB');
+  const [_languages, setLanguages] = useState<LanguageOption[]>([]);
   const [isDiaryModalOpen, setIsDiaryModalOpen] = useState(false);
   const [isAskMeModalOpen, setIsAskMeModalOpen] = useState(false);
   const [isAskMeResponseModalOpen, setIsAskMeResponseModalOpen] = useState(false);
   const [isAIModelSelectorModalOpen, setIsAIModelSelectorModalOpen] = useState(false);
-  const [isAlarmModalOpen, setIsAlarmModalOpen] = useState(false);
-  const [isAlarmPopupOpen, setIsAlarmPopupOpen] = useState(false);
+  const [_isAlarmModalOpen, _setIsAlarmModalOpen] = useState(false);
+  const [_isAlarmPopupOpen, _setIsAlarmPopupOpen] = useState(false);
   const [isTranslateModalOpen, setIsTranslateModalOpen] = useState(false);
   const [isRewriteModalOpen, setIsRewriteModalOpen] = useState(false);
-  const [isDashboardModalOpen, setIsDashboardModalOpen] = useState(false);
-  const [currentAlarm, setCurrentAlarm] = useState<any | null>(null); // Changed type to any
+  const [_isDashboardModalOpen, _setIsDashboardModalOpen] = useState(false);
+  const [_currentAlarm, _setCurrentAlarm] = useState<any | null>(null); // Changed type to any
   const [isLoading, setIsLoading] = useState(false);
   const [askMeResponse, setAskMeResponse] = useState('');
   const [askMeError, setAskMeError] = useState('');
@@ -100,14 +97,14 @@ export default function Home({ onShowAuth }: HomeProps) {
   const [translateWarning, setTranslateWarning] = useState('');
   const [isSmartMeetingRecorderOpen, setIsSmartMeetingRecorderOpen] = useState(false);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
-  const [isMindGamesModalOpen, setIsMindGamesModalOpen] = useState(false);
+  const [_isMindGamesModalOpen, _setIsMindGamesModalOpen] = useState(false);
   const [isImageGeneratorModalOpen, setIsImageGeneratorModalOpen] = useState(false);
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
-  const [isTokenDashboardOpen, setIsTokenDashboardOpen] = useState(false);
-  const [excelFile, setExcelFile] = useState<any | null>(null); // Changed type to any
+  const [_isTokenDashboardOpen, _setIsTokenDashboardOpen] = useState(false);
+  const [_excelFile, _setExcelFile] = useState<any | null>(null); // Changed type to any
   const [askMeWarning, setAskMeWarning] = useState('');
-  const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-4o');
-  const [clearKey, setClearKey] = useState<number>(0);
+  const [_selectedModel, _setSelectedModel] = useState<string>('openai/gpt-4o');
+  const [clearKey, _setClearKey] = useState<number>(0);
 
   useEffect(() => {
     setLanguages(SUPPORTED_LANGUAGES);
@@ -133,7 +130,7 @@ export default function Home({ onShowAuth }: HomeProps) {
   };
 
   const handleAIModelSubmit = async (model: string) => {
-    setSelectedModel(model);
+    _setSelectedModel(model);
     setIsAIModelSelectorModalOpen(false);
     try {
       setIsLoading(true);
@@ -146,12 +143,12 @@ export default function Home({ onShowAuth }: HomeProps) {
       const containsTriggerWords = triggerWords.some(word => message.toLowerCase().includes(word));
       
       // Step 2: Try real-time search first for time-sensitive queries
-      if (containsTriggerWords && model === 'openai/gpt-4o') {
+      if (containsTriggerWords && _selectedModel === 'openai/gpt-4o') {
         console.log('🔍 Detected time-sensitive query, trying SerpAPI first...');
         setSource('🕵️ Real-time Web Search');
         
         try {
-          const realTimeResult = await getRealTimeAnswer(message, model);
+          const realTimeResult = await getRealTimeAnswer(message, _selectedModel);
           console.log('✅ Using real-time result:', realTimeResult);
           setAskMeResponse(realTimeResult);
           return; // Exit early, don't fall back to GPT
@@ -162,8 +159,8 @@ export default function Home({ onShowAuth }: HomeProps) {
       }
 
       // Step 3: Fallback to regular GPT response
-      setSource(`🤖 ${model}`);
-      const response = await getGPTAnswer(message, model);
+      setSource(`🤖 ${_selectedModel}`);
+      const response = await getGPTAnswer(message, _selectedModel);
       setAskMeResponse(response);
       
     } catch (error) {
@@ -219,7 +216,7 @@ export default function Home({ onShowAuth }: HomeProps) {
 
   // Handler for MindGames button
   const handleMindGamesClick = () => {
-    setIsMindGamesModalOpen(true);
+    _setIsMindGamesModalOpen(true);
   };
 
   // Handler for Image Generator button
@@ -232,7 +229,7 @@ export default function Home({ onShowAuth }: HomeProps) {
   };
 
   const handleDashboardClick = () => {
-    setIsTokenDashboardOpen(true);
+    _setIsTokenDashboardOpen(true);
   };
 
   // Handler for text changes in RewriteModal
