@@ -104,7 +104,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
           setShowVerificationMessage(true);
           setMessage('Please check your email for verification link! Check your spam folder if you don\'t see it.');
           setMessageType('success');
-        } else if (data.session) {
+        } else if (data.session && data.user) {
           // Auto-confirmed (if email confirmation is disabled)
           console.log('User auto-confirmed:', data.user.email);
           onAuthSuccess(data.user);
@@ -273,7 +273,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autocomplete="email"
+                autoComplete="email"
                 required
                 className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/40 text-white placeholder-white/60 transition-all duration-300"
                 placeholder="Enter your email"
@@ -289,7 +289,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autocomplete={isSignUp ? "new-password" : "current-password"}
+                autoComplete={isSignUp ? "new-password" : "current-password"}
                 required
                 minLength={6}
                 className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/40 text-white placeholder-white/60 transition-all duration-300"
