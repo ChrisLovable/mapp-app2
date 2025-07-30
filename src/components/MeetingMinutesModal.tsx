@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useSpeechToText } from '../hooks/useSpeechToText';
 
 interface MeetingMinutesModalProps {
   isOpen: boolean;
@@ -27,10 +28,25 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
   const recordedChunksRef = useRef<Blob[]>([]);
   const currentStreamRef = useRef<MediaStream | null>(null);
   
-  // Speech Recognition refs
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
+  // 🛡️ MOBILE-PROOF: Use the protected speech-to-text hook
+  const {
+    isListening,
+    startListening,
+    stopListening,
+    transcript,
+    isSupported
+  } = useSpeechToText({
+    language: 'en-US',
+    continuous: true,
+    interimResults: true,
+    onResult: (text) => {
+      console.log('🎤 MeetingMinutesModal transcript:', text);
+      setMeetingContent(prev => prev + ' ' + text);
+    },
+    onError: (error) => {
+      console.error('❌ MeetingMinutesModal speech error:', error);
+    }
+  });
 
   // Recording Core Logic
   const startRecording = async () => {
@@ -61,21 +77,14 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
       setIsRecording(true);
       setIsPaused(false);
       
-      // Clear previous content and initialize speech recognition
+      // Clear previous content and start speech recognition
       setMeetingContent('');
-      setTranscript('');
       
-      // Initialize speech recognition only when recording starts
-      if (!recognitionRef.current) {
-        initializeSpeechRecognition();
-      }
-      
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-        } catch (error) {
-          console.error('Error starting speech recognition:', error);
-        }
+      // 🛡️ MOBILE-PROOF: Use protected hook for speech recognition
+      try {
+        startListening();
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
       }
     } catch (err) {
       console.error('Error starting recording:', err);
@@ -91,15 +100,12 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
     setIsRecording(false);
     setIsPaused(true);
     
-    // Stop speech recognition and clear interim transcript
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (error) {
-        console.error('Error stopping speech recognition:', error);
-      }
+    // 🛡️ MOBILE-PROOF: Stop speech recognition using protected hook
+    try {
+      stopListening();
+    } catch (error) {
+      console.error('Error stopping speech recognition:', error);
     }
-    setTranscript('');
   };
 
   const resumeRecording = async () => {
@@ -131,14 +137,11 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
       setIsRecording(true);
       setIsPaused(false);
       
-      // Clear interim transcript and resume speech recognition
-      setTranscript('');
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-        } catch (error) {
-          console.error('Error resuming speech recognition:', error);
-        }
+      // 🛡️ MOBILE-PROOF: Resume speech recognition using protected hook
+      try {
+        startListening();
+      } catch (error) {
+        console.error('Error resuming speech recognition:', error);
       }
     } catch (err) {
       console.error('Error resuming recording:', err);
@@ -157,13 +160,11 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
       currentStreamRef.current.getTracks().forEach(track => track.stop());
     }
     
-    // Stop speech recognition
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (error) {
-        console.error('Error stopping speech recognition:', error);
-      }
+    // 🛡️ MOBILE-PROOF: Stop speech recognition using protected hook
+    try {
+      stopListening();
+    } catch (error) {
+      console.error('Error stopping speech recognition:', error);
     }
     
     // Create blob from recorded chunks
@@ -274,67 +275,7 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
 
   // Initialize Speech Recognition - REMOVED AUTOMATIC INITIALIZATION
   // Speech recognition will now only be initialized when user starts recording
-  const initializeSpeechRecognition = () => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      
-      const recognition = recognitionRef.current;
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        console.log('Speech recognition started');
-      };
-
-      recognition.onresult = (event) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + ' ';
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-
-        if (finalTranscript) {
-          setMeetingContent(prev => prev + finalTranscript);
-          setTranscript('');
-        } else {
-          setTranscript(interimTranscript);
-        }
-      };
-
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        // Only stop recording if it's a fatal error, not just a pause
-        if (event.error === 'no-speech' || event.error === 'audio-capture') {
-          // These are recoverable errors, don't stop recording
-          return;
-        }
-        if (!isPaused) {
-          setIsRecording(false);
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-    }
-  };
-
-  // Effect to initialize speech recognition when recording starts
-  useEffect(() => {
-    if (isRecording && !recognitionRef.current) {
-      initializeSpeechRecognition();
-    }
-  }, [isRecording]);
+  // 🛡️ MOBILE-PROOF: Speech recognition is now handled by the protected hook
 
   if (!isOpen) return null;
 

@@ -938,7 +938,10 @@ Return ONLY the JSON array:`;
     if (isListening) {
       stopListening();
     } else {
-      startListening();
+      // 🛡️ MOBILE-PROOF: Wrap in requestAnimationFrame to avoid flicker/duplication
+      requestAnimationFrame(() => {
+        startListening();
+      });
     }
   };
 

@@ -81,7 +81,10 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
     if (isListening) {
       stopListening();
     } else {
-      startListening();
+      // 🛡️ MOBILE-PROOF: Wrap in requestAnimationFrame to avoid flicker/duplication
+      requestAnimationFrame(() => {
+        startListening();
+      });
     }
   };
 

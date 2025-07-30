@@ -250,7 +250,10 @@ Please provide a clear, accurate answer based only on the information in the ext
     if (isListening) {
       stopListening();
     } else {
-      startListening();
+      // 🛡️ MOBILE-PROOF: Wrap in requestAnimationFrame to avoid flicker/duplication
+      requestAnimationFrame(() => {
+        startListening();
+      });
     }
   };
 
