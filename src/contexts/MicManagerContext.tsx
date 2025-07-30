@@ -118,7 +118,7 @@ export function MicManagerProvider({ children }: MicManagerProviderProps) {
           'language-not-supported': 'Language not supported.'
         };
         
-        const errorMessage = errorMessages[event.error] || `Speech recognition error: ${event.error}`;
+        const errorMessage = errorMessages[event.error as keyof typeof errorMessages] || `Speech recognition error: ${event.error}`;
         showError('Microphone Error', errorMessage);
         
         // Notify all error handlers
