@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSmartSpeechToText } from '../hooks/useSmartSpeechToText';
-import { useSmartAskMe } from '../hooks/useSmartAskMe';
+import { useLLMRouter } from '../hooks/useLLMRouter';
 
 interface AskMeModalProps {
   isOpen: boolean;
@@ -58,17 +58,23 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
     }
   });
 
-  // 🧠 SMART: Use the smart AskMe hook
+  // 🧠 SMART: Use the coordinated LLM router
   const {
-    isLoading,
     answer,
+    loading: isLoading,
     error,
     method,
     confidence,
+    source,
     askQuestion,
     clearAnswer,
-    isTimeSensitive: checkTimeSensitive
-  } = useSmartAskMe();
+    cancelRequest
+  } = useLLMRouter({
+    timeout: 15000,
+    enableVIRL: true,
+    enableGPT: true,
+    enableFallback: true
+  });
 
   // Reset current question when modal opens
   useEffect(() => {
@@ -81,7 +87,11 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
       
       // 🧠 SMART: Check if the question is time-sensitive using smart logic
       const fullQuestion = question || '';
-      const timeSensitive = checkTimeSensitive(fullQuestion);
+      const timeSensitive = fullQuestion.toLowerCase().includes('now') || 
+                           fullQuestion.toLowerCase().includes('latest') || 
+                           fullQuestion.toLowerCase().includes('current') ||
+                           fullQuestion.toLowerCase().includes('today') ||
+                           fullQuestion.toLowerCase().includes('news');
       console.log('🔍 Smart time-sensitive check:', { question: fullQuestion, timeSensitive });
       setIsTimeSensitive(timeSensitive);
       setUseRealTimeSearch(timeSensitive);
@@ -89,7 +99,7 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
       // Clear any previous answers
       clearAnswer();
     }
-  }, [isOpen, question, checkTimeSensitive, clearAnswer]);
+  }, [isOpen, question, clearAnswer]);
 
   // 🛡️ MOBILE-PROOF: Handle microphone toggle with protected hook
   const handleMicToggle = () => {
