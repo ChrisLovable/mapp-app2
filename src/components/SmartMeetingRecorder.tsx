@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import CustomDatePicker from './CustomDatePicker';
 import Select from 'react-select';
 import { supabase } from '../lib/supabase';
+import { useSmartSpeechToText } from '../hooks/useSmartSpeechToText';
 
 interface SmartMeetingRecorderProps {
   isOpen: boolean;
@@ -37,8 +38,28 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
     message: string;
   } | null>(null);
 
-  // Refs for speech recognition
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // 🛡️ MOBILE-PROOF: Use the global mic manager
+  const {
+    isListening,
+    startListening,
+    stopListening,
+    transcript: globalTranscript,
+    isSupported: isSpeechRecognitionSupported
+  } = useSmartSpeechToText({
+    language: selectedLanguage,
+    continuous: true,
+    interimResults: true,
+    onResult: (text, isFinal) => {
+      if (isFinal) {
+        setTranscript(prev => prev + text);
+        setMeetingRecording(prev => prev + text);
+      }
+    },
+    onError: (error) => {
+      console.error('Speech recognition error:', error);
+      setError(`Speech recognition error: ${error}`);
+    }
+  });
   
   // Ref to track current state values for onend handler
   const stateRef = useRef({
@@ -50,65 +71,7 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
 
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-  // Speech Recognition Support Check
-  const isSpeechRecognitionSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-
-  // Initialize speech recognition only when needed
-  const initializeSpeechRecognition = () => {
-    if (isSpeechRecognitionSupported) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      
-      const recognition = recognitionRef.current;
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = selectedLanguage;
-
-      recognition.onstart = () => {
-        setError(null);
-      };
-
-      recognition.onresult = (event) => {
-        let finalTranscript = '';
-        let currentInterimTranscript = '';
-        let maxConfidence = 0;
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          const transcript = result[0].transcript;
-          const confidence = result[0].confidence;
-          
-          if (result.isFinal) {
-            finalTranscript += transcript + ' ';
-            maxConfidence = Math.max(maxConfidence, confidence);
-          } else {
-            currentInterimTranscript += transcript;
-          }
-        }
-
-        if (finalTranscript) {
-          setTranscript(prev => prev + finalTranscript);
-          setMeetingRecording(prev => prev + finalTranscript);
-          setInterimTranscript('');
-          setConfidence(maxConfidence);
-        } else {
-          setInterimTranscript(currentInterimTranscript);
-        }
-      };
-
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setError(`Speech recognition error: ${event.error}`);
-        setIsRecording(false);
-        setIsPaused(false);
-      };
-
-      recognition.onend = () => {
-        setIsRecording(false);
-        setIsPaused(false);
-      };
-    }
-  };
+  // 🛡️ MOBILE-PROOF: Speech recognition is now handled by the global mic manager
 
   // startRecording function
   const startRecording = async () => {
@@ -121,24 +84,11 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
       setTranscript('');
       setMeetingRecording('');
       
-      // Initialize speech recognition only when recording starts
-      if (!recognitionRef.current) {
-        initializeSpeechRecognition();
-      }
-      
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-          setIsRecording(true);
-          setIsPaused(false);
-          stateRef.current = { ...stateRef.current, isRecording: true, isPaused: false, fallbackTimeout: null };
-        } catch (error) {
-          console.error('Error starting speech recognition:', error);
-          throw new Error('Failed to start speech recognition');
-        }
-      } else {
-        throw new Error('Speech recognition not available');
-      }
+      // 🛡️ MOBILE-PROOF: Use the global mic manager
+      await startListening();
+      setIsRecording(true);
+      setIsPaused(false);
+      stateRef.current = { ...stateRef.current, isRecording: true, isPaused: false, fallbackTimeout: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start transcription';
       setError(errorMessage);
@@ -154,19 +104,11 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
       
       // Don't clear previous content - continue from where we left off
       
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-          setIsRecording(true);
-          setIsPaused(false);
-          stateRef.current = { ...stateRef.current, isRecording: true, isPaused: false, fallbackTimeout: null };
-        } catch (error) {
-          console.error('Error starting speech recognition:', error);
-          throw new Error('Failed to start speech recognition');
-        }
-      } else {
-        throw new Error('Speech recognition not available');
-      }
+      // 🛡️ MOBILE-PROOF: Use the global mic manager
+      await startListening();
+      setIsRecording(true);
+      setIsPaused(false);
+      stateRef.current = { ...stateRef.current, isRecording: true, isPaused: false, fallbackTimeout: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start transcription';
       setError(errorMessage);
@@ -175,16 +117,10 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
   };
 
   const pauseRecording = () => {
-    if (!isRecording || !recognitionRef.current) return;
+    if (!isRecording) return;
     
-    // Stop speech recognition
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (error) {
-        console.error('Error stopping speech recognition:', error);
-      }
-    }
+    // 🛡️ MOBILE-PROOF: Use the global mic manager
+    stopListening();
     
     setIsRecording(false);
     setIsPaused(true);
@@ -195,33 +131,16 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
     if (!isPaused) return;
 
     try {
-      if (recognitionRef.current) {
-        setIsResuming(true);
-        stateRef.current = { ...stateRef.current, isResuming: true };
+      setIsResuming(true);
+      stateRef.current = { ...stateRef.current, isResuming: true };
 
-        recognitionRef.current.stop();
-
-        // ⏱ Fallback: restart if onend doesn't fire
-        const fallbackTimeout = setTimeout(() => {
-          if (stateRef.current.isResuming && recognitionRef.current) {
-            setIsResuming(false);
-            setIsRecording(true);
-            setIsPaused(false);
-            stateRef.current = { ...stateRef.current, isResuming: false, isRecording: true, isPaused: false, fallbackTimeout: null };
-            try {
-              recognitionRef.current.start();
-            } catch (error) {
-              console.error('Resume fallback failed to start recognition:', error);
-              setError('Resume fallback failed. Please try again.');
-              setIsRecording(false);
-              stateRef.current = { ...stateRef.current, isRecording: false, fallbackTimeout: null };
-            }
-          }
-        }, 1000); // 1 second
-
-        // Store the timeout ID so onend can clear it
-        stateRef.current.fallbackTimeout = fallbackTimeout;
-      }
+      // 🛡️ MOBILE-PROOF: Use the global mic manager
+      await startListening();
+      
+      setIsResuming(false);
+      setIsRecording(true);
+      setIsPaused(false);
+      stateRef.current = { ...stateRef.current, isResuming: false, isRecording: true, isPaused: false, fallbackTimeout: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to resume transcription';
       setError(errorMessage);
@@ -234,14 +153,8 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
   const endRecording = () => {
     if (!isRecording && !isPaused) return;
     
-    // Stop speech recognition
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (error) {
-        console.error('Error stopping speech recognition:', error);
-      }
-    }
+    // 🛡️ MOBILE-PROOF: Use the global mic manager
+    stopListening();
     
     // Reset state
     setIsRecording(false);

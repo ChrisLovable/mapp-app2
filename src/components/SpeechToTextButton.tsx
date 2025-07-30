@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSpeechToText, useContinuousSpeechToText, useMobileSpeechToText } from '../hooks/useSpeechToText';
+import { useSmartSpeechToText } from '../hooks/useSmartSpeechToText';
 
 interface SpeechToTextButtonProps {
   onResult: (text: string) => void;
@@ -34,13 +34,13 @@ export const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
     startListening,
     stopListening,
     isSupported
-  } = useSpeechToText({
+  } = useSmartSpeechToText({
     language,
     continuous,
     interimResults,
     onResult,
     onError,
-    onStart
+    onEnd: onStart
   });
 
   // Add mobile duplication protection
@@ -166,11 +166,13 @@ export const ContinuousSpeechToTextButton: React.FC<SpeechToTextButtonProps> = (
     startListening,
     stopListening,
     isSupported
-  } = useContinuousSpeechToText({
+  } = useSmartSpeechToText({
     language,
+    continuous: true,
+    interimResults: true,
     onResult,
     onError,
-    onStart
+    onEnd: onStart
   });
 
   // Add mobile duplication protection
@@ -297,11 +299,13 @@ export const MobileSpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
     startListening,
     stopListening,
     isSupported
-  } = useMobileSpeechToText({
+  } = useSmartSpeechToText({
     language,
+    continuous: true,
+    interimResults: true,
     onResult,
     onError,
-    onStart
+    onEnd: onStart
   });
 
   // Add mobile duplication protection

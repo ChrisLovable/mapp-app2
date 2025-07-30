@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useSmartSpeechToText } from '../hooks/useSmartSpeechToText';
 
 interface SpeechToTextProps {
   onTranscriptChange: (transcript: string) => void;
@@ -15,102 +16,44 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
   className = '',
   children
 }) => {
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const recognitionRef = useRef<any>(null);
-  const isSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  // 🛡️ MOBILE-PROOF: Use the global mic manager
+  const {
+    isListening,
+    startListening,
+    stopListening,
+    transcript,
+    isSupported
+  } = useSmartSpeechToText({
+    language,
+    continuous: true,
+    interimResults: true,
+    onResult: (text, isFinal) => {
+      if (isFinal) {
+        onTranscriptChange?.(text);
+      }
+    },
+    onError: (error) => {
+      console.error('❌ SpeechToText error:', error);
+    }
+  });
+  
   // 🔧 FIX: Add visual state that updates immediately
   const [isVisuallyListening, setIsVisuallyListening] = useState(false);
   // 🛡️ MOBILE-PROOF: Add locked flag to prevent duplication
   const [locked, setLocked] = useState(false);
 
-  const startListening = useCallback(() => {
-    if (!isSupported) {
-      console.error('Speech recognition not supported');
-      return;
+  // 🛡️ MOBILE-PROOF: Handle microphone toggle with protected hook
+  const handleMicToggle = () => {
+    console.log('🎤 SpeechToText mic toggle:', isListening ? 'stop' : 'start');
+    if (isListening) {
+      stopListening();
+    } else {
+      // 🛡️ MOBILE-PROOF: Wrap in requestAnimationFrame to avoid flicker/duplication
+      requestAnimationFrame(() => {
+        startListening();
+      });
     }
-
-    // 🔧 FIX: Check if we're on HTTP and show warning
-    if (window.location.protocol === 'http:' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-      // 🔧 TEMPORARY: Allow HTTP for testing
-      console.log('🎤 Mobile HTTP detected - attempting speech recognition anyway');
-      // alert('🎤 Mobile browsers require HTTPS for microphone access.\n\nPlease try:\n1. Use Chrome on Android\n2. Use Safari on iOS\n3. Or access via HTTPS if available');
-      // return;
-    }
-
-    // 🔧 FIX: Remove the isListening check to allow restarting
-    try {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = language;
-
-      recognition.onstart = () => {
-        console.log('🎤 Speech recognition started');
-        setIsListening(true);
-        onListeningChange?.(true);
-      };
-
-      recognition.onresult = (event: any) => {
-        console.log('🎤 Speech recognition result:', event.results);
-        let finalTranscript = '';
-        let interimTranscript = '';
-
-        // Process all results
-        for (let i = 0; i < event.results.length; i++) {
-          const result = event.results.item(i);
-          const transcript = result.item(0).transcript;
-          
-          if (result.isFinal) {
-            finalTranscript += transcript + ' ';
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-
-        // Combine final and interim results
-        const combinedTranscript = (finalTranscript + interimTranscript).trim();
-        
-        console.log('🎤 Combined transcript:', combinedTranscript);
-        
-        // Update local state and notify parent
-        setTranscript(combinedTranscript);
-        onTranscriptChange(combinedTranscript);
-      };
-
-      recognition.onend = () => {
-        console.log('🎤 Speech recognition ended');
-        setIsListening(false);
-        onListeningChange?.(false);
-        // 🔧 FIX: Don't reset visual state immediately - let user control it
-        // setIsVisuallyListening(false);
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error('🎤 Speech recognition error:', event.error);
-        // 🔧 FIX: Don't reset visual state on error - let user control it
-        setIsListening(false);
-        onListeningChange?.(false);
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (error) {
-      console.error('🎤 Error starting speech recognition:', error);
-      // 🔧 FIX: Don't reset visual state on error - let user control it
-      // setIsVisuallyListening(false);
-    }
-  }, [isSupported, language, onListeningChange, onTranscriptChange]);
-
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-      onListeningChange?.(false);
-    }
-  }, [onListeningChange]);
+  };
 
   const toggleListening = useCallback(() => {
     // 🛡️ MOBILE-PROOF: Early exit if locked
@@ -139,16 +82,15 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
   }, [isVisuallyListening, startListening, stopListening, locked]);
 
   const clearTranscript = useCallback(() => {
-    setTranscript('');
+    // Transcript is now managed by the global mic manager
+    console.log('🎤 SpeechToText: Transcript clear requested');
     onTranscriptChange('');
   }, [onTranscriptChange]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - no longer needed as mic manager handles cleanup
   useEffect(() => {
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      // Cleanup is handled by the global mic manager
     };
   }, []);
 

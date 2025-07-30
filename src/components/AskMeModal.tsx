@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSpeechToText } from '../hooks/useSpeechToText';
+import { useSmartSpeechToText } from '../hooks/useSmartSpeechToText';
 import { useSmartAskMe } from '../hooks/useSmartAskMe';
 
 interface AskMeModalProps {
@@ -31,14 +31,14 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
   const [useRealTimeSearch, setUseRealTimeSearch] = useState(false);
   const [isTimeSensitive, setIsTimeSensitive] = useState(false);
   
-  // 🛡️ MOBILE-PROOF: Use the protected speech-to-text hook
+  // 🛡️ MOBILE-PROOF: Use the global mic manager
   const {
     isListening,
     startListening,
     stopListening,
     transcript,
     isSupported
-  } = useSpeechToText({
+  } = useSmartSpeechToText({
     language: 'en-US',
     continuous: false,
     interimResults: true,

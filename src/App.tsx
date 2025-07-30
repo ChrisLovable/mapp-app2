@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import ResetPassword from './pages/ResetPassword';
 import { AuthProvider } from './contexts/AuthContext';
+import { MicManagerProvider } from './contexts/MicManagerContext';
 import AuthModal from './components/AuthModal';
 import SupabaseErrorModal from './components/SupabaseErrorModal';
 import { isSupabaseAvailable } from './lib/supabase';
@@ -26,21 +27,23 @@ function App() {
 
   return (
     <AuthProvider>
-      <div className="App">
-        <Routes>
-          <Route path="/" element={<Home onShowAuth={() => setShowAuthModal(true)} />} />
-          <Route path="/auth/reset-password" element={<ResetPassword />} />
-        </Routes>
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          onAuthSuccess={handleAuthSuccess}
-        />
-        <SupabaseErrorModal
-          isOpen={showSupabaseError}
-          onClose={() => setShowSupabaseError(false)}
-        />
-      </div>
+      <MicManagerProvider>
+        <div className="App">
+          <Routes>
+            <Route path="/" element={<Home onShowAuth={() => setShowAuthModal(true)} />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
+          </Routes>
+          <AuthModal
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+            onAuthSuccess={handleAuthSuccess}
+          />
+          <SupabaseErrorModal
+            isOpen={showSupabaseError}
+            onClose={() => setShowSupabaseError(false)}
+          />
+        </div>
+      </MicManagerProvider>
     </AuthProvider>
   );
 }
