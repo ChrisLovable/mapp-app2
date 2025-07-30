@@ -361,13 +361,15 @@ Please format the response with clear subheadings for:
   const handleLanguageChange = (newLanguage: string) => {
     const changeLanguage = () => {
       setSelectedLanguage(newLanguage);
-      // If currently recording, restart with new language
-      if (isRecording && recognitionRef.current) {
-        recognitionRef.current.stop();
-        setTimeout(() => {
-          if (recognitionRef.current) {
-            recognitionRef.current.lang = newLanguage;
-            recognitionRef.current.start();
+      // 🛡️ MOBILE-PROOF: Use the global mic manager for language change
+      if (isRecording) {
+        stopListening();
+        setTimeout(async () => {
+          try {
+            await startListening();
+          } catch (error) {
+            console.error('Error restarting with new language:', error);
+            setError('Failed to restart recording with new language');
           }
         }, 100);
       }
