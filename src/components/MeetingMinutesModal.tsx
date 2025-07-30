@@ -205,7 +205,7 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
     recordedChunksRef.current = [];
     setIsRecording(false);
     setIsPaused(false);
-    setTranscript('');
+    // 🛡️ MOBILE-PROOF: Transcript is now managed by the hook, no need to reset
   };
 
   const handlePauseResume = () => {
