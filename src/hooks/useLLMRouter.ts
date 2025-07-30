@@ -107,15 +107,17 @@ export function useLLMRouter(options: UseLLMRouterOptions = {}): UseLLMRouterRet
         console.log('🛡️ LLMRouter: Ignoring response from outdated request');
       }
       
-    } catch (err) {
-      // 🛡️ RACE CONDITION PREVENTION: Only handle errors for active request
-      if (activeRequestRef.current === query && !hasRespondedRef.current) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to get response';
-        console.error('❌ LLMRouter: Error in coordinated request:', errorMessage);
-        setError(errorMessage);
-        hasRespondedRef.current = true;
-      }
-    } finally {
+         } catch (err) {
+       // 🛡️ RACE CONDITION PREVENTION: Only handle errors for active request
+       if (activeRequestRef.current === query && !hasRespondedRef.current) {
+         const errorMessage = err instanceof Error ? err.message : 'Failed to get response';
+         console.error('❌ LLMRouter: Error in coordinated request:', errorMessage);
+         
+         // 🔄 LLM ERROR UX: Provide helpful fallback message
+         setError('We couldn\'t get an answer right now. Please try again or rephrase your question.');
+         hasRespondedRef.current = true;
+       }
+     } finally {
       // Cleanup
       if (activeRequestRef.current === query) {
         setLoading(false);

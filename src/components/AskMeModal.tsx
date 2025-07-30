@@ -44,7 +44,18 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
     interimResults: true,
     onResult: (text) => {
       console.log('🎤 AskMeModal transcript:', text);
-      setCurrentQuestion(prev => prev + text);
+      // 💬 PROMPT TRIM: Clean up transcript before adding
+      const cleanedText = text.trim();
+      if (cleanedText) {
+        // 🧪 INPUT SAFETY: Debounce transcript updates
+        setTimeout(() => {
+          setCurrentQuestion(prev => {
+            const newQuestion = prev + cleanedText;
+            // 🧪 INPUT SAFETY: Limit to reasonable length
+            return newQuestion.length > 1000 ? newQuestion.substring(0, 1000) : newQuestion;
+          });
+        }, 100); // 100ms debounce
+      }
     },
     onError: (error) => {
       console.error('❌ AskMeModal speech error:', error);
@@ -100,6 +111,16 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
       clearAnswer();
     }
   }, [isOpen, question, clearAnswer]);
+
+  // 🛡️ CANCEL ON MODAL CLOSE: Cancel any active requests when modal closes
+  useEffect(() => {
+    return () => {
+      if (!isOpen) {
+        console.log('🛑 AskMeModal: Cancelling requests on modal close');
+        cancelRequest();
+      }
+    };
+  }, [isOpen, cancelRequest]);
 
   // 🛡️ MOBILE-PROOF: Handle microphone toggle with protected hook
   const handleMicToggle = () => {
