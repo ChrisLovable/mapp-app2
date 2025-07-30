@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { LLMMethod } from '../types/llm';
+import { smartAskMe, isTimeSensitiveQuestion } from '../lib/AskMeLogic';
 
 interface LLMResponse {
   answer: string;
@@ -47,9 +48,6 @@ export function useLLMRouter(options: UseLLMRouterOptions = {}): UseLLMRouterRet
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const hasRespondedRef = useRef(false);
-
-  // Import the smart AskMe logic
-  const { smartAskMe, isTimeSensitiveQuestion } = require('../lib/AskMeLogic');
 
   const askQuestion = useCallback(async (query: string) => {
     // 🛡️ RACE CONDITION PREVENTION: Ignore if already processing
@@ -102,7 +100,7 @@ export function useLLMRouter(options: UseLLMRouterOptions = {}): UseLLMRouterRet
         setAnswer(result.answer);
         setMethod(result.method);
         setConfidence(result.confidence);
-        setSource(result.method === 'real-time' ? 'VIRL' : 'GPT');
+        setSource(result.method === 'virl' ? 'VIRL' : 'GPT');
         hasRespondedRef.current = true;
       } else {
         console.log('🛡️ LLMRouter: Ignoring response from outdated request');
