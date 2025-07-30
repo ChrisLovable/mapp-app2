@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
+import ResetPassword from './pages/ResetPassword';
 import { AuthProvider } from './contexts/AuthContext';
 import AuthModal from './components/AuthModal';
 import SupabaseErrorModal from './components/SupabaseErrorModal';
@@ -25,7 +27,10 @@ function App() {
   return (
     <AuthProvider>
       <div className="App">
-        <Home onShowAuth={() => setShowAuthModal(true)} />
+        <Routes>
+          <Route path="/" element={<Home onShowAuth={() => setShowAuthModal(true)} />} />
+          <Route path="/auth/reset-password" element={<ResetPassword />} />
+        </Routes>
         <AuthModal
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
