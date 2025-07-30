@@ -5,31 +5,30 @@ import { supabase } from "../lib/supabase";
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const [newPassword, setNewPassword] = useState("");
-  const [tokenLoaded, setTokenLoaded] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    const type = searchParams.get("type");
-    const access_token = searchParams.get("access_token");
+    const hash = window.location.hash;
+    const accessToken = new URLSearchParams(hash).get("access_token");
+    const type = new URLSearchParams(hash).get("type");
 
-    if (type === "recovery" && access_token) {
-      supabase.auth.setSession({
-        access_token,
-        refresh_token: access_token, // required for Supabase even if not used
-      }).then(() => {
-        setTokenLoaded(true);
-      }).catch(err => {
-        console.error("Session error:", err);
-        setError("Session expired or invalid.");
-      });
+    if (type === "recovery" && accessToken) {
+      setToken(accessToken);
     } else {
-      setError("Invalid reset link.");
+      setError("Invalid or expired link.");
     }
-  }, [searchParams]);
+  }, []);
 
-  const handleSubmit = async () => {
+  const handleUpdatePassword = async () => {
+    if (!token) {
+      setError("No valid token found.");
+      return;
+    }
+
     const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+
     if (error) {
       setError(error.message);
     } else {
@@ -75,7 +74,7 @@ export default function ResetPassword() {
     </div>
   );
 
-  return tokenLoaded ? (
+  return token ? (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900">
       <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 w-full max-w-md shadow-2xl">
         <div className="text-center mb-6">
@@ -102,7 +101,7 @@ export default function ResetPassword() {
           </div>
 
           <button
-            onClick={handleSubmit}
+            onClick={handleUpdatePassword}
             className="w-full bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-xl hover:bg-white/30 transition-all duration-300 border border-white/30"
           >
             Update Password

@@ -41,6 +41,7 @@ const createMockClient = () => {
       signInWithPassword: async () => ({ data: null, error: createMockError() }),
       signUp: async () => ({ data: null, error: createMockError() }),
       resetPasswordForEmail: async () => ({ error: createMockError() }),
+      updateUser: async () => ({ data: null, error: createMockError() }),
       getUser: async () => ({ data: { user: null }, error: null })
     },
     from: (table: string) => createMockQueryBuilder(),
