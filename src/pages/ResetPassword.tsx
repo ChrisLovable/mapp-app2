@@ -22,17 +22,27 @@ export default function ResetPassword() {
   }, []);
 
   const handleUpdatePassword = async () => {
-    if (!token) {
-      setError("No valid token found.");
-      return;
-    }
+    try {
+      // First check if user has a valid session
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
-    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+      if (sessionError || !sessionData.session) {
+        setError("You must be logged in via the reset link to change your password.");
+        return;
+      }
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setSuccess(true);
+      // Update the user's password
+      const { error: updateError } = await supabase.auth.updateUser({ 
+        password: newPassword 
+      });
+
+      if (updateError) {
+        setError(updateError.message);
+      } else {
+        setSuccess(true);
+      }
+    } catch (err: any) {
+      setError(err.message || "Unexpected error occurred.");
     }
   };
 
