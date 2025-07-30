@@ -47,7 +47,7 @@ export const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
   const [locked, setLocked] = useState(false);
 
   const handleClick = () => {
-    // Prevent double-firing on mobile
+    // 🛡️ MOBILE-PROOF: Early exit if locked
     if (locked) {
       console.log('🎤 SpeechToTextButton click blocked - cooldown active');
       return;
@@ -58,17 +58,20 @@ export const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       return;
     }
 
-    // Set lock to prevent rapid successive clicks
+    // 🛡️ MOBILE-PROOF: Set lock to prevent rapid successive clicks
     setLocked(true);
     setTimeout(() => setLocked(false), 300);
 
-    if (isListening) {
-      console.log('🎤 SpeechToTextButton stopping listening...');
-      stopListening();
-    } else {
-      console.log('🎤 SpeechToTextButton starting listening...');
-      startListening();
-    }
+    // 🛡️ MOBILE-PROOF: Wrap in requestAnimationFrame for Chrome timing
+    requestAnimationFrame(() => {
+      if (isListening) {
+        console.log('🎤 SpeechToTextButton stopping listening...');
+        stopListening();
+      } else {
+        console.log('🎤 SpeechToTextButton starting listening...');
+        startListening();
+      }
+    });
   };
 
   // Size classes
@@ -118,7 +121,11 @@ export const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       className={`${baseClasses} ${listeningClasses} ${locked && !isListening ? 'opacity-70' : ''}`}
       onClick={handleClick}
       onPointerDown={(e) => {
-        // Additional mobile protection - prevent default to avoid ghost taps
+        // 🛡️ MOBILE-PROOF: Prevent default to avoid ghost taps
+        e.preventDefault();
+      }}
+      onTouchStart={(e) => {
+        // 🛡️ MOBILE-PROOF: Redundant but safe
         e.preventDefault();
       }}
       aria-label={isListening ? 'Stop listening' : 'Start listening'}
@@ -172,7 +179,7 @@ export const ContinuousSpeechToTextButton: React.FC<SpeechToTextButtonProps> = (
   console.log('ContinuousSpeechToTextButton render - isListening:', isListening);
 
   const handleClick = () => {
-    // Prevent double-firing on mobile
+    // 🛡️ MOBILE-PROOF: Early exit if locked
     if (locked) {
       console.log('🎤 ContinuousSpeechToTextButton click blocked - cooldown active');
       return;
@@ -186,17 +193,20 @@ export const ContinuousSpeechToTextButton: React.FC<SpeechToTextButtonProps> = (
       return;
     }
 
-    // Set lock to prevent rapid successive clicks
+    // 🛡️ MOBILE-PROOF: Set lock to prevent rapid successive clicks
     setLocked(true);
     setTimeout(() => setLocked(false), 300);
 
-    if (isListening) {
-      console.log('🎤 Stopping continuous listening...');
-      stopListening();
-    } else {
-      console.log('🎤 Starting continuous listening...');
-      startListening();
-    }
+    // 🛡️ MOBILE-PROOF: Wrap in requestAnimationFrame for Chrome timing
+    requestAnimationFrame(() => {
+      if (isListening) {
+        console.log('🎤 Stopping continuous listening...');
+        stopListening();
+      } else {
+        console.log('🎤 Starting continuous listening...');
+        startListening();
+      }
+    });
   };
 
   // Size classes
@@ -300,7 +310,7 @@ export const MobileSpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
   console.log('MobileSpeechToTextButton render - isListening:', isListening);
 
   const handleClick = () => {
-    // Prevent double-firing on mobile
+    // 🛡️ MOBILE-PROOF: Early exit if locked
     if (locked) {
       console.log('🎤 MobileSpeechToTextButton click blocked - cooldown active');
       return;
@@ -316,17 +326,20 @@ export const MobileSpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       return;
     }
 
-    // Set lock to prevent rapid successive clicks
+    // 🛡️ MOBILE-PROOF: Set lock to prevent rapid successive clicks
     setLocked(true);
     setTimeout(() => setLocked(false), 300);
 
-    if (isListening) {
-      console.log('🎤 Stopping mobile listening...');
-      stopListening();
-    } else {
-      console.log('🎤 Starting mobile listening...');
-      startListening();
-    }
+    // 🛡️ MOBILE-PROOF: Wrap in requestAnimationFrame for Chrome timing
+    requestAnimationFrame(() => {
+      if (isListening) {
+        console.log('🎤 Stopping mobile listening...');
+        stopListening();
+      } else {
+        console.log('🎤 Starting mobile listening...');
+        startListening();
+      }
+    });
   };
 
   // Size classes
@@ -375,7 +388,11 @@ export const MobileSpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       className={`${baseClasses} ${listeningClasses} ${locked && !isListening ? 'opacity-70' : ''}`}
       onClick={handleClick}
       onPointerDown={(e) => {
-        // Additional mobile protection - prevent default to avoid ghost taps
+        // 🛡️ MOBILE-PROOF: Prevent default to avoid ghost taps
+        e.preventDefault();
+      }}
+      onTouchStart={(e) => {
+        // 🛡️ MOBILE-PROOF: Redundant but safe
         e.preventDefault();
       }}
       aria-label={isListening ? 'Stop mobile listening' : 'Start mobile listening'}

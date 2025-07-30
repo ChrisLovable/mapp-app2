@@ -21,6 +21,8 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
   const isSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   // 🔧 FIX: Add visual state that updates immediately
   const [isVisuallyListening, setIsVisuallyListening] = useState(false);
+  // 🛡️ MOBILE-PROOF: Add locked flag to prevent duplication
+  const [locked, setLocked] = useState(false);
 
   const startListening = useCallback(() => {
     if (!isSupported) {
@@ -111,17 +113,30 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
   }, [onListeningChange]);
 
   const toggleListening = useCallback(() => {
-    if (isVisuallyListening) {
-      console.log('🎤 Stopping listening...');
-      setIsVisuallyListening(false);
-      stopListening();
-    } else {
-      console.log('🎤 Starting listening...');
-      // 🔧 FIX: Update visual state immediately
-      setIsVisuallyListening(true);
-      startListening();
+    // 🛡️ MOBILE-PROOF: Early exit if locked
+    if (locked) {
+      console.log('🎤 Mic click blocked - cooldown active');
+      return;
     }
-  }, [isVisuallyListening, startListening, stopListening]);
+
+    // 🛡️ MOBILE-PROOF: Set locked flag with debounce
+    setLocked(true);
+    setTimeout(() => setLocked(false), 300);
+
+    // 🛡️ MOBILE-PROOF: Wrap in requestAnimationFrame for Chrome timing
+    requestAnimationFrame(() => {
+      if (isVisuallyListening) {
+        console.log('🎤 Stopping listening...');
+        setIsVisuallyListening(false);
+        stopListening();
+      } else {
+        console.log('🎤 Starting listening...');
+        // 🔧 FIX: Update visual state immediately
+        setIsVisuallyListening(true);
+        startListening();
+      }
+    });
+  }, [isVisuallyListening, startListening, stopListening, locked]);
 
   const clearTranscript = useCallback(() => {
     setTranscript('');
@@ -150,6 +165,8 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
       {children ? (
         React.cloneElement(children as React.ReactElement<any>, {
           onClick: toggleListening,
+          onPointerDown: (e: React.PointerEvent) => e.preventDefault(), // 🛡️ MOBILE-PROOF: Prevent ghost tap
+          onTouchStart: (e: React.TouchEvent) => e.preventDefault(), // 🛡️ MOBILE-PROOF: Redundant but safe
           className: `w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-lg ${isVisuallyListening ? 'bg-red-600 border-red-400 hover:bg-red-700 text-white' : 'bg-white border-gray-400 hover:bg-gray-100 text-gray-700'}`,
           style: {
             // 🔧 FIX: Use visual state for styling
@@ -162,6 +179,8 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
       ) : (
         <button
           onClick={toggleListening}
+          onPointerDown={(e) => e.preventDefault()} // 🛡️ MOBILE-PROOF: Prevent ghost tap
+          onTouchStart={(e) => e.preventDefault()} // 🛡️ MOBILE-PROOF: Redundant but safe
           className={`mic-button ${isVisuallyListening ? 'listening' : ''}`}
           style={{
             // 🔧 FIX: Use visual state for styling

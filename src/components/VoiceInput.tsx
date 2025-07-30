@@ -38,7 +38,7 @@ export default function VoiceInput({ language, onResult }: Props) {
   }, [isSupported]);
 
   const handleMicClick = () => {
-    // Prevent double-firing on mobile
+    // 🛡️ MOBILE-PROOF: Early exit if locked
     if (locked) {
       console.log('🎤 Mic click blocked - cooldown active');
       return;
@@ -48,17 +48,20 @@ export default function VoiceInput({ language, onResult }: Props) {
     setClickCount(newClickCount);
     console.log('🎤 Mic clicked - isListening:', isListening, 'click #:', newClickCount);
     
-    // Set lock to prevent rapid successive clicks
+    // 🛡️ MOBILE-PROOF: Set lock to prevent rapid successive clicks
     setLocked(true);
     setTimeout(() => setLocked(false), 300);
 
-    if (isListening) {
-      console.log('🎤 Stopping listening...');
-      stopListening();
-    } else {
-      console.log('🎤 Starting listening...');
-      startListening();
-    }
+    // 🛡️ MOBILE-PROOF: Wrap in requestAnimationFrame for Chrome timing
+    requestAnimationFrame(() => {
+      if (isListening) {
+        console.log('🎤 Stopping listening...');
+        stopListening();
+      } else {
+        console.log('🎤 Starting listening...');
+        startListening();
+      }
+    });
   };
 
   // Additional mobile event handlers
