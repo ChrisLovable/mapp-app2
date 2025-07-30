@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { askOpenAIVision, getGPTAnswer } from '../lib/AskMeLogic';
 import ExpenseJournalModal from './ExpenseJournalModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useSpeechToText } from '../hooks/useSpeechToText';
 
 interface Expense {
   id: string;
@@ -50,11 +51,29 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, currentLan
   const [quickQuestion, setQuickQuestion] = useState('');
   const [quickAnswer, setQuickAnswer] = useState('');
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
-  const [isListening, setIsListening] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
   const [expenseCache, setExpenseCache] = useState<Expense[]>([]);
   const [cacheTimestamp, setCacheTimestamp] = useState<number>(0);
+  
+  // 🛡️ MOBILE-PROOF: Use the protected speech-to-text hook
+  const {
+    isListening,
+    startListening,
+    stopListening,
+    isSupported
+  } = useSpeechToText({
+    language: 'en-US',
+    continuous: false,
+    interimResults: false,
+    onResult: (text) => {
+      console.log('🎤 ExpenseModal transcript:', text);
+      setQuickQuestion(text);
+    },
+    onError: (error) => {
+      console.error('❌ ExpenseModal speech error:', error);
+      alert(`❌ Speech recognition error: ${error}`);
+    }
+  });
 
   // Cache management functions
   const saveExpenseCache = (expenses: Expense[]) => {
@@ -913,49 +932,14 @@ Return ONLY the JSON array:`;
     }
   };
 
+  // 🛡️ MOBILE-PROOF: Handle microphone toggle with protected hook
   const handleMicClick = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Speech recognition is not supported in this browser.');
-      return;
-    }
-
+    console.log('🎤 ExpenseModal mic toggle:', isListening ? 'stop' : 'start');
     if (isListening) {
-      // Stop listening
-      if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop();
-      }
-      setIsListening(false);
-      return;
+      stopListening();
+    } else {
+      startListening();
     }
-
-    // Start listening
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setQuickQuestion(transcript);
-    };
-
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    speechRecognitionRef.current = recognition;
-    recognition.start();
   };
 
   if (!isOpen) return null;
@@ -1392,9 +1376,11 @@ Return ONLY the JSON array:`;
                     />
                     <button
                       onClick={handleMicClick}
+                      onPointerDown={(e) => e.preventDefault()} // 🛡️ MOBILE-PROOF: Prevent ghost tap
+                      onTouchStart={(e) => e.preventDefault()} // 🛡️ MOBILE-PROOF: Redundant but safe
                       className={`px-4 py-3 rounded-2xl glassy-btn neon-grid-btn text-white font-bold transition-colors border-0 flex items-center justify-center ${isListening ? 'bg-red-600 animate-pulse' : ''}`}
                       style={{ background: isListening ? '#dc2626' : '#111' }}
-                      disabled={isAskingQuestion}
+                      disabled={isAskingQuestion || !isSupported}
                     >
                       🎤
                     </button>

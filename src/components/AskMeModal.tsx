@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSpeechToText } from '../hooks/useSpeechToText';
 
 interface AskMeModalProps {
   isOpen: boolean;
@@ -25,11 +26,35 @@ function containsTrigger(text: string) {
 
 export default function AskMeModal({ isOpen, onClose, question, onConfirm }: AskMeModalProps) {
   const [currentQuestion, setCurrentQuestion] = useState('');
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
   const [useRealTimeSearch, setUseRealTimeSearch] = useState(false);
   const [isTimeSensitive, setIsTimeSensitive] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  
+  // 🛡️ MOBILE-PROOF: Use the protected speech-to-text hook
+  const {
+    isListening,
+    startListening,
+    stopListening,
+    transcript,
+    isSupported
+  } = useSpeechToText({
+    language: 'en-US',
+    continuous: false,
+    interimResults: true,
+    onResult: (text) => {
+      console.log('🎤 AskMeModal transcript:', text);
+      setCurrentQuestion(prev => prev + text);
+    },
+    onError: (error) => {
+      console.error('❌ AskMeModal speech error:', error);
+      if (error.includes('not-allowed')) {
+        alert('❌ Microphone permission denied. Please allow microphone access.');
+      } else if (error.includes('no-speech')) {
+        alert('❌ No speech detected. Please try speaking again.');
+      } else {
+        alert(`❌ Speech recognition error: ${error}`);
+      }
+    }
+  });
 
   // Reset current question when modal opens
   useEffect(() => {
@@ -50,100 +75,13 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
     }
   }, [isOpen, question]);
 
-  // Start listening when user clicks microphone button
-  const startListening = () => {
-    console.log('🎤 Starting microphone...');
-    
-    // Immediately show recording state
-    setIsListening(true);
-    
-    // Simple mobile-friendly approach
-    try {
-      // Check if speech recognition is available
-      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert('❌ Speech recognition not supported. Please use Chrome or Safari.');
-        setIsListening(false);
-        return;
-      }
-
-      // Create new recognition instance each time
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      
-      // Mobile-friendly settings
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-
-      recognition.onstart = () => {
-        console.log('✅ Speech recognition started');
-      };
-
-      recognition.onresult = (event) => {
-        console.log('🎤 Speech result received');
-        let finalTranscript = '';
-        let interimTranscript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + ' ';
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-
-        if (finalTranscript) {
-          setCurrentQuestion(prev => prev + finalTranscript);
-          setTranscript('');
-          console.log('📝 Final transcript:', finalTranscript);
-        } else {
-          setTranscript(interimTranscript);
-          console.log('📝 Interim transcript:', interimTranscript);
-        }
-      };
-
-      recognition.onerror = (event) => {
-        console.error('❌ Speech recognition error:', event.error);
-        setIsListening(false);
-        
-        if (event.error === 'not-allowed') {
-          alert('❌ Microphone permission denied. Please allow microphone access.');
-        } else if (event.error === 'no-speech') {
-          alert('❌ No speech detected. Please try speaking again.');
-        } else {
-          alert(`❌ Speech recognition error: ${event.error}`);
-        }
-      };
-
-      recognition.onend = () => {
-        console.log('⏹️ Speech recognition ended');
-        setIsListening(false);
-      };
-
-      // Store reference and start
-      recognitionRef.current = recognition;
-      recognition.start();
-      console.log('✅ Speech recognition started successfully');
-      
-    } catch (error) {
-      console.error('❌ Error starting speech recognition:', error);
-      alert('❌ Failed to start speech recognition. Please try again.');
-      setIsListening(false);
-    }
-  };
-
-  // Stop listening
-  const stopListening = () => {
-    console.log('⏹️ Stopping microphone...');
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-        setIsListening(false);
-        console.log('✅ Microphone stopped');
-      } catch (error) {
-        console.error('❌ Error stopping microphone:', error);
-      }
+  // 🛡️ MOBILE-PROOF: Handle microphone toggle with protected hook
+  const handleMicToggle = () => {
+    console.log('🎤 AskMeModal mic toggle:', isListening ? 'stop' : 'start');
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
     }
   };
 
@@ -233,13 +171,16 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
                         placeholder="Your question will appear here..."
                       />
                       <button
-                        onClick={isListening ? stopListening : startListening}
+                        onClick={handleMicToggle}
+                        onPointerDown={(e) => e.preventDefault()} // 🛡️ MOBILE-PROOF: Prevent ghost tap
+                        onTouchStart={(e) => e.preventDefault()} // 🛡️ MOBILE-PROOF: Redundant but safe
                         className={`p-2 rounded-full transition-all duration-200 ${
                           isListening 
                             ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
                             : 'bg-blue-500 hover:bg-blue-600'
                         }`}
                         title={isListening ? 'Stop Recording' : 'Start Recording'}
+                        disabled={!isSupported}
                       >
                         <span className="text-white text-lg">
                           {isListening ? '⏹️' : '🎤'}

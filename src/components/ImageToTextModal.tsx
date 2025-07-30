@@ -3,6 +3,7 @@ import { AiOutlineFileImage, AiOutlineQuestion } from 'react-icons/ai';
 import { getGPTAnswer } from '../lib/AskMeLogic';
 import { apiUsageTracker } from '../lib/ApiUsageTracker';
 import heic2any from 'heic2any';
+import { useSpeechToText } from '../hooks/useSpeechToText';
 
 interface ImageToTextModalProps {
   isOpen: boolean;
@@ -18,11 +19,29 @@ export default function ImageToTextModal({ isOpen, onClose }: ImageToTextModalPr
   const [isConverting, setIsConverting] = useState(false);
   const [isAnswering, setIsAnswering] = useState(false);
   const [error, setError] = useState('');
-  const [isListening, setIsListening] = useState(false);
   const [copyMessage, setCopyMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
+  
+  // 🛡️ MOBILE-PROOF: Use the protected speech-to-text hook
+  const {
+    isListening,
+    startListening,
+    stopListening,
+    isSupported
+  } = useSpeechToText({
+    language: 'en-US',
+    continuous: false,
+    interimResults: false,
+    onResult: (text) => {
+      console.log('🎤 ImageToTextModal transcript:', text);
+      setQuestion(text);
+    },
+    onError: (error) => {
+      console.error('❌ ImageToTextModal speech error:', error);
+      alert(`❌ Speech recognition error: ${error}`);
+    }
+  });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -225,49 +244,14 @@ Please provide a clear, accurate answer based only on the information in the ext
     galleryInputRef.current?.click();
   };
 
+  // 🛡️ MOBILE-PROOF: Handle microphone toggle with protected hook
   const handleMicClick = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Speech recognition is not supported in this browser.');
-      return;
-    }
-
+    console.log('🎤 ImageToTextModal mic toggle:', isListening ? 'stop' : 'start');
     if (isListening) {
-      // Stop listening
-      if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop();
-      }
-      setIsListening(false);
-      return;
+      stopListening();
+    } else {
+      startListening();
     }
-
-    // Start listening
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setQuestion(transcript);
-    };
-
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    speechRecognitionRef.current = recognition;
-    recognition.start();
   };
 
   const clearAll = () => {
@@ -384,9 +368,11 @@ Please provide a clear, accurate answer based only on the information in the ext
                     <div className="flex gap-2">
                       <button
                         onClick={handleMicClick}
+                        onPointerDown={(e) => e.preventDefault()} // 🛡️ MOBILE-PROOF: Prevent ghost tap
+                        onTouchStart={(e) => e.preventDefault()} // 🛡️ MOBILE-PROOF: Redundant but safe
                         className={`px-4 py-3 rounded-2xl glassy-btn neon-grid-btn text-white font-bold transition-colors border-0 flex items-center justify-center ${isListening ? 'bg-red-600 animate-pulse' : ''}`}
                         style={{ background: isListening ? '#dc2626' : '#111' }}
-                        disabled={isAnswering}
+                        disabled={isAnswering || !isSupported}
                       >
                         🎤
                       </button>
