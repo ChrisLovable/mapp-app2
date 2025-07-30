@@ -140,16 +140,29 @@ export const useSpeechToText = (options: UseSpeechToTextOptions = {}): UseSpeech
   useEffect(() => {
     return () => {
       console.log('[speech] useSpeechToText cleanup on unmount');
-      // Call stored cleanup function
-      if (cleanupRef.current) {
-        cleanupRef.current();
-        cleanupRef.current = null;
+      if (recognitionRef.current) {
+        // Clear all event listeners
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onstart = null;
+        recognitionRef.current.onend = null;
+        
+        // Stop recognition
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          console.log('[speech] stop() failed, trying abort()');
+          try {
+            recognitionRef.current.abort();
+          } catch (abortError) {
+            console.log('[speech] abort() also failed:', abortError);
+          }
+        }
+        
+        recognitionRef.current = null;
+        shouldContinueRef.current = false;
+        micManager.stopListening();
       }
-      
-      // Also clean up refs
-      recognitionRef.current = null;
-      shouldContinueRef.current = false;
-      micManager.stopListening();
     };
   }, []);
 
@@ -320,16 +333,29 @@ export const useContinuousSpeechToText = (options: UseSpeechToTextOptions = {}):
   useEffect(() => {
     return () => {
       console.log('[speech] useContinuousSpeechToText cleanup on unmount');
-      // Call stored cleanup function
-      if (cleanupRef.current) {
-        cleanupRef.current();
-        cleanupRef.current = null;
+      if (recognitionRef.current) {
+        // Clear all event listeners
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onstart = null;
+        recognitionRef.current.onend = null;
+        
+        // Stop recognition
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          console.log('[speech] stop() failed, trying abort()');
+          try {
+            recognitionRef.current.abort();
+          } catch (abortError) {
+            console.log('[speech] abort() also failed:', abortError);
+          }
+        }
+        
+        recognitionRef.current = null;
+        shouldContinueRef.current = false;
+        micManager.stopListening();
       }
-      
-      // Also clean up refs
-      recognitionRef.current = null;
-      shouldContinueRef.current = false;
-      micManager.stopListening();
     };
   }, []);
 
@@ -539,16 +565,29 @@ export const useMobileSpeechToText = (options: UseSpeechToTextOptions = {}): Use
   useEffect(() => {
     return () => {
       console.log('[speech] useMobileSpeechToText cleanup on unmount');
-      // Call stored cleanup function
-      if (cleanupRef.current) {
-        cleanupRef.current();
-        cleanupRef.current = null;
+      if (recognitionRef.current) {
+        // Clear all event listeners
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onstart = null;
+        recognitionRef.current.onend = null;
+        
+        // Stop recognition
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          console.log('[speech] stop() failed, trying abort()');
+          try {
+            recognitionRef.current.abort();
+          } catch (abortError) {
+            console.log('[speech] abort() also failed:', abortError);
+          }
+        }
+        
+        recognitionRef.current = null;
+        shouldContinueRef.current = false;
+        micManager.stopListening();
       }
-      
-      // Also clean up refs
-      recognitionRef.current = null;
-      shouldContinueRef.current = false;
-      micManager.stopListening();
     };
   }, []);
 
@@ -560,7 +599,7 @@ export const useMobileSpeechToText = (options: UseSpeechToTextOptions = {}): Use
 
   const startRecognition = useCallback(() => {
     if (!isSupported) {
-      console.error('�� Speech recognition not supported on mobile');
+      console.error(' Speech recognition not supported on mobile');
       onError?.('Speech recognition is not supported on this mobile device.');
       return;
     }
