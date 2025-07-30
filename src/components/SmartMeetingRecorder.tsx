@@ -3,6 +3,7 @@ import CustomDatePicker from './CustomDatePicker';
 import Select from 'react-select';
 import { supabase } from '../lib/supabase';
 import { useSmartSpeechToText } from '../hooks/useSmartSpeechToText';
+import { useMicManager } from '../contexts/MicManagerContext';
 
 interface SmartMeetingRecorderProps {
   isOpen: boolean;
@@ -38,6 +39,9 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
     message: string;
   } | null>(null);
 
+  // Get direct access to MicManager for cleanup
+  const micManager = useMicManager();
+  
   // 🛡️ MOBILE-PROOF: Use the global mic manager
   const {
     isListening,
@@ -60,7 +64,7 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
       setError(`Speech recognition error: ${error}`);
     }
   });
-  
+
   // Ref to track current state values for onend handler
   const stateRef = useRef({
     isResuming: false,
@@ -75,6 +79,15 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
   useEffect(() => {
     return () => {
       console.log('[speech] SmartMeetingRecorder cleanup on unmount');
+      const recognition = micManager.getRecognition();
+      if (recognition) {
+        recognition.stop?.();
+        recognition.abort?.();
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onend = null;
+      }
+      
       // Stop any active recording when component unmounts
       if (isRecording || isListening) {
         stopListening();
@@ -89,7 +102,7 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
         stateRef.current.fallbackTimeout = null;
       }
     };
-  }, [isRecording, isListening, stopListening]);
+  }, [isRecording, isListening, stopListening, micManager]);
 
   // 🛡️ MOBILE-PROOF: Speech recognition is now handled by the global mic manager
 
