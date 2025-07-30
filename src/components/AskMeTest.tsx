@@ -1,85 +1,45 @@
 import { useState } from 'react';
-import AskMeModal, { containsTrigger } from './AskMeModal';
+import AskMeModal from './AskMeModal';
 import AskMeResponseModal from './AskMeResponseModal';
-import { getRealTimeAnswer, getGPTAnswer } from '../lib/AskMeLogic';
+import { useSmartAskMe } from '../hooks/useSmartAskMe';
 
 export default function AskMeTest() {
   const [question, setQuestion] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showResponseModal, setShowResponseModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [answer, setAnswer] = useState('');
-  const [error, setError] = useState('');
+  
+  // 🧠 SMART: Use the smart AskMe hook
+  const {
+    isLoading,
+    answer,
+    error,
+    method,
+    confidence,
+    askQuestion,
+    clearAnswer,
+    isTimeSensitive
+  } = useSmartAskMe();
 
-  const handleAsk = () => {
-    console.log('Checking:', question);
-    const shouldShow = containsTrigger(question);
-    console.log('Should show modal?', shouldShow);
-    if (shouldShow) {
-      // For time-sensitive questions, show choice modal first
-      setShowModal(true);
-    } else {
-      // For non-time-sensitive questions, go directly to GPT response
-      handleGPTResponse();
-    }
-  };
-
-  const handleGPTResponse = async () => {
-    setIsLoading(true);
-    setError('');
-    setAnswer('');
-    setShowResponseModal(true);
+  const handleAsk = async () => {
+    if (!question.trim()) return;
     
-    try {
-      const response = await getGPTAnswer(question);
-      setAnswer(response);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get response');
-    } finally {
-      setIsLoading(false);
-    }
+    console.log('🔍 Smart AskMe starting for:', question);
+    
+    // Show the modal for smart analysis
+    setShowModal(true);
   };
 
-  const handleChoice = async (questionData: string) => {
-    // Close the choice modal first
+  const handleSmartAnswer = async (answer: string, method: 'real-time' | 'ai' | 'fallback') => {
+    console.log('✅ Smart answer received:', { method, answerLength: answer.length });
+    
+    // Close the modal and show response
     setShowModal(false);
-    
-    // Parse the question data
-    let parsedData;
-    try {
-      parsedData = JSON.parse(questionData);
-    } catch {
-      // If it's not JSON, treat it as a plain question
-      parsedData = { question: questionData, useRealTimeSearch: false };
-    }
-    
-    // Open the response modal and start loading
-    setIsLoading(true);
-    setError('');
-    setAnswer('');
     setShowResponseModal(true);
-    
-    try {
-      let response: string;
-      
-      if (parsedData.useRealTimeSearch) {
-        response = await getRealTimeAnswer(parsedData.question);
-      } else {
-        response = await getGPTAnswer(parsedData.question);
-      }
-      
-      setAnswer(response);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get response');
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const closeResponseModal = () => {
     setShowResponseModal(false);
-    setAnswer('');
-    setError('');
+    clearAnswer();
   };
 
   return (
@@ -121,7 +81,7 @@ export default function AskMeTest() {
           isOpen={showModal}
           onClose={() => setShowModal(false)}
           question={question}
-          onConfirm={handleChoice}
+          onAnswer={handleSmartAnswer}
         />
 
         <AskMeResponseModal

@@ -789,3 +789,102 @@ export function testEnvironmentVariables() {
     hasSupabaseKey: !!supabaseKey
   };
 } 
+
+// Smart AskMe function that automatically chooses the best approach
+export async function smartAskMe(question: string): Promise<{
+  answer: string;
+  method: 'real-time' | 'ai' | 'fallback';
+  confidence: number;
+}> {
+  const lowerQuestion = question.toLowerCase();
+  
+  // Time-sensitive keywords that indicate real-time search is needed
+  const timeSensitiveKeywords = [
+    'latest', 'current', 'recent', 'today', 'yesterday', 'this week', 'this month',
+    'now', 'happening', 'live', 'real-time', 'breaking', 'update', 'news',
+    '2025', '2024', 'this year', 'quarterly', 'annual', 'market data',
+    'stock price', 'earnings', 'financial results', 'trending', 'viral',
+    'just announced', 'newly released', 'in progress', 'ongoing'
+  ];
+  
+  // Calculate confidence score for real-time search
+  const timeSensitiveScore = timeSensitiveKeywords.filter(keyword => 
+    lowerQuestion.includes(keyword)
+  ).length;
+  
+  const shouldUseRealTime = timeSensitiveScore >= 1;
+  const confidence = Math.min(0.95, 0.6 + (timeSensitiveScore * 0.1));
+  
+  console.log('🔍 Smart AskMe Analysis:', {
+    question,
+    timeSensitiveScore,
+    shouldUseRealTime,
+    confidence
+  });
+  
+  // Try real-time first if keywords suggest it
+  if (shouldUseRealTime) {
+    try {
+      console.log('🔍 Attempting real-time search...');
+      const realTimeAnswer = await getRealTimeAnswer(question);
+      return {
+        answer: realTimeAnswer,
+        method: 'real-time',
+        confidence
+      };
+    } catch (error) {
+      console.warn('⚠️ Real-time search failed, falling back to AI:', error);
+      // Fallback to AI if real-time fails
+      try {
+        const aiAnswer = await getGPTAnswer(question);
+        return {
+          answer: aiAnswer,
+          method: 'fallback',
+          confidence: 0.5
+        };
+      } catch (aiError) {
+        console.error('❌ Both real-time and AI failed:', aiError);
+        throw new Error('Failed to get response from both real-time and AI sources');
+      }
+    }
+  }
+  
+  // Use AI for general questions
+  try {
+    console.log('🤖 Using AI response...');
+    const aiAnswer = await getGPTAnswer(question);
+    return {
+      answer: aiAnswer,
+      method: 'ai',
+      confidence: 0.8
+    };
+  } catch (error) {
+    console.warn('⚠️ AI failed, trying real-time as fallback:', error);
+    // Fallback to real-time if AI fails
+    try {
+      const realTimeAnswer = await getRealTimeAnswer(question);
+      return {
+        answer: realTimeAnswer,
+        method: 'fallback',
+        confidence: 0.5
+      };
+    } catch (realTimeError) {
+      console.error('❌ Both AI and real-time failed:', realTimeError);
+      throw new Error('Failed to get response from both AI and real-time sources');
+    }
+  }
+}
+
+// Helper function to detect if a question is time-sensitive
+export function isTimeSensitiveQuestion(question: string): boolean {
+  const lowerQuestion = question.toLowerCase();
+  const timeSensitiveKeywords = [
+    'latest', 'current', 'recent', 'today', 'yesterday', 'this week', 'this month',
+    'now', 'happening', 'live', 'real-time', 'breaking', 'update', 'news',
+    '2025', '2024', 'this year', 'quarterly', 'annual', 'market data',
+    'stock price', 'earnings', 'financial results', 'trending', 'viral',
+    'just announced', 'newly released', 'in progress', 'ongoing'
+  ];
+  
+  return timeSensitiveKeywords.some(keyword => lowerQuestion.includes(keyword));
+} 

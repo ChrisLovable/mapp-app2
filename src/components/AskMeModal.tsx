@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSpeechToText } from '../hooks/useSpeechToText';
+import { useSmartAskMe } from '../hooks/useSmartAskMe';
 
 interface AskMeModalProps {
   isOpen: boolean;
   onClose: () => void;
   question: string;
-  onConfirm: (question: string) => void;
+  onConfirm?: (question: string) => void;
+  onAnswer?: (answer: string, method: 'real-time' | 'ai' | 'fallback') => void;
 }
 
 const TRIGGERS = [
@@ -24,7 +26,7 @@ function containsTrigger(text: string) {
   return !!match;
 }
 
-export default function AskMeModal({ isOpen, onClose, question, onConfirm }: AskMeModalProps) {
+export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAnswer }: AskMeModalProps) {
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [useRealTimeSearch, setUseRealTimeSearch] = useState(false);
   const [isTimeSensitive, setIsTimeSensitive] = useState(false);
@@ -56,6 +58,18 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
     }
   });
 
+  // 🧠 SMART: Use the smart AskMe hook
+  const {
+    isLoading,
+    answer,
+    error,
+    method,
+    confidence,
+    askQuestion,
+    clearAnswer,
+    isTimeSensitive: checkTimeSensitive
+  } = useSmartAskMe();
+
   // Reset current question when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -64,16 +78,18 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
       } else {
         setCurrentQuestion('');
       }
-      setTranscript('');
       
-      // Check if the question is time-sensitive
+      // 🧠 SMART: Check if the question is time-sensitive using smart logic
       const fullQuestion = question || '';
-      const timeSensitive = containsTrigger(fullQuestion);
-      console.log('🔍 Time-sensitive check:', { question: fullQuestion, timeSensitive, triggers: TRIGGERS });
+      const timeSensitive = checkTimeSensitive(fullQuestion);
+      console.log('🔍 Smart time-sensitive check:', { question: fullQuestion, timeSensitive });
       setIsTimeSensitive(timeSensitive);
       setUseRealTimeSearch(timeSensitive);
+      
+      // Clear any previous answers
+      clearAnswer();
     }
-  }, [isOpen, question]);
+  }, [isOpen, question, checkTimeSensitive, clearAnswer]);
 
   // 🛡️ MOBILE-PROOF: Handle microphone toggle with protected hook
   const handleMicToggle = () => {
@@ -88,16 +104,35 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
     }
   };
 
-  const handleConfirm = () => {
-    if (currentQuestion.trim()) {
-      // Pass the question with search type information
-      const questionWithType = {
-        question: currentQuestion,
-        useRealTimeSearch: useRealTimeSearch || isTimeSensitive
-      };
-      console.log('🔍 AskMeModal confirm:', questionWithType);
-      onConfirm(JSON.stringify(questionWithType));
-      onClose();
+  const handleConfirm = async () => {
+    if (!currentQuestion.trim()) return;
+    
+    console.log('🔍 AskMeModal starting smart analysis for:', currentQuestion);
+    
+    try {
+      // 🧠 SMART: Use smart AskMe logic
+      await askQuestion(currentQuestion);
+      
+      // Call onAnswer callback if provided
+      if (onAnswer && answer) {
+        onAnswer(answer, method || 'ai');
+      }
+      
+      // Call legacy onConfirm callback if provided
+      if (onConfirm) {
+        const questionWithType = {
+          question: currentQuestion,
+          useRealTimeSearch: useRealTimeSearch || isTimeSensitive
+        };
+        onConfirm(JSON.stringify(questionWithType));
+      }
+      
+      // Don't close modal automatically - let parent handle it
+      // onClose();
+      
+    } catch (err) {
+      console.error('❌ AskMeModal failed:', err);
+      // Error is already handled by the hook
     }
   };
 
@@ -219,8 +254,48 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
                 </div>
                 
                 <p className="mb-4 text-gray-300">
-                  Speak your question, then say 'Go', 'Send', 'Submit', or 'Ask' to search the web for current information.
+                  Speak your question, then say 'Go', 'Send', 'Submit', or 'Ask' to get a smart response.
                 </p>
+                
+                {/* 🧠 SMART: Show analysis results */}
+                {isLoading && (
+                  <div className="mb-4 p-3 bg-blue-900/30 border border-blue-400 rounded-lg">
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-300"></div>
+                      <p className="text-blue-300 text-sm">
+                        🔍 Analyzing your question and choosing the best approach...
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {error && (
+                  <div className="mb-4 p-3 bg-red-900/30 border border-red-400 rounded-lg">
+                    <p className="text-red-300 text-sm">
+                      ❌ {error}
+                    </p>
+                  </div>
+                )}
+                
+                {answer && (
+                  <div className="mb-4 p-3 bg-green-900/30 border border-green-400 rounded-lg">
+                    <div className="mb-2">
+                      <span className="text-green-300 text-xs">
+                        {method === 'real-time' ? '🔍 Real-time Search' : 
+                         method === 'ai' ? '🤖 AI Response' : 
+                         method === 'fallback' ? '⚠️ Fallback Response' : '🤖 Response'}
+                      </span>
+                      {confidence > 0 && (
+                        <span className="text-gray-400 text-xs ml-2">
+                          (Confidence: {Math.round(confidence * 100)}%)
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-green-300 text-sm whitespace-pre-wrap">
+                      {answer}
+                    </p>
+                  </div>
+                )}
                 
                 {/* Action Buttons */}
                 <div className="flex justify-center space-x-4 mt-6">
@@ -230,17 +305,24 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
                   >
                     Cancel
                   </button>
-                                     <button 
-                     className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
-                       useRealTimeSearch 
-                         ? 'bg-green-600 hover:bg-green-700' 
-                         : 'bg-blue-600 hover:bg-blue-700'
-                     }`}
-                     onClick={handleConfirm}
-                     disabled={!currentQuestion.trim()}
-                   >
-                     {useRealTimeSearch ? '🔍 Search Web' : '🤖 Ask AI'}
-                   </button>
+                  <button 
+                    className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
+                      isLoading 
+                        ? 'bg-gray-500' 
+                        : useRealTimeSearch 
+                          ? 'bg-green-600 hover:bg-green-700' 
+                          : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                    onClick={handleConfirm}
+                    disabled={!currentQuestion.trim() || isLoading}
+                  >
+                    {isLoading 
+                      ? '🔄 Processing...' 
+                      : useRealTimeSearch 
+                        ? '🔍 Smart Search' 
+                        : '🤖 Smart Ask'
+                    }
+                  </button>
                 </div>
               </div>
             </div>
