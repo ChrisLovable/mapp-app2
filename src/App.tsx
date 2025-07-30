@@ -7,7 +7,6 @@ import { MicManagerProvider } from './contexts/MicManagerContext';
 import AuthModal from './components/AuthModal';
 import SupabaseErrorModal from './components/SupabaseErrorModal';
 import MicStatusIndicator from './components/MicStatusIndicator';
-import MicConcurrencyTest from './components/MicConcurrencyTest';
 import ErrorBoundary from './components/ErrorBoundary';
 import { isSupabaseAvailable } from './lib/supabase';
 import './App.css';
@@ -38,7 +37,6 @@ function App() {
               <Route path="/auth/reset-password" element={<ResetPassword />} />
             </Routes>
             <MicStatusIndicator />
-            <MicConcurrencyTest />
             <AuthModal
               isOpen={showAuthModal}
               onClose={() => setShowAuthModal(false)}
