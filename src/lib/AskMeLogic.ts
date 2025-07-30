@@ -485,13 +485,17 @@ async function getGPTAnswerWithWebContext(question: string, model?: string): Pro
 // GPT response using OpenAI API
 export async function getGPTAnswer(question: string, model?: string): Promise<string> {
   try {
+    console.log('🔍 getGPTAnswer called with:', { question, model });
     const apiKey = import.meta.env.VITE_OPENROUTERAI_API_KEY;
     
     if (!apiKey) {
+      console.error('❌ API key not found');
       throw new Error('OpenAI API key not found. Please check your .env file.');
     }
+    
+    console.log('✅ API key found, proceeding with request');
 
-    const modelToUse = model || 'openai/gpt-4o';
+    const modelToUse = model || 'openai/gpt-3.5-turbo';
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -504,7 +508,7 @@ export async function getGPTAnswer(question: string, model?: string): Promise<st
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful AI assistant. Provide clear, informative, and engaging responses to user questions.'
+            content: 'You are a helpful AI assistant. Answer questions directly and factually. Do not give generic responses. Provide specific, informative answers to user questions.'
           },
           {
             role: 'user',
@@ -542,7 +546,11 @@ export async function getGPTAnswer(question: string, model?: string): Promise<st
 
     return answer;
   } catch (error) {
-    console.error('Error fetching GPT answer:', error);
+    console.error('❌ Error fetching GPT answer:', error);
+    console.error('❌ Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace'
+    });
     
     // Track failed API usage
     apiUsageTracker.trackOpenAIUsage(
@@ -729,4 +737,55 @@ export async function askOpenAIVision(prompt: string, base64Image: string): Prom
     
     throw new Error(`Failed to analyze image: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+} 
+
+// Test function to try different models
+export async function testDifferentModels(question: string): Promise<string> {
+  const models = [
+    'openai/gpt-3.5-turbo',
+    'openai/gpt-4o',
+    'anthropic/claude-3.5-sonnet',
+    'meta-llama/llama-3.1-8b-instruct'
+  ];
+  
+  for (const model of models) {
+    try {
+      console.log(`🧪 Testing model: ${model}`);
+      const response = await getGPTAnswer(question, model);
+      console.log(`✅ Model ${model} worked:`, response);
+      return `Model ${model} response: ${response}`;
+    } catch (error) {
+      console.log(`❌ Model ${model} failed:`, error);
+    }
+  }
+  
+  throw new Error('All models failed');
+}
+
+// Test function to check environment variables
+export function testEnvironmentVariables() {
+  const apiKey = import.meta.env.VITE_OPENROUTERAI_API_KEY;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  console.log('🔍 Environment Variables Check:', {
+    hasOpenRouterKey: !!apiKey,
+    hasSupabaseUrl: !!supabaseUrl,
+    hasSupabaseKey: !!supabaseKey,
+    openRouterKeyLength: apiKey ? apiKey.length : 0,
+    apiKeyPreview: apiKey ? apiKey.substring(0, 10) + '...' : 'None'
+  });
+  
+  if (!apiKey) {
+    console.error('❌ CRITICAL: VITE_OPENROUTERAI_API_KEY is missing!');
+    console.error('❌ This will prevent AI responses from working.');
+  } else {
+    console.log('✅ VITE_OPENROUTERAI_API_KEY is present');
+  }
+  
+  return {
+    hasOpenRouterKey: !!apiKey,
+    hasSupabaseUrl: !!supabaseUrl,
+    hasSupabaseKey: !!supabaseKey
+  };
 } 

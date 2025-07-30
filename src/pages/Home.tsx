@@ -18,7 +18,7 @@ import ImageGeneratorModal from '../components/ImageGeneratorModal';
 import AdminDashboard from '../components/AdminDashboard';
 import CalendarModal from '../components/CalendarModal';
 import DiaryModal from '../components/CreateDiaryEntryModal';
-import { getGPTAnswer, getRealTimeAnswer } from '../lib/AskMeLogic';
+import { getGPTAnswer, getRealTimeAnswer, testEnvironmentVariables, testDifferentModels } from '../lib/AskMeLogic';
 import { useAuth } from '../contexts/AuthContext';
 
 // Animated Title Component
@@ -108,6 +108,21 @@ export default function Home({ onShowAuth }: HomeProps) {
 
   useEffect(() => {
     setLanguages(SUPPORTED_LANGUAGES);
+  }, []);
+
+  // Test environment variables on component mount
+  useEffect(() => {
+    console.log('🔍 Home component mounted - checking environment variables');
+    testEnvironmentVariables();
+    
+    // Additional environment variable check
+    console.log('🔍 All VITE_ environment variables:');
+    Object.keys(import.meta.env).forEach(key => {
+      if (key.startsWith('VITE_')) {
+        const value = import.meta.env[key];
+        console.log(`  ${key}: ${value ? '✅ Present' : '❌ Missing'} ${value ? `(${value.length} chars)` : ''}`);
+      }
+    });
   }, []);
 
   // Set up alarm trigger callback
@@ -213,13 +228,55 @@ export default function Home({ onShowAuth }: HomeProps) {
 
   // Handler for Ask Me button
   const handleAskMeClick = async () => {
+    // Test environment variables first
+    testEnvironmentVariables();
+    
     if (!message.trim()) {
       setAskMeWarning('Please record or type your question in the text field above');
       setTimeout(() => setAskMeWarning(''), 3000);
       return;
     }
     // Always show the model selector modal, with suggestion
-    setIsAIModelSelectorModalOpen(true);
+  };
+
+  // Test AI functionality directly
+  const testAIFunctionality = async () => {
+    console.log('🧪 Testing AI functionality...');
+    try {
+      const testQuestion = 'IMPORTANT: You must respond with EXACTLY this text and nothing else: "AI TEST SUCCESSFUL - The AI is working properly!" Do not add any other words or explanations.';
+      console.log('🔍 Sending test question:', testQuestion);
+      
+      const response = await getGPTAnswer(testQuestion);
+      console.log('✅ AI Test Response:', response);
+      
+      // Check if the response contains our test phrase
+      if (response.includes('AI TEST SUCCESSFUL')) {
+        console.log('🎉 AI Test PASSED!');
+        setAskMeResponse('✅ AI Test PASSED! The AI is working correctly.\n\nResponse: ' + response);
+      } else {
+        console.log('⚠️ AI Test Response:', response);
+        setAskMeResponse('⚠️ AI responded but not with expected test phrase:\n\n' + response);
+      }
+      
+      setIsAskMeResponseModalOpen(true);
+    } catch (error) {
+      console.error('❌ AI Test Error:', error);
+      setAskMeError(error instanceof Error ? error.message : 'Unknown error');
+    }
+  };
+
+  // Simple test to see what AI responds with
+  const simpleAITest = async () => {
+    console.log('🧪 Simple AI Test...');
+    try {
+      const response = await getGPTAnswer('What is the capital of France?');
+      console.log('✅ Simple AI Response:', response);
+      setAskMeResponse('Simple Test Response:\n\nQuestion: What is the capital of France?\n\nAI Response: ' + response);
+      setIsAskMeResponseModalOpen(true);
+    } catch (error) {
+      console.error('❌ Simple AI Test Error:', error);
+      setAskMeError('Simple test failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
   };
 
   const handleAIModelSubmit = async (model: string) => {
@@ -345,9 +402,11 @@ export default function Home({ onShowAuth }: HomeProps) {
       const parsed = JSON.parse(questionData);
       const { question, useRealTimeSearch } = parsed;
       
+      console.log('🔍 Home handleAskMeConfirm:', { question, useRealTimeSearch });
       setMessage(question);
       
       if (useRealTimeSearch) {
+        console.log('🔍 Using real-time search for:', question);
         // Use real-time search directly
         setIsLoading(true);
         setAskMeError('');
@@ -357,17 +416,21 @@ export default function Home({ onShowAuth }: HomeProps) {
         
         try {
           const response = await getRealTimeAnswer(question, 'openai/gpt-4o');
+          console.log('✅ Real-time search response:', response);
           setAskMeResponse(response);
         } catch (error) {
+          console.error('❌ Real-time search error:', error);
           setAskMeError(error instanceof Error ? error.message : 'Failed to get real-time information');
         } finally {
           setIsLoading(false);
         }
       } else {
+        console.log('🔍 Using normal AI model selection for:', question);
         // Use normal AI model selection
         setIsAIModelSelectorModalOpen(true);
       }
     } catch (error) {
+      console.error('❌ Error parsing questionData:', error);
       // Fallback to old format (just a string)
       setMessage(questionData);
       setIsAIModelSelectorModalOpen(true);
@@ -431,8 +494,8 @@ export default function Home({ onShowAuth }: HomeProps) {
                 preload="auto"
                 className="rounded-lg shadow-lg"
                 style={{ 
-                  width: '690px', 
-                  height: '80px', 
+                  width: '80px', 
+                  height: '60px', 
                   objectFit: 'fill',
                   backgroundColor: '#000'
                 }}
@@ -459,8 +522,8 @@ export default function Home({ onShowAuth }: HomeProps) {
               >
                 <source src="/hologram1.mp4" type="video/mp4" />
                 <div style={{ 
-                  width: '690px', 
-                  height: '80px', 
+                  width: '80px', 
+                  height: '60px', 
                   backgroundColor: '#000', 
                   color: '#fff', 
                   display: 'flex', 
@@ -491,11 +554,68 @@ export default function Home({ onShowAuth }: HomeProps) {
                 </div>
               )}
               {askMeWarning && (
-                <div className="relative flex items-center p-3 rounded-3xl text-sm font-medium bg-green-600 text-black border-0 shadow-lg animate-pulse mx-auto max-w-sm" style={{ boxShadow: '0 2px 12px 2px #00ff99, 0 1.5px 6px #007a4d', background: 'linear-gradient(135deg, #00ff99 80%, #007a4d 100%)', fontWeight: 600, backdropFilter: 'blur(2px)' }}>
+                <div className="relative flex items-center justify-between p-3 rounded-3xl text-sm font-medium bg-green-600 text-black border-0 shadow-lg animate-pulse mx-auto max-w-sm" style={{ boxShadow: '0 2px 12px 2px #00ff99, 0 1.5px 6px #007a4d', background: 'linear-gradient(135deg, #00ff99 80%, #007a4d 100%)', fontWeight: 600, backdropFilter: 'blur(2px)' }}>
                   <span>{askMeWarning}</span>
+                  <button 
+                    onClick={() => setAskMeWarning('')}
+                    className="ml-2 text-black hover:text-gray-800 font-bold text-lg leading-none"
+                    style={{ fontSize: '18px', lineHeight: '1' }}
+                  >
+                    ×
+                  </button>
                 </div>
               )}
               <CommandButtons message={message} setMessage={setMessage} clearKey={clearKey} />
+              
+              {/* Test AI Buttons */}
+              <div className="flex justify-center mt-4 space-x-2">
+                <button
+                  onClick={testAIFunctionality}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                >
+                  🧪 Test AI
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await getGPTAnswer('What is 2+2?');
+                      setAskMeResponse('Simple Math Test:\n\nQuestion: What is 2+2?\n\nAI Response: ' + response);
+                      setIsAskMeResponseModalOpen(true);
+                    } catch (error) {
+                      setAskMeError('Math test failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                    }
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  🧮 Math Test
+                </button>
+                <button
+                  onClick={simpleAITest}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  🧪 Simple AI Test
+                </button>
+                <button
+                  onClick={simpleAITest}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  🧪 Simple AI Test
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await testDifferentModels('What is the capital of France?');
+                      setAskMeResponse('Model Test Results:\n\n' + response);
+                      setIsAskMeResponseModalOpen(true);
+                    } catch (error) {
+                      setAskMeError('Model test failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                    }
+                  }}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+                >
+                  🔧 Test Models
+                </button>
+              </div>
             </div>
           </div>
           

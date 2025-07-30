@@ -1,36 +1,23 @@
 #!/bin/bash
 
-echo "🚀 Starting deployment process..."
-
-# Check if we're in the right directory
-if [ ! -f "package.json" ]; then
-    echo "❌ Error: package.json not found. Make sure you're in the project root."
-    exit 1
-fi
-
-# Install dependencies
-echo "📦 Installing dependencies..."
-npm install
-
 # Build the project
-echo "🔨 Building project..."
+echo "Building project..."
 npm run build
 
 # Check if build was successful
 if [ $? -eq 0 ]; then
     echo "✅ Build successful!"
-    
-    # Check if Vercel CLI is installed
-    if command -v vercel &> /dev/null; then
-        echo "🚀 Deploying to Vercel..."
-        vercel --prod
-    else
-        echo "⚠️  Vercel CLI not found. Please install it with: npm i -g vercel"
-        echo "📋 Manual deployment steps:"
-        echo "1. Push to GitHub: git add . && git commit -m 'Deploy' && git push"
-        echo "2. Go to vercel.com and import your repository"
-    fi
+    echo "📁 Built files are in the 'dist' folder"
+    echo ""
+    echo "🌐 To deploy with HTTPS, you can:"
+    echo "1. Upload the 'dist' folder to Netlify (drag & drop)"
+    echo "2. Upload to Vercel (drag & drop)"
+    echo "3. Upload to GitHub Pages"
+    echo "4. Use any static hosting service"
+    echo ""
+    echo "🔗 Your app will get HTTPS automatically!"
+    echo "🎤 The red microphone button will work on mobile!"
 else
-    echo "❌ Build failed. Please check the errors above."
+    echo "❌ Build failed!"
     exit 1
 fi 

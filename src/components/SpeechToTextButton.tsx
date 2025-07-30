@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSpeechToText, useContinuousSpeechToText, useMobileSpeechToText } from '../hooks/useSpeechToText';
 
 interface SpeechToTextButtonProps {
@@ -43,15 +43,30 @@ export const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
     onStart
   });
 
+  // Add mobile duplication protection
+  const [locked, setLocked] = useState(false);
+
   const handleClick = () => {
+    // Prevent double-firing on mobile
+    if (locked) {
+      console.log('🎤 SpeechToTextButton click blocked - cooldown active');
+      return;
+    }
+
     if (!isSupported) {
       onError?.('Speech recognition is not supported on this device.');
       return;
     }
 
+    // Set lock to prevent rapid successive clicks
+    setLocked(true);
+    setTimeout(() => setLocked(false), 300);
+
     if (isListening) {
+      console.log('🎤 SpeechToTextButton stopping listening...');
       stopListening();
     } else {
+      console.log('🎤 SpeechToTextButton starting listening...');
       startListening();
     }
   };
@@ -100,8 +115,12 @@ export const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
 
   return (
     <button
-      className={`${baseClasses} ${listeningClasses}`}
+      className={`${baseClasses} ${listeningClasses} ${locked && !isListening ? 'opacity-70' : ''}`}
       onClick={handleClick}
+      onPointerDown={(e) => {
+        // Additional mobile protection - prevent default to avoid ghost taps
+        e.preventDefault();
+      }}
       aria-label={isListening ? 'Stop listening' : 'Start listening'}
       type="button"
       style={{
@@ -147,9 +166,18 @@ export const ContinuousSpeechToTextButton: React.FC<SpeechToTextButtonProps> = (
     onStart
   });
 
+  // Add mobile duplication protection
+  const [locked, setLocked] = useState(false);
+
   console.log('ContinuousSpeechToTextButton render - isListening:', isListening);
 
   const handleClick = () => {
+    // Prevent double-firing on mobile
+    if (locked) {
+      console.log('🎤 ContinuousSpeechToTextButton click blocked - cooldown active');
+      return;
+    }
+
     console.log('ContinuousSpeechToTextButton clicked, isListening:', isListening);
     
     if (!isSupported) {
@@ -158,11 +186,15 @@ export const ContinuousSpeechToTextButton: React.FC<SpeechToTextButtonProps> = (
       return;
     }
 
+    // Set lock to prevent rapid successive clicks
+    setLocked(true);
+    setTimeout(() => setLocked(false), 300);
+
     if (isListening) {
-      console.log('Stopping continuous listening...');
+      console.log('🎤 Stopping continuous listening...');
       stopListening();
     } else {
-      console.log('Starting continuous listening...');
+      console.log('🎤 Starting continuous listening...');
       startListening();
     }
   };
@@ -211,8 +243,12 @@ export const ContinuousSpeechToTextButton: React.FC<SpeechToTextButtonProps> = (
 
   return (
     <button
-      className={`${baseClasses} ${listeningClasses}`}
+      className={`${baseClasses} ${listeningClasses} ${locked && !isListening ? 'opacity-70' : ''}`}
       onClick={handleClick}
+      onPointerDown={(e) => {
+        // Additional mobile protection - prevent default to avoid ghost taps
+        e.preventDefault();
+      }}
       aria-label={isListening ? 'Stop continuous listening' : 'Start continuous listening'}
       type="button"
       style={{
@@ -258,9 +294,18 @@ export const MobileSpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
     onStart
   });
 
+  // Add mobile duplication protection
+  const [locked, setLocked] = useState(false);
+
   console.log('MobileSpeechToTextButton render - isListening:', isListening);
 
   const handleClick = () => {
+    // Prevent double-firing on mobile
+    if (locked) {
+      console.log('🎤 MobileSpeechToTextButton click blocked - cooldown active');
+      return;
+    }
+
     console.log('MobileSpeechToTextButton clicked, isListening:', isListening);
     console.log('Device info:', navigator.userAgent);
     console.log('Is mobile:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
@@ -271,11 +316,15 @@ export const MobileSpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       return;
     }
 
+    // Set lock to prevent rapid successive clicks
+    setLocked(true);
+    setTimeout(() => setLocked(false), 300);
+
     if (isListening) {
-      console.log('Stopping mobile listening...');
+      console.log('🎤 Stopping mobile listening...');
       stopListening();
     } else {
-      console.log('Starting mobile listening...');
+      console.log('🎤 Starting mobile listening...');
       startListening();
     }
   };
@@ -323,8 +372,12 @@ export const MobileSpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
 
   return (
     <button
-      className={`${baseClasses} ${listeningClasses}`}
+      className={`${baseClasses} ${listeningClasses} ${locked && !isListening ? 'opacity-70' : ''}`}
       onClick={handleClick}
+      onPointerDown={(e) => {
+        // Additional mobile protection - prevent default to avoid ghost taps
+        e.preventDefault();
+      }}
       aria-label={isListening ? 'Stop mobile listening' : 'Start mobile listening'}
       type="button"
       style={{
