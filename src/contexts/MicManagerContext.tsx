@@ -8,6 +8,7 @@ interface MicManagerContextType {
   startListening: (options?: { language?: string; continuous?: boolean; interimResults?: boolean }) => Promise<void>;
   stopListening: () => void;
   clearTranscript: () => void;
+  getRecognition: () => SpeechRecognition | null;
   addResultHandler: (handler: (text: string, isFinal: boolean) => void) => void;
   removeResultHandler: (handler: (text: string, isFinal: boolean) => void) => void;
   addErrorHandler: (handler: (error: string) => void) => void;
@@ -249,6 +250,7 @@ export function MicManagerProvider({ children }: MicManagerProviderProps) {
     startListening,
     stopListening,
     clearTranscript,
+    getRecognition: () => recognitionRef.current,
     addResultHandler,
     removeResultHandler,
     addErrorHandler,

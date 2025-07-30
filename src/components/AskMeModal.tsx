@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSmartSpeechToText } from '../hooks/useSmartSpeechToText';
 import { useLLMRouter } from '../hooks/useLLMRouter';
+import { useMicManager } from '../contexts/MicManagerContext';
 import type { LLMMethod } from '../types/llm';
 import { getSourceLabel } from '../types/llm';
 
@@ -32,6 +33,10 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [useRealTimeSearch, setUseRealTimeSearch] = useState(false);
   const [isTimeSensitive, setIsTimeSensitive] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  
+  // Get direct access to MicManager for cleanup
+  const micManager = useMicManager();
   
   // 🛡️ MOBILE-PROOF: Use the global mic manager
   const {
@@ -128,12 +133,16 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
   useEffect(() => {
     return () => {
       console.log('[speech] AskMeModal cleanup on unmount');
-      // Stop any active speech recognition when component unmounts
-      if (isListening) {
-        stopListening();
+      const recognition = micManager.getRecognition();
+      if (recognition) {
+        recognition.stop?.();
+        recognition.abort?.();
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onend = null;
       }
     };
-  }, [isListening, stopListening]);
+  }, [micManager]);
 
   // 🛡️ MOBILE-PROOF: Handle microphone toggle with protected hook
   const handleMicToggle = () => {
