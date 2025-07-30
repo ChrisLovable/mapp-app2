@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import type { LLMMethod } from '../types/llm';
 
 interface LLMResponse {
   answer: string;
-  method: 'virl' | 'gpt' | 'fallback';
+  method: LLMMethod;
   confidence: number;
   source: string;
 }
@@ -11,7 +12,7 @@ interface UseLLMRouterReturn {
   answer: string;
   loading: boolean;
   error: string;
-  method: 'virl' | 'gpt' | 'fallback' | null;
+  method: LLMMethod;
   confidence: number;
   source: string;
   askQuestion: (query: string) => Promise<void>;
@@ -37,7 +38,7 @@ export function useLLMRouter(options: UseLLMRouterOptions = {}): UseLLMRouterRet
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [method, setMethod] = useState<'virl' | 'gpt' | 'fallback' | null>(null);
+  const [method, setMethod] = useState<LLMMethod>(null);
   const [confidence, setConfidence] = useState(0);
   const [source, setSource] = useState('');
 

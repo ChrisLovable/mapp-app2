@@ -1,5 +1,6 @@
 // AskMeLogic.ts - Service for handling Ask Me API calls
 import { apiUsageTracker } from './ApiUsageTracker';
+import type { LLMMethod } from '../types/llm';
 
 interface WebSearchResult {
   title: string;
@@ -842,7 +843,7 @@ export function testEnvironmentVariables() {
 // Smart AskMe function that automatically chooses the best approach
 export async function smartAskMe(question: string): Promise<{
   answer: string;
-  method: 'real-time' | 'ai' | 'fallback';
+  method: LLMMethod;
   confidence: number;
 }> {
   const lowerQuestion = question.toLowerCase();
@@ -878,7 +879,7 @@ export async function smartAskMe(question: string): Promise<{
       const realTimeAnswer = await getRealTimeAnswer(question);
       return {
         answer: realTimeAnswer,
-        method: 'real-time',
+        method: 'virl',
         confidence
       };
     } catch (error) {
@@ -904,7 +905,7 @@ export async function smartAskMe(question: string): Promise<{
     const aiAnswer = await getGPTAnswer(question);
     return {
       answer: aiAnswer,
-      method: 'ai',
+      method: 'gpt',
       confidence: 0.8
     };
   } catch (error) {

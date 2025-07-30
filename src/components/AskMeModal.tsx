@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSmartSpeechToText } from '../hooks/useSmartSpeechToText';
 import { useLLMRouter } from '../hooks/useLLMRouter';
+import type { LLMMethod } from '../types/llm';
+import { getSourceLabel } from '../types/llm';
 
 interface AskMeModalProps {
   isOpen: boolean;
   onClose: () => void;
   question: string;
   onConfirm?: (question: string) => void;
-  onAnswer?: (answer: string, method: 'virl' | 'gpt' | 'fallback') => void;
+  onAnswer?: (answer: string, method: LLMMethod) => void;
 }
 
 const TRIGGERS = [
@@ -127,7 +129,7 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
     console.log('🎤 AskMeModal mic toggle:', isListening ? 'stop' : 'start');
     if (isListening) {
       stopListening();
-    } else {
+        } else {
       // 🛡️ MOBILE-PROOF: Wrap in requestAnimationFrame to avoid flicker/duplication
       requestAnimationFrame(() => {
         startListening();
@@ -151,11 +153,11 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
       
       // Call legacy onConfirm callback if provided
       if (onConfirm) {
-        const questionWithType = {
-          question: currentQuestion,
-          useRealTimeSearch: useRealTimeSearch || isTimeSensitive
-        };
-        onConfirm(JSON.stringify(questionWithType));
+      const questionWithType = {
+        question: currentQuestion,
+        useRealTimeSearch: useRealTimeSearch || isTimeSensitive
+      };
+      onConfirm(JSON.stringify(questionWithType));
       }
       
       // Don't close modal automatically - let parent handle it
@@ -241,8 +243,6 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
                       />
                       <button
                         onClick={handleMicToggle}
-                        onPointerDown={(e) => e.preventDefault()} // 🛡️ MOBILE-PROOF: Prevent ghost tap
-                        onTouchStart={(e) => e.preventDefault()} // 🛡️ MOBILE-PROOF: Redundant but safe
                         className={`p-2 rounded-full transition-all duration-200 ${
                           isListening 
                             ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
@@ -254,25 +254,6 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
                         <span className="text-white text-lg">
                           {isListening ? '⏹️' : '🎤'}
                         </span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          console.log('🧪 Testing microphone permissions...');
-                          navigator.mediaDevices.getUserMedia({ audio: true })
-                            .then(stream => {
-                              console.log('✅ Microphone test successful');
-                              alert('✅ Microphone is working! Permission granted.');
-                              stream.getTracks().forEach(track => track.stop());
-                            })
-                            .catch(error => {
-                              console.error('❌ Microphone test failed:', error);
-                              alert(`❌ Microphone test failed: ${error.message}`);
-                            });
-                        }}
-                        className="p-2 rounded-full bg-yellow-500 hover:bg-yellow-600 transition-all duration-200"
-                        title="Test Microphone"
-                      >
-                        <span className="text-white text-lg">🧪</span>
                       </button>
                     </div>
                     {isListening && (
@@ -312,9 +293,7 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
                   <div className="mb-4 p-3 bg-green-900/30 border border-green-400 rounded-lg">
                     <div className="mb-2">
                       <span className="text-green-300 text-xs">
-                        {method === 'virl' ? '🔍 Real-time Search' : 
-                         method === 'gpt' ? '🤖 AI Response' : 
-                         method === 'fallback' ? '⚠️ Fallback Response' : '🤖 Response'}
+                        {getSourceLabel(method)}
                       </span>
                       {confidence > 0 && (
                         <span className="text-gray-400 text-xs ml-2">
@@ -336,15 +315,15 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
                   >
                     Cancel
                   </button>
-                  <button 
-                    className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
+                                     <button 
+                     className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
                       isLoading 
                         ? 'bg-gray-500' 
                         : useRealTimeSearch 
-                          ? 'bg-green-600 hover:bg-green-700' 
-                          : 'bg-blue-600 hover:bg-blue-700'
-                    }`}
-                    onClick={handleConfirm}
+                         ? 'bg-green-600 hover:bg-green-700' 
+                         : 'bg-blue-600 hover:bg-blue-700'
+                     }`}
+                     onClick={handleConfirm}
                     disabled={!currentQuestion.trim() || isLoading}
                   >
                     {isLoading 
@@ -353,7 +332,7 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
                         ? '🔍 Smart Search' 
                         : '🤖 Smart Ask'
                     }
-                  </button>
+                   </button>
                 </div>
               </div>
             </div>

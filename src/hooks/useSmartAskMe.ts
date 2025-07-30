@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef } from 'react';
 import { smartAskMe, isTimeSensitiveQuestion } from '../lib/AskMeLogic';
+import type { LLMMethod } from '../types/llm';
 
 interface UseSmartAskMeReturn {
   isLoading: boolean;
   answer: string;
   error: string;
-  method: 'real-time' | 'ai' | 'fallback' | null;
+  method: LLMMethod;
   confidence: number;
   askQuestion: (question: string) => Promise<void>;
   clearAnswer: () => void;
@@ -16,7 +17,7 @@ export function useSmartAskMe(): UseSmartAskMeReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
-  const [method, setMethod] = useState<'real-time' | 'ai' | 'fallback' | null>(null);
+  const [method, setMethod] = useState<LLMMethod>(null);
   const [confidence, setConfidence] = useState(0);
   
   // 🛡️ MOBILE-PROOF: Prevent duplicate requests

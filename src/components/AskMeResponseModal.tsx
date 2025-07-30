@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { getSourceLabel } from '../types/llm';
 
 interface AskMeResponseModalProps {
   isOpen: boolean;

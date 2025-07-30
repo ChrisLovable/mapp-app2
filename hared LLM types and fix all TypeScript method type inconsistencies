@@ -1,0 +1,5 @@
+[33m689caeb[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Fix TypeScript errors: update method types to match useLLMRouter return types (virl/gpt/fallback)
+[33m3506f73[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Implement robust VIRL gateway with retry, validation, caching, and metrics - bulletproof real-time handling
+[33m37ebb96[m Final polish: cancel on modal close, prompt trim, better error UX, input safety with debouncing
+[33m335937c[m Implement central LLMRouter with coordinated response handling - prevents race conditions between VIRL, GPT, and fallback sources
+[33m89e99d0[m Fix SmartMeetingRecorder.tsx - remove old recognitionRef references and use global mic manager
