@@ -214,12 +214,29 @@ export function MicManagerProvider({ children }: MicManagerProviderProps) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      console.log('[speech] MicManager cleanup on unmount');
       if (recognitionRef.current) {
+        // Clear all event listeners
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onstart = null;
+        recognitionRef.current.onend = null;
+        
+        // Stop recognition
         try {
           recognitionRef.current.stop();
         } catch (error) {
-          console.error('🎤 MicManager: Error during cleanup:', error);
+          console.log('[speech] stop() failed, trying abort()');
+          try {
+            recognitionRef.current.abort();
+          } catch (abortError) {
+            console.log('[speech] abort() also failed:', abortError);
+          }
         }
+        
+        recognitionRef.current = null;
+        setIsListening(false);
+        isLockedRef.current = false;
       }
     };
   }, []);
