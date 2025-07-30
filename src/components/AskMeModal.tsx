@@ -49,9 +49,9 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
     }
   }, [isOpen, question]);
 
-  // Initialize speech recognition
-  useEffect(() => {
-    if (isOpen && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+  // Initialize speech recognition only when modal is open and user wants to use it
+  const initializeSpeechRecognition = () => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       
@@ -61,7 +61,7 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
 
       recognition.onstart = () => {
         setIsListening(true);
-        console.log('AskMeModal: Speech recognition started');
+        console.log('Speech recognition started');
       };
 
       recognition.onresult = (event) => {
@@ -78,25 +78,7 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
         }
 
         if (finalTranscript) {
-          // Check for "Go" keyword to send the question
-          const cleanTranscript = finalTranscript.toLowerCase().trim();
-          if (cleanTranscript === 'go' || cleanTranscript.includes('go') || 
-              cleanTranscript === 'send' || cleanTranscript.includes('send') ||
-              cleanTranscript === 'submit' || cleanTranscript.includes('submit') ||
-              cleanTranscript === 'ask' || cleanTranscript.includes('ask')) {
-            const fullQuestion = currentQuestion + transcript;
-            if (fullQuestion.trim() && fullQuestion.length > 5) {
-              console.log('AskMeModal: Send keyword detected, sending question:', fullQuestion);
-              onConfirm(fullQuestion);
-              onClose();
-            } else {
-              console.log('AskMeModal: Send keyword detected but no valid question to send');
-            }
-            return;
-          }
-          
-          const newQuestion = currentQuestion + finalTranscript;
-          setCurrentQuestion(newQuestion);
+          setCurrentQuestion(prev => prev + finalTranscript);
           setTranscript('');
         } else {
           setTranscript(interimTranscript);
@@ -104,21 +86,25 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
       };
 
       recognition.onerror = (event) => {
-        console.error('AskMeModal: Speech recognition error:', event.error);
+        console.error('Speech recognition error:', event.error);
         setIsListening(false);
       };
 
       recognition.onend = () => {
         setIsListening(false);
-        console.log('AskMeModal: Speech recognition ended');
       };
 
       recognitionRef.current = recognition;
-      
-      // Start listening when modal opens
+    }
+  };
+
+  // Start listening when modal opens
+  useEffect(() => {
+    if (isOpen && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      initializeSpeechRecognition();
       setTimeout(() => {
         try {
-          recognition.start();
+          recognitionRef.current?.start();
           console.log('AskMeModal: Speech recognition started, waiting for user input');
         } catch (error) {
           console.error('AskMeModal: Error starting recognition:', error);
@@ -131,7 +117,7 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm }: Ask
         }
       };
     }
-  }, [isOpen, currentQuestion]);
+  }, [isOpen]);
 
   const handleConfirm = () => {
     if (currentQuestion.trim()) {

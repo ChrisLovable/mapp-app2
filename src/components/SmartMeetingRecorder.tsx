@@ -53,8 +53,8 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
   // Speech Recognition Support Check
   const isSpeechRecognitionSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
 
-  // useEffect for Speech Recognition Initialization
-  useEffect(() => {
+  // Initialize speech recognition only when needed
+  const initializeSpeechRecognition = () => {
     if (isSpeechRecognitionSupported) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
@@ -108,7 +108,7 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
         setIsPaused(false);
       };
     }
-  }, [isSpeechRecognitionSupported, selectedLanguage]);
+  };
 
   // startRecording function
   const startRecording = async () => {
@@ -117,9 +117,14 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
       setInterimTranscript('');
       setConfidence(0);
       
-      // Clear previous content and start speech recognition
+      // Clear previous content
       setTranscript('');
       setMeetingRecording('');
+      
+      // Initialize speech recognition only when recording starts
+      if (!recognitionRef.current) {
+        initializeSpeechRecognition();
+      }
       
       if (recognitionRef.current) {
         try {

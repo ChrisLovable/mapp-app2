@@ -61,9 +61,15 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
       setIsRecording(true);
       setIsPaused(false);
       
-      // Clear previous content and start speech recognition
+      // Clear previous content and initialize speech recognition
       setMeetingContent('');
       setTranscript('');
+      
+      // Initialize speech recognition only when recording starts
+      if (!recognitionRef.current) {
+        initializeSpeechRecognition();
+      }
+      
       if (recognitionRef.current) {
         try {
           recognitionRef.current.start();
@@ -266,8 +272,9 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
                                   navigator.mediaDevices && 
                                   navigator.mediaDevices.getUserMedia;
 
-  // Initialize Speech Recognition
-  useEffect(() => {
+  // Initialize Speech Recognition - REMOVED AUTOMATIC INITIALIZATION
+  // Speech recognition will now only be initialized when user starts recording
+  const initializeSpeechRecognition = () => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
@@ -318,26 +325,16 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
 
       recognition.onend = () => {
         setIsListening(false);
-        // Only restart if we're recording and not paused
-        if (isRecording && !isPaused) {
-          console.log('Restarting speech recognition...');
-          setTimeout(() => {
-            try {
-              recognition.start();
-            } catch (error) {
-              console.error('Error restarting speech recognition:', error);
-            }
-          }, 100); // Small delay to prevent rapid restarts
-        }
       };
     }
+  };
 
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, [isRecording, isPaused]);
+  // Effect to initialize speech recognition when recording starts
+  useEffect(() => {
+    if (isRecording && !recognitionRef.current) {
+      initializeSpeechRecognition();
+    }
+  }, [isRecording]);
 
   if (!isOpen) return null;
 
