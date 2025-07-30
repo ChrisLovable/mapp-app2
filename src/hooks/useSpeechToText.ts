@@ -131,6 +131,7 @@ export const useSpeechToText = (options: UseSpeechToTextOptions = {}): UseSpeech
   const recognitionRef = useRef<any>(null);
   const shouldContinueRef = useRef(false);
   const accumulatedTextRef = useRef('');
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   // Check if speech recognition is supported
   const isSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -139,29 +140,16 @@ export const useSpeechToText = (options: UseSpeechToTextOptions = {}): UseSpeech
   useEffect(() => {
     return () => {
       console.log('[speech] useSpeechToText cleanup on unmount');
-      if (recognitionRef.current) {
-        // Clear all event listeners
-        recognitionRef.current.onresult = null;
-        recognitionRef.current.onerror = null;
-        recognitionRef.current.onstart = null;
-        recognitionRef.current.onend = null;
-        
-        // Stop recognition
-        try {
-          recognitionRef.current.stop();
-        } catch (error) {
-          console.log('[speech] stop() failed, trying abort()');
-          try {
-            recognitionRef.current.abort();
-          } catch (abortError) {
-            console.log('[speech] abort() also failed:', abortError);
-          }
-        }
-        
-        recognitionRef.current = null;
-        shouldContinueRef.current = false;
-        micManager.stopListening();
+      // Call stored cleanup function
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
       }
+      
+      // Also clean up refs
+      recognitionRef.current = null;
+      shouldContinueRef.current = false;
+      micManager.stopListening();
     };
   }, []);
 
@@ -191,6 +179,33 @@ export const useSpeechToText = (options: UseSpeechToTextOptions = {}): UseSpeech
     recognition.continuous = continuous;
     recognition.interimResults = interimResults;
     recognition.lang = language;
+
+    // ✅ CLEANUP: Store cleanup function for this recognition instance
+    const cleanupRecognition = () => {
+      console.log('[speech] Cleaning up recognition instance');
+      if (recognition) {
+        // Clear all event listeners
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onstart = null;
+        recognition.onend = null;
+        
+        // Stop recognition
+        try {
+          recognition.stop();
+        } catch (error) {
+          console.log('[speech] stop() failed, trying abort()');
+          try {
+            recognition.abort();
+          } catch (abortError) {
+            console.log('[speech] abort() also failed:', abortError);
+          }
+        }
+      }
+    };
+
+    // Store cleanup function for unmount
+    cleanupRef.current = cleanupRecognition;
 
     // Handle recognition results
     recognition.onresult = (event: any) => {
@@ -297,6 +312,7 @@ export const useContinuousSpeechToText = (options: UseSpeechToTextOptions = {}):
   const shouldContinueRef = useRef(false);
   const accumulatedTextRef = useRef('');
   const lastResultIndexRef = useRef(0); // Track the last processed result index
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   const isSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
@@ -304,29 +320,16 @@ export const useContinuousSpeechToText = (options: UseSpeechToTextOptions = {}):
   useEffect(() => {
     return () => {
       console.log('[speech] useContinuousSpeechToText cleanup on unmount');
-      if (recognitionRef.current) {
-        // Clear all event listeners
-        recognitionRef.current.onresult = null;
-        recognitionRef.current.onerror = null;
-        recognitionRef.current.onstart = null;
-        recognitionRef.current.onend = null;
-        
-        // Stop recognition
-        try {
-          recognitionRef.current.stop();
-        } catch (error) {
-          console.log('[speech] stop() failed, trying abort()');
-          try {
-            recognitionRef.current.abort();
-          } catch (abortError) {
-            console.log('[speech] abort() also failed:', abortError);
-          }
-        }
-        
-        recognitionRef.current = null;
-        shouldContinueRef.current = false;
-        micManager.stopListening();
+      // Call stored cleanup function
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
       }
+      
+      // Also clean up refs
+      recognitionRef.current = null;
+      shouldContinueRef.current = false;
+      micManager.stopListening();
     };
   }, []);
 
@@ -360,6 +363,33 @@ export const useContinuousSpeechToText = (options: UseSpeechToTextOptions = {}):
     recognition.lang = language;
     recognition.interimResults = true;
     recognition.continuous = true;
+
+    // ✅ CLEANUP: Store cleanup function for this recognition instance
+    const cleanupRecognition = () => {
+      console.log('[speech] Cleaning up continuous recognition instance');
+      if (recognition) {
+        // Clear all event listeners
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onstart = null;
+        recognition.onend = null;
+        
+        // Stop recognition
+        try {
+          recognition.stop();
+        } catch (error) {
+          console.log('[speech] stop() failed, trying abort()');
+          try {
+            recognition.abort();
+          } catch (abortError) {
+            console.log('[speech] abort() also failed:', abortError);
+          }
+        }
+      }
+    };
+
+    // Store cleanup function for unmount
+    cleanupRef.current = cleanupRecognition;
 
     recognition.onresult = (event: any) => {
       console.log('🎤 Recognition result received:', event.results.length, 'results, lastIndex:', lastResultIndexRef.current);
@@ -501,6 +531,7 @@ export const useMobileSpeechToText = (options: UseSpeechToTextOptions = {}): Use
   const shouldContinueRef = useRef(false);
   const accumulatedTextRef = useRef('');
   const lastResultIndexRef = useRef(0); // Track the last processed result index
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   const isSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
@@ -508,29 +539,16 @@ export const useMobileSpeechToText = (options: UseSpeechToTextOptions = {}): Use
   useEffect(() => {
     return () => {
       console.log('[speech] useMobileSpeechToText cleanup on unmount');
-      if (recognitionRef.current) {
-        // Clear all event listeners
-        recognitionRef.current.onresult = null;
-        recognitionRef.current.onerror = null;
-        recognitionRef.current.onstart = null;
-        recognitionRef.current.onend = null;
-        
-        // Stop recognition
-        try {
-          recognitionRef.current.stop();
-        } catch (error) {
-          console.log('[speech] stop() failed, trying abort()');
-          try {
-            recognitionRef.current.abort();
-          } catch (abortError) {
-            console.log('[speech] abort() also failed:', abortError);
-          }
-        }
-        
-        recognitionRef.current = null;
-        shouldContinueRef.current = false;
-        micManager.stopListening();
+      // Call stored cleanup function
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
       }
+      
+      // Also clean up refs
+      recognitionRef.current = null;
+      shouldContinueRef.current = false;
+      micManager.stopListening();
     };
   }, []);
 
@@ -564,6 +582,33 @@ export const useMobileSpeechToText = (options: UseSpeechToTextOptions = {}): Use
     recognition.lang = language;
     recognition.interimResults = true;
     recognition.continuous = true;
+
+    // ✅ CLEANUP: Store cleanup function for this recognition instance
+    const cleanupRecognition = () => {
+      console.log('[speech] Cleaning up mobile recognition instance');
+      if (recognition) {
+        // Clear all event listeners
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onstart = null;
+        recognition.onend = null;
+        
+        // Stop recognition
+        try {
+          recognition.stop();
+        } catch (error) {
+          console.log('[speech] stop() failed, trying abort()');
+          try {
+            recognition.abort();
+          } catch (abortError) {
+            console.log('[speech] abort() also failed:', abortError);
+          }
+        }
+      }
+    };
+
+    // Store cleanup function for unmount
+    cleanupRef.current = cleanupRecognition;
 
     recognition.onresult = (event: any) => {
       console.log('🎤 Mobile recognition result:', event.results.length, 'results, lastIndex:', lastResultIndexRef.current);
