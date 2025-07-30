@@ -37,6 +37,7 @@ export function useSmartSpeechToText(options: UseSmartSpeechToTextOptions = {}):
   // 🛡️ MOBILE-PROOF: Prevent duplicate requests
   const isRequestingRef = useRef(false);
   const [localTranscript, setLocalTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
 
   // Register event handlers
   useEffect(() => {
@@ -45,6 +46,10 @@ export function useSmartSpeechToText(options: UseSmartSpeechToTextOptions = {}):
       
       if (isFinal) {
         setLocalTranscript(prev => prev + text);
+        setInterimTranscript(''); // Clear interim when final
+      } else {
+        // Update interim transcript for real-time display
+        setInterimTranscript(text);
       }
       
       // Call user's onResult callback
@@ -135,13 +140,14 @@ export function useSmartSpeechToText(options: UseSmartSpeechToTextOptions = {}):
   // Clear local transcript
   const clearTranscript = useCallback(() => {
     setLocalTranscript('');
+    setInterimTranscript('');
     micManager.clearTranscript();
   }, [micManager]);
 
   return {
     isListening: micManager.isListening,
     transcript: localTranscript || micManager.transcript,
-    interimTranscript: micManager.interimTranscript,
+    interimTranscript: interimTranscript || micManager.interimTranscript,
     startListening,
     stopListening,
     clearTranscript,
