@@ -141,10 +141,59 @@ export function getModelSuggestions(question: string): {
   };
 }
 
-// Real-time web search using SerpAPI (Google search results)
+// Real-time web search using VIRL Gateway
 export async function getRealTimeAnswer(question: string, model?: string): Promise<string> {
   try {
-    console.log('🔍 Starting real-time search for:', question);
+    console.log('🔍 Getting real-time answer via VIRL gateway for:', question);
+    
+    const response = await fetch('/api/virl-gateway', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query: question }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `VIRL Gateway error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'VIRL Gateway failed');
+    }
+
+    // 🧪 VALIDATE VIRL RESPONSE
+    if (!data.data || !data.data.answer) {
+      throw new Error('Invalid VIRL response structure');
+    }
+
+    // 📦 HANDLE CACHED RESPONSES
+    if (data.cached && data.warning) {
+      console.log('⚠️ VIRL cached response:', data.warning);
+    }
+
+    return data.data.answer;
+  } catch (error) {
+    console.error('❌ VIRL Gateway failed:', error);
+    
+    // 🔄 FALLBACK TO LEGACY WEB SEARCH
+    console.log('🔄 VIRL failed, falling back to legacy web search...');
+    try {
+      return await getLegacyRealTimeAnswer(question, model);
+    } catch (fallbackError) {
+      console.error('Fallback also failed:', fallbackError);
+      throw new Error('Failed to fetch real-time information. Please try again or use the general AI mode.');
+    }
+  }
+}
+
+// Legacy real-time web search using SerpAPI (Google search results) - kept as fallback
+async function getLegacyRealTimeAnswer(question: string, model?: string): Promise<string> {
+  try {
+    console.log('🔍 Starting legacy real-time search for:', question);
     
     // Check if this is a time-sensitive search (GPT-4o for time-sensitive queries)
     const isTimeSensitiveSearch = model === 'openai/gpt-4o' && 
@@ -211,7 +260,7 @@ export async function getRealTimeAnswer(question: string, model?: string): Promi
     // This should never be reached, but just in case
     throw new Error('No search results found. Please try rephrasing your question.');
   } catch (error) {
-    console.error('Error fetching real-time answer:', error);
+    console.error('Error fetching legacy real-time answer:', error);
     
     // Only fall back to GPT if absolutely no web results can be found
     console.log('🔄 All web search methods failed, falling back to AI with web context...');
