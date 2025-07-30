@@ -1,24 +1,23 @@
 import { useState } from 'react';
 import AskMeModal from './AskMeModal';
 import AskMeResponseModal from './AskMeResponseModal';
-import { useSmartAskMe } from '../hooks/useSmartAskMe';
+import { useLLMRouter } from '../hooks/useLLMRouter';
 
 export default function AskMeTest() {
   const [question, setQuestion] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showResponseModal, setShowResponseModal] = useState(false);
   
-  // 🧠 SMART: Use the smart AskMe hook
+  // 🧠 SMART: Use the coordinated LLM router
   const {
-    isLoading,
     answer,
+    loading: isLoading,
     error,
     method,
     confidence,
     askQuestion,
-    clearAnswer,
-    isTimeSensitive
-  } = useSmartAskMe();
+    clearAnswer
+  } = useLLMRouter();
 
   const handleAsk = async () => {
     if (!question.trim()) return;
@@ -29,7 +28,7 @@ export default function AskMeTest() {
     setShowModal(true);
   };
 
-  const handleSmartAnswer = async (answer: string, method: 'real-time' | 'ai' | 'fallback') => {
+  const handleSmartAnswer = async (answer: string, method: 'virl' | 'gpt' | 'fallback') => {
     console.log('✅ Smart answer received:', { method, answerLength: answer.length });
     
     // Close the modal and show response

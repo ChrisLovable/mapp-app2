@@ -7,7 +7,7 @@ interface AskMeModalProps {
   onClose: () => void;
   question: string;
   onConfirm?: (question: string) => void;
-  onAnswer?: (answer: string, method: 'real-time' | 'ai' | 'fallback') => void;
+  onAnswer?: (answer: string, method: 'virl' | 'gpt' | 'fallback') => void;
 }
 
 const TRIGGERS = [
@@ -146,7 +146,7 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
       
       // Call onAnswer callback if provided
       if (onAnswer && answer) {
-        onAnswer(answer, method || 'ai');
+        onAnswer(answer, method || 'gpt');
       }
       
       // Call legacy onConfirm callback if provided
@@ -312,8 +312,8 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
                   <div className="mb-4 p-3 bg-green-900/30 border border-green-400 rounded-lg">
                     <div className="mb-2">
                       <span className="text-green-300 text-xs">
-                        {method === 'real-time' ? '🔍 Real-time Search' : 
-                         method === 'ai' ? '🤖 AI Response' : 
+                        {method === 'virl' ? '🔍 Real-time Search' : 
+                         method === 'gpt' ? '🤖 AI Response' : 
                          method === 'fallback' ? '⚠️ Fallback Response' : '🤖 Response'}
                       </span>
                       {confidence > 0 && (
