@@ -71,6 +71,26 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
 
   const containerRef = React.useRef<HTMLDivElement>(null);
 
+  // ✅ CLEANUP: Add cleanup effect for unmount
+  useEffect(() => {
+    return () => {
+      console.log('[speech] SmartMeetingRecorder cleanup on unmount');
+      // Stop any active recording when component unmounts
+      if (isRecording || isListening) {
+        stopListening();
+        setIsRecording(false);
+        setIsPaused(false);
+        setIsResuming(false);
+      }
+      
+      // Clear any fallback timeouts
+      if (stateRef.current.fallbackTimeout) {
+        clearTimeout(stateRef.current.fallbackTimeout);
+        stateRef.current.fallbackTimeout = null;
+      }
+    };
+  }, [isRecording, isListening, stopListening]);
+
   // 🛡️ MOBILE-PROOF: Speech recognition is now handled by the global mic manager
 
   // startRecording function

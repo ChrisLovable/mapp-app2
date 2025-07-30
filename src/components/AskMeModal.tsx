@@ -124,6 +124,17 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
     };
   }, [isOpen, cancelRequest]);
 
+  // ✅ CLEANUP: Add cleanup effect for speech recognition
+  useEffect(() => {
+    return () => {
+      console.log('[speech] AskMeModal cleanup on unmount');
+      // Stop any active speech recognition when component unmounts
+      if (isListening) {
+        stopListening();
+      }
+    };
+  }, [isListening, stopListening]);
+
   // 🛡️ MOBILE-PROOF: Handle microphone toggle with protected hook
   const handleMicToggle = () => {
     console.log('🎤 AskMeModal mic toggle:', isListening ? 'stop' : 'start');
