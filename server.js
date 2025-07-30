@@ -12,9 +12,14 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-// 🚀 VIRL GATEWAY ROUTES
+// 🚀 API ROUTES
 const virlGatewayRouter = require('./api/virl-gateway.js');
+const gptRouter = require('./api/gpt.js');
+const virlRouter = require('./api/virl.js');
+
 app.use('/api', virlGatewayRouter);
+app.use('/api', gptRouter);
+app.use('/api', virlRouter);
 
 // Test endpoint
 app.get('/test', (req, res) => {

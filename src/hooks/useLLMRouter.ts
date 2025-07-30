@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { LLMMethod } from '../types/llm';
-import { smartAskMe, isTimeSensitiveQuestion } from '../lib/AskMeLogic';
+import { useSmartLLM } from './useSmartLLM';
 
 interface LLMResponse {
   answer: string;
@@ -35,6 +35,9 @@ export function useLLMRouter(options: UseLLMRouterOptions = {}): UseLLMRouterRet
     enableGPT = true,
     enableFallback = true
   } = options;
+
+  // 🧠 SMART LLM: Use the new useSmartLLM hook for resilient fallback
+  const { generate, isLoading: smartLLMLoading, error: smartLLMError, lastResponse } = useSmartLLM();
 
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
@@ -86,37 +89,37 @@ export function useLLMRouter(options: UseLLMRouterOptions = {}): UseLLMRouterRet
     }, timeout);
 
     try {
-      // 🧠 COORDINATED LLM REQUEST: Use smart AskMe with proper coordination
-      const result = await smartAskMe(query);
+      // 🧠 COORDINATED LLM REQUEST: Use smart LLM with resilient fallback
+      const result = await generate(query);
       
       // 🛡️ RACE CONDITION PREVENTION: Only accept if this is still the active request
       if (activeRequestRef.current === query && !hasRespondedRef.current) {
         console.log('✅ LLMRouter: Received coordinated response:', {
-          method: result.method,
+          method: result.source,
           confidence: result.confidence,
-          answerLength: result.answer.length
+          answerLength: result.output.length
         });
         
-        setAnswer(result.answer);
-        setMethod(result.method);
+        setAnswer(result.output);
+        setMethod(result.source);
         setConfidence(result.confidence);
-        setSource(result.method === 'virl' ? 'VIRL' : 'GPT');
+        setSource(result.source === 'virl' ? 'VIRL' : result.source === 'gpt' ? 'GPT' : 'Fallback');
         hasRespondedRef.current = true;
       } else {
         console.log('🛡️ LLMRouter: Ignoring response from outdated request');
       }
       
-         } catch (err) {
-       // 🛡️ RACE CONDITION PREVENTION: Only handle errors for active request
-       if (activeRequestRef.current === query && !hasRespondedRef.current) {
-         const errorMessage = err instanceof Error ? err.message : 'Failed to get response';
-         console.error('❌ LLMRouter: Error in coordinated request:', errorMessage);
-         
-         // 🔄 LLM ERROR UX: Provide helpful fallback message
-         setError('We couldn\'t get an answer right now. Please try again or rephrase your question.');
-         hasRespondedRef.current = true;
-       }
-     } finally {
+    } catch (err) {
+      // 🛡️ RACE CONDITION PREVENTION: Only handle errors for active request
+      if (activeRequestRef.current === query && !hasRespondedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to get response';
+        console.error('❌ LLMRouter: Error in coordinated request:', errorMessage);
+        
+        // 🔄 LLM ERROR UX: Provide helpful fallback message
+        setError('We couldn\'t get an answer right now. Please try again or rephrase your question.');
+        hasRespondedRef.current = true;
+      }
+    } finally {
       // Cleanup
       if (activeRequestRef.current === query) {
         setLoading(false);
@@ -128,7 +131,7 @@ export function useLLMRouter(options: UseLLMRouterOptions = {}): UseLLMRouterRet
         abortControllerRef.current = null;
       }
     }
-  }, [timeout, enableVIRL, enableGPT, enableFallback]);
+  }, [timeout, enableVIRL, enableGPT, enableFallback, generate]);
 
   const handleTimeout = useCallback(() => {
     if (!hasRespondedRef.current) {

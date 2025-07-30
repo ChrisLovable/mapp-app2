@@ -3,6 +3,8 @@ import CustomDatePicker from './CustomDatePicker';
 import Select from 'react-select';
 import { supabase } from '../lib/supabase';
 import { useSmartSpeechToText } from '../hooks/useSmartSpeechToText';
+import { useErrorToast } from '../hooks/useErrorToast';
+import { useLockedAction } from '../hooks/useLockedAction';
 import { useMicManager } from '../contexts/MicManagerContext';
 
 interface SmartMeetingRecorderProps {
@@ -11,6 +13,8 @@ interface SmartMeetingRecorderProps {
 }
 
 const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onClose }) => {
+  const { showError, showWarning } = useErrorToast();
+  const { locked: isProcessing, runLocked } = useLockedAction();
   // State management
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -53,6 +57,7 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
     language: selectedLanguage,
     continuous: true,
     interimResults: true,
+    owner: 'SmartMeetingRecorder',
     onResult: (text, isFinal) => {
       if (isFinal) {
         setTranscript(prev => prev + text);
@@ -62,6 +67,7 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
     onError: (error) => {
       console.error('Speech recognition error:', error);
       setError(`Speech recognition error: ${error}`);
+      showError('Speech Recognition Error', error);
     }
   });
 
@@ -108,45 +114,51 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
 
   // startRecording function
   const startRecording = async () => {
-    try {
-      setError(null);
-      setInterimTranscript('');
-      setConfidence(0);
-      
-      // Clear previous content
-      setTranscript('');
-      setMeetingRecording('');
-      
-      // 🛡️ MOBILE-PROOF: Use the global mic manager
-      await startListening();
-      setIsRecording(true);
-      setIsPaused(false);
-      stateRef.current = { ...stateRef.current, isRecording: true, isPaused: false, fallbackTimeout: null };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to start transcription';
-      setError(errorMessage);
-      console.error('Error starting transcription:', err);
-    }
+    await runLocked(async () => {
+      try {
+        setError(null);
+        setInterimTranscript('');
+        setConfidence(0);
+        
+        // Clear previous content
+        setTranscript('');
+        setMeetingRecording('');
+        
+        // 🛡️ MOBILE-PROOF: Use the global mic manager
+        await startListening();
+        setIsRecording(true);
+        setIsPaused(false);
+        stateRef.current = { ...stateRef.current, isRecording: true, isPaused: false, fallbackTimeout: null };
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to start transcription';
+        setError(errorMessage);
+        console.error('Error starting transcription:', err);
+        showError('Recording Error', errorMessage);
+      }
+    });
   };
 
   const continueRecording = async () => {
-    try {
-      setError(null);
-      setInterimTranscript('');
-      setConfidence(0);
-      
-      // Don't clear previous content - continue from where we left off
-      
-      // 🛡️ MOBILE-PROOF: Use the global mic manager
-      await startListening();
-      setIsRecording(true);
-      setIsPaused(false);
-      stateRef.current = { ...stateRef.current, isRecording: true, isPaused: false, fallbackTimeout: null };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to start transcription';
-      setError(errorMessage);
-      console.error('Error starting transcription:', err);
-    }
+    await runLocked(async () => {
+      try {
+        setError(null);
+        setInterimTranscript('');
+        setConfidence(0);
+        
+        // Don't clear previous content - continue from where we left off
+        
+        // 🛡️ MOBILE-PROOF: Use the global mic manager
+        await startListening();
+        setIsRecording(true);
+        setIsPaused(false);
+        stateRef.current = { ...stateRef.current, isRecording: true, isPaused: false, fallbackTimeout: null };
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to start transcription';
+        setError(errorMessage);
+        console.error('Error starting transcription:', err);
+        showError('Recording Error', errorMessage);
+      }
+    });
   };
 
   const pauseRecording = () => {
@@ -163,24 +175,27 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
   const resumeRecording = async () => {
     if (!isPaused) return;
 
-    try {
-      setIsResuming(true);
-      stateRef.current = { ...stateRef.current, isResuming: true };
+    await runLocked(async () => {
+      try {
+        setIsResuming(true);
+        stateRef.current = { ...stateRef.current, isResuming: true };
 
-      // 🛡️ MOBILE-PROOF: Use the global mic manager
-      await startListening();
-      
-      setIsResuming(false);
-      setIsRecording(true);
-      setIsPaused(false);
-      stateRef.current = { ...stateRef.current, isResuming: false, isRecording: true, isPaused: false, fallbackTimeout: null };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to resume transcription';
-      setError(errorMessage);
-      console.error('Error resuming transcription:', err);
-      setIsResuming(false);
-      stateRef.current = { ...stateRef.current, isResuming: false, fallbackTimeout: null };
-    }
+        // 🛡️ MOBILE-PROOF: Use the global mic manager
+        await startListening();
+        
+        setIsResuming(false);
+        setIsRecording(true);
+        setIsPaused(false);
+        stateRef.current = { ...stateRef.current, isResuming: false, isRecording: true, isPaused: false, fallbackTimeout: null };
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to resume transcription';
+        setError(errorMessage);
+        console.error('Error resuming transcription:', err);
+        showError('Recording Error', errorMessage);
+        setIsResuming(false);
+        stateRef.current = { ...stateRef.current, isResuming: false, fallbackTimeout: null };
+      }
+    });
   };
 
   const endRecording = () => {
@@ -255,17 +270,18 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
       return;
     }
 
-    setIsCreatingMinutes(true);
-    setError(null);
+    await runLocked(async () => {
+      setIsCreatingMinutes(true);
+      setError(null);
 
-    try {
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      
-      if (!apiKey) {
-        throw new Error('OpenAI API key not found. Please check your .env file.');
-      }
+      try {
+        const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+        
+        if (!apiKey) {
+          throw new Error('OpenAI API key not found. Please check your .env file.');
+        }
 
-      const prompt = `CREATE THE MINUTES FOR THIS MEETING. IT SHOULD HAVE A 100 WORDS OR LESS SUMMARY, IT SHOULD HAVE THE ACTION ITEMS LISTED AND IT SHOULD INCLUDE THE DETAILED MINUTES.
+        const prompt = `CREATE THE MINUTES FOR THIS MEETING. IT SHOULD HAVE A 100 WORDS OR LESS SUMMARY, IT SHOULD HAVE THE ACTION ITEMS LISTED AND IT SHOULD INCLUDE THE DETAILED MINUTES.
 
 Meeting Transcript:
 ${transcript}
@@ -275,50 +291,53 @@ Please format the response with clear subheadings for:
 2. ACTION ITEMS
 3. DETAILED MINUTES`;
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a professional meeting minutes assistant. Create clear, well-structured meeting minutes with proper formatting and subheadings.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 1500,
-          temperature: 0.3
-        })
-      });
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a professional meeting minutes assistant. Create clear, well-structured meeting minutes with proper formatting and subheadings.'
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            max_tokens: 1500,
+            temperature: 0.3
+          })
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        const minutes = data.choices[0]?.message?.content;
+
+        if (!minutes) {
+          throw new Error('No response received from OpenAI');
+        }
+
+        // Set the minutes in the additional notes text box
+        setAdditionalNotes(minutes);
+
+      } catch (error) {
+        console.error('Error creating minutes:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        setError(`Failed to create minutes: ${errorMessage}`);
+        showError('Minutes Creation Failed', `Failed to create minutes: ${errorMessage}`);
+      } finally {
+        setIsCreatingMinutes(false);
       }
-
-      const data = await response.json();
-      const minutes = data.choices[0]?.message?.content;
-
-      if (!minutes) {
-        throw new Error('No response received from OpenAI');
-      }
-
-      // Set the minutes in the additional notes text box
-      setAdditionalNotes(minutes);
-
-    } catch (error) {
-      console.error('Error creating minutes:', error);
-      setError(`Failed to create minutes: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsCreatingMinutes(false);
-    }
+    });
   };
 
   // Save meeting data to database
@@ -328,67 +347,73 @@ Please format the response with clear subheadings for:
       return;
     }
 
-    setIsSavingToDatabase(true);
-    setError(null);
+    await runLocked(async () => {
+      setIsSavingToDatabase(true);
+      setError(null);
 
-    try {
-      const { data, error } = await supabase
-        .from('meeting_recordings')
-        .insert([
-          {
-            meeting_agenda: meetingAgenda || 'Meeting Recording',
-            meeting_transcript: meetingRecording,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ])
-        .select();
+      try {
+        const { data, error } = await supabase
+          .from('meeting_recordings')
+          .insert([
+            {
+              meeting_agenda: meetingAgenda || 'Meeting Recording',
+              meeting_transcript: meetingRecording,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ])
+          .select();
 
-      if (error) {
-        throw new Error(`Database error: ${error.message}`);
+        if (error) {
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        if (data) {
+          console.log('Meeting saved to database:', data);
+          // Optionally show success message or clear form
+          setError(null);
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to save meeting to database';
+        setError(errorMessage);
+        console.error('Error saving to database:', err);
+        showError('Database Error', errorMessage);
+      } finally {
+        setIsSavingToDatabase(false);
       }
-
-      if (data) {
-        console.log('Meeting saved to database:', data);
-        // Optionally show success message or clear form
-        setError(null);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save meeting to database';
-      setError(errorMessage);
-      console.error('Error saving to database:', err);
-    } finally {
-      setIsSavingToDatabase(false);
-    }
+    });
   };
 
   // Open meeting journal and load saved meetings
   const openMeetingJournal = async () => {
-    setShowMeetingJournal(true);
-    setIsLoadingMeetings(true);
-    setError(null);
+    await runLocked(async () => {
+      setShowMeetingJournal(true);
+      setIsLoadingMeetings(true);
+      setError(null);
 
-    try {
-      const { data, error } = await supabase
-        .from('meeting_recordings')
-        .select('*')
-        .order('created_at', { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from('meeting_recordings')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        throw new Error(`Database error: ${error.message}`);
+        if (error) {
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        if (data) {
+          setSavedMeetings(data);
+          console.log('Loaded meetings:', data);
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load meetings';
+        setError(errorMessage);
+        console.error('Error loading meetings:', err);
+        showError('Database Error', errorMessage);
+      } finally {
+        setIsLoadingMeetings(false);
       }
-
-      if (data) {
-        setSavedMeetings(data);
-        console.log('Loaded meetings:', data);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load meetings';
-      setError(errorMessage);
-      console.error('Error loading meetings:', err);
-    } finally {
-      setIsLoadingMeetings(false);
-    }
+    });
   };
 
   const handleLanguageChange = (newLanguage: string) => {
@@ -671,24 +696,24 @@ Please format the minutes in a clear, professional structure with proper heading
             <div className="flex gap-2">
               <button
                 onClick={() => safeExecute(startRecording, 'start', 'Start recording')}
-                disabled={isRecording || isPaused || !isSpeechRecognitionSupported}
+                disabled={isRecording || isPaused || !isSpeechRecognitionSupported || isProcessing}
                 className={`flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
-                  isRecording ? 'opacity-50 cursor-not-allowed' : ''
+                  isRecording || isProcessing ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 style={{ background: isRecording ? '#dc2626' : '#111' }}
               >
-                {isRecording ? 'Recording...' : 'Start'}
+                {isProcessing ? 'Starting...' : isRecording ? 'Recording...' : 'Start'}
               </button>
               
               <button
                 onClick={handlePauseResume}
-                disabled={!isRecording && !isPaused}
+                disabled={(!isRecording && !isPaused) || isProcessing}
                 className={`flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
-                  !isRecording && !isPaused ? 'opacity-50 cursor-not-allowed' : ''
+                  (!isRecording && !isPaused) || isProcessing ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 style={{ background: '#111' }}
               >
-                {isPaused ? 'Resume' : 'Pause'}
+                {isProcessing ? 'Processing...' : isPaused ? 'Resume' : 'Pause'}
               </button>
               
               <button
@@ -729,24 +754,24 @@ Please format the minutes in a clear, professional structure with proper heading
             <div className="flex gap-2">
               <button
                 onClick={handleCreateMinutes}
-                disabled={!meetingRecording.trim() || isGeneratingMinutes}
+                disabled={!meetingRecording.trim() || isGeneratingMinutes || isProcessing}
                 className={`flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
-                  !meetingRecording.trim() || isGeneratingMinutes ? 'opacity-50 cursor-not-allowed' : ''
+                  !meetingRecording.trim() || isGeneratingMinutes || isProcessing ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 style={{ background: '#111' }}
               >
-                {isGeneratingMinutes ? 'Generating...' : 'Create Minutes'}
+                {isProcessing ? 'Processing...' : isGeneratingMinutes ? 'Generating...' : 'Create Minutes'}
               </button>
               
               <button
                 onClick={saveToDatabase}
-                disabled={!meetingRecording.trim() || isSavingToDatabase}
+                disabled={!meetingRecording.trim() || isSavingToDatabase || isProcessing}
                 className={`flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
-                  !meetingRecording.trim() || isSavingToDatabase ? 'opacity-50 cursor-not-allowed' : ''
+                  !meetingRecording.trim() || isSavingToDatabase || isProcessing ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 style={{ background: '#111' }}
               >
-                {isSavingToDatabase ? 'Saving...' : 'Save to Database'}
+                {isProcessing ? 'Processing...' : isSavingToDatabase ? 'Saving...' : 'Save to Database'}
               </button>
             </div>
           </div>

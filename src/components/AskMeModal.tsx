@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useSmartSpeechToText } from '../hooks/useSmartSpeechToText';
 import { useLLMRouter } from '../hooks/useLLMRouter';
 import { useMicManager } from '../contexts/MicManagerContext';
+import { useErrorToast } from '../hooks/useErrorToast';
+import { useLockedAction } from '../hooks/useLockedAction';
 import type { LLMMethod } from '../types/llm';
 import { getSourceLabel } from '../types/llm';
 
@@ -30,6 +32,8 @@ function containsTrigger(text: string) {
 }
 
 export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAnswer }: AskMeModalProps) {
+  const { showError, showWarning } = useErrorToast();
+  const { locked: isProcessing, runLocked } = useLockedAction();
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [useRealTimeSearch, setUseRealTimeSearch] = useState(false);
   const [isTimeSensitive, setIsTimeSensitive] = useState(false);
@@ -49,6 +53,7 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
     language: 'en-US',
     continuous: false,
     interimResults: true,
+    owner: 'AskMeModal',
     onResult: (text) => {
       console.log('🎤 AskMeModal transcript:', text);
       // 💬 PROMPT TRIM: Clean up transcript before adding
@@ -67,11 +72,11 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
     onError: (error) => {
       console.error('❌ AskMeModal speech error:', error);
       if (error.includes('not-allowed')) {
-        alert('❌ Microphone permission denied. Please allow microphone access.');
+        showError('Microphone Permission Denied', 'Please allow microphone access in your browser settings.');
       } else if (error.includes('no-speech')) {
-        alert('❌ No speech detected. Please try speaking again.');
+        showWarning('No Speech Detected', 'Please try speaking again.');
       } else {
-        alert(`❌ Speech recognition error: ${error}`);
+        showError('Speech Recognition Error', error);
       }
     }
   });
@@ -149,7 +154,7 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
     console.log('🎤 AskMeModal mic toggle:', isListening ? 'stop' : 'start');
     if (isListening) {
       stopListening();
-        } else {
+    } else {
       // 🛡️ MOBILE-PROOF: Wrap in requestAnimationFrame to avoid flicker/duplication
       requestAnimationFrame(() => {
         startListening();
@@ -160,33 +165,35 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
   const handleConfirm = async () => {
     if (!currentQuestion.trim()) return;
     
-    console.log('🔍 AskMeModal starting smart analysis for:', currentQuestion);
-    
-    try {
-      // 🧠 SMART: Use smart AskMe logic
-      await askQuestion(currentQuestion);
+    await runLocked(async () => {
+      console.log('🔍 AskMeModal starting smart analysis for:', currentQuestion);
       
-      // Call onAnswer callback if provided
-      if (onAnswer && answer) {
-        onAnswer(answer, method || 'gpt');
+      try {
+        // 🧠 SMART: Use smart AskMe logic
+        await askQuestion(currentQuestion);
+        
+        // Call onAnswer callback if provided
+        if (onAnswer && answer) {
+          onAnswer(answer, method || 'gpt');
+        }
+        
+        // Call legacy onConfirm callback if provided
+        if (onConfirm) {
+          const questionWithType = {
+            question: currentQuestion,
+            useRealTimeSearch: useRealTimeSearch || isTimeSensitive
+          };
+          onConfirm(JSON.stringify(questionWithType));
+        }
+        
+        // Don't close modal automatically - let parent handle it
+        // onClose();
+        
+      } catch (err) {
+        console.error('❌ AskMeModal failed:', err);
+        showError('Question Processing Failed', err instanceof Error ? err.message : 'Failed to process your question');
       }
-      
-      // Call legacy onConfirm callback if provided
-      if (onConfirm) {
-      const questionWithType = {
-        question: currentQuestion,
-        useRealTimeSearch: useRealTimeSearch || isTimeSensitive
-      };
-      onConfirm(JSON.stringify(questionWithType));
-      }
-      
-      // Don't close modal automatically - let parent handle it
-      // onClose();
-      
-    } catch (err) {
-      console.error('❌ AskMeModal failed:', err);
-      // Error is already handled by the hook
-    }
+    });
   };
 
   if (!isOpen) return null;
@@ -337,20 +344,22 @@ export default function AskMeModal({ isOpen, onClose, question, onConfirm, onAns
                   </button>
                                      <button 
                      className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
-                      isLoading 
+                      isLoading || isProcessing
                         ? 'bg-gray-500' 
                         : useRealTimeSearch 
                          ? 'bg-green-600 hover:bg-green-700' 
                          : 'bg-blue-600 hover:bg-blue-700'
                      }`}
                      onClick={handleConfirm}
-                    disabled={!currentQuestion.trim() || isLoading}
+                    disabled={!currentQuestion.trim() || isLoading || isProcessing}
                   >
-                    {isLoading 
-                      ? '🔄 Processing...' 
-                      : useRealTimeSearch 
-                        ? '🔍 Smart Search' 
-                        : '🤖 Smart Ask'
+                    {isProcessing 
+                      ? '🔒 Processing...' 
+                      : isLoading 
+                        ? '🔄 Processing...' 
+                        : useRealTimeSearch 
+                          ? '🔍 Smart Search' 
+                          : '🤖 Smart Ask'
                     }
                    </button>
                 </div>

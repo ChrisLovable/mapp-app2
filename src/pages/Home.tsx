@@ -18,6 +18,7 @@ import ImageGeneratorModal from '../components/ImageGeneratorModal';
 import AdminDashboard from '../components/AdminDashboard';
 import CalendarModal from '../components/CalendarModal';
 import DiaryModal from '../components/CreateDiaryEntryModal';
+import SmartLLMExample from '../components/SmartLLMExample';
 import { getGPTAnswer, getRealTimeAnswer } from '../lib/AskMeLogic';
 import { useAuth } from '../contexts/AuthContext';
 import { getSourceLabel } from '../types/llm';
@@ -98,6 +99,7 @@ export default function Home({ onShowAuth }: HomeProps) {
   const [translateWarning, setTranslateWarning] = useState('');
   const [isSmartMeetingRecorderOpen, setIsSmartMeetingRecorderOpen] = useState(false);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [isSmartLLMExampleOpen, setIsSmartLLMExampleOpen] = useState(false);
   const [_isMindGamesModalOpen, _setIsMindGamesModalOpen] = useState(false);
   const [isImageGeneratorModalOpen, setIsImageGeneratorModalOpen] = useState(false);
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
@@ -328,6 +330,10 @@ export default function Home({ onShowAuth }: HomeProps) {
     _setIsTokenDashboardOpen(true);
   };
 
+  const handleSmartLLMExampleClick = () => {
+    setIsSmartLLMExampleOpen(true);
+  };
+
   // Handler for text changes in RewriteModal
   const handleRewriteTextChange = (text: string) => {
     setMessage(text);
@@ -534,6 +540,7 @@ export default function Home({ onShowAuth }: HomeProps) {
               onExpenseJournalClick={() => {}}
               onTokenDashboardClick={() => {}}
               onAdminDashboardClick={handleAdminDashboardClick}
+              onSmartLLMExampleClick={handleSmartLLMExampleClick}
             />
           </div>
           </>
@@ -630,6 +637,11 @@ export default function Home({ onShowAuth }: HomeProps) {
         <AdminDashboard
           isOpen={isAdminDashboardOpen}
           onClose={() => setIsAdminDashboardOpen(false)}
+        />
+
+        <SmartLLMExample
+          isOpen={isSmartLLMExampleOpen}
+          onClose={() => setIsSmartLLMExampleOpen(false)}
         />
 
         {/* TokenDashboard - Hidden but data tracking remains active

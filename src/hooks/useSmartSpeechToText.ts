@@ -5,6 +5,7 @@ interface UseSmartSpeechToTextOptions {
   language?: string;
   continuous?: boolean;
   interimResults?: boolean;
+  owner?: string; // 🛡️ NEW: Owner identifier for mic concurrency control
   onResult?: (text: string, isFinal: boolean) => void;
   onError?: (error: string) => void;
   onEnd?: () => void;
@@ -25,6 +26,7 @@ export function useSmartSpeechToText(options: UseSmartSpeechToTextOptions = {}):
     language = 'en-US',
     continuous = false,
     interimResults = true,
+    owner = 'unknown',
     onResult,
     onError,
     onEnd
@@ -113,7 +115,8 @@ export function useSmartSpeechToText(options: UseSmartSpeechToTextOptions = {}):
       await micManager.startListening({
         language,
         continuous,
-        interimResults
+        interimResults,
+        owner
       });
     } catch (error) {
       console.error('🎤 SmartSpeechToText: Error starting listening:', error);
@@ -121,13 +124,13 @@ export function useSmartSpeechToText(options: UseSmartSpeechToTextOptions = {}):
     } finally {
       isRequestingRef.current = false;
     }
-  }, [micManager, language, continuous, interimResults]);
+  }, [micManager, language, continuous, interimResults, owner]);
 
   // Stop listening
   const stopListening = useCallback(() => {
     console.log('🎤 SmartSpeechToText: Stopping listening...');
-    micManager.stopListening();
-  }, [micManager]);
+    micManager.stopListening(owner);
+  }, [micManager, owner]);
 
   // Clear local transcript
   const clearTranscript = useCallback(() => {

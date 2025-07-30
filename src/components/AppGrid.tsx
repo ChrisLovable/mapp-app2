@@ -42,6 +42,7 @@ interface AppGridProps {
   onExpenseJournalClick: () => void;
   onTokenDashboardClick: () => void;
   onAdminDashboardClick: () => void;
+  onSmartLLMExampleClick: () => void;
 }
 
 // Add custom animated DiaryBookIcon
@@ -424,6 +425,36 @@ function CreateAIImageIcon() {
   );
 }
 
+function SmartLLMIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="rainbow-gradient-smart" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ff00cc">
+            <animate attributeName="stop-color" values="#ff00cc;#ffee00;#00ff00;#00fff7;#0066ff;#8f00ff;#ff00cc" dur="3s" repeatCount="indefinite" />
+          </stop>
+          <stop offset="50%" stopColor="#00fff7">
+            <animate attributeName="stop-color" values="#00fff7;#0066ff;#8f00ff;#ff00cc;#ffee00;#00ff00;#00fff7" dur="3s" repeatCount="indefinite" />
+          </stop>
+          <stop offset="100%" stopColor="#8f00ff">
+            <animate attributeName="stop-color" values="#8f00ff;#ff00cc;#ffee00;#00ff00;#00fff7;#0066ff;#8f00ff" dur="3s" repeatCount="indefinite" />
+          </stop>
+        </linearGradient>
+      </defs>
+      {/* Main AI brain */}
+      <circle cx="16" cy="12" r="4" fill="#181a1b" stroke="url(#rainbow-gradient-smart)" strokeWidth="1.5"/>
+      {/* Neural network connections */}
+      <path d="M12 8 Q16 6 20 8" fill="none" stroke="url(#rainbow-gradient-smart)" strokeWidth="1"/>
+      <path d="M12 16 Q16 18 20 16" fill="none" stroke="url(#rainbow-gradient-smart)" strokeWidth="1"/>
+      <path d="M8 12 Q6 16 8 20" fill="none" stroke="url(#rainbow-gradient-smart)" strokeWidth="1"/>
+      <path d="M24 12 Q26 16 24 20" fill="none" stroke="url(#rainbow-gradient-smart)" strokeWidth="1"/>
+      {/* Fallback indicator */}
+      <circle cx="16" cy="24" r="2" fill="#181a1b" stroke="url(#rainbow-gradient-smart)" strokeWidth="1"/>
+      <path d="M14 24 L18 24 M16 22 L16 26" stroke="url(#rainbow-gradient-smart)" strokeWidth="1" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 const buttons = [
   { label: "ASK AI", icon: <AskMeQuestionIcon /> },
   { label: "Diary", icon: <DiaryBookIcon /> },
@@ -436,7 +467,8 @@ const buttons = [
   { label: "Translate", icon: <TranslateIcon /> },
   { label: "Image to Text", icon: <ImageToTextIcon /> },
   { label: "Read PDF", icon: <ReadPdfIcon /> },
-  { label: "AI Art", icon: <CreateAIImageIcon /> }
+  { label: "AI Art", icon: <CreateAIImageIcon /> },
+  { label: "Smart LLM", icon: <SmartLLMIcon /> }
 ]
 
 export default function AppGrid(props: AppGridProps) {
@@ -474,6 +506,8 @@ export default function AppGrid(props: AppGridProps) {
                 ? props.onSmartMeetingRecorderClick
                 : button.label === "AI Art"
                 ? props.onImageGeneratorClick
+                : button.label === "Smart LLM"
+                ? props.onSmartLLMExampleClick
                 : undefined
             }
           />
