@@ -892,19 +892,6 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
     menuPortal: (base: any) => ({ ...base, zIndex: 11000 }),
   };
 
-  // Form state
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    start: '',
-    allDay: false,
-    event_type: 'meeting',
-    location: '',
-    attendees: '',
-    reminder_minutes: 15,
-    duration: 60
-  });
-
   // Debug: Monitor formData changes
   useEffect(() => {
     console.log('📝 FormData updated:', formData);
@@ -1823,8 +1810,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                       style={{ width: 'calc(100% - 60px)' }}
                     />
                     <SpeechToTextButton
-                      onResult={handleTitleSTTResult}
-                      onStart={handleTitleSTTStart}
+                      onResult={sttHandlers.handleTitleSTTResult}
+                      onStart={sttHandlers.handleTitleSTTStart}
                       onError={(error) => alert(error)}
                       size="md"
                       className="px-4 py-3 border border-white border-opacity-30"
@@ -1844,8 +1831,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                       placeholder="Enter event description..."
                     />
                     <SpeechToTextButton
-                      onResult={handleDescriptionSTTResult}
-                      onStart={handleDescriptionSTTStart}
+                      onResult={sttHandlers.handleDescriptionSTTResult}
+                      onStart={sttHandlers.handleDescriptionSTTStart}
                       onError={(error) => alert(error)}
                       size="md"
                       className="px-4 py-3 border border-white border-opacity-30"
