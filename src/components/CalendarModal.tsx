@@ -2102,8 +2102,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                     style={{ fontSize: '0.8rem' }}
                   />
                     <SpeechToTextButton
-                      onResult={handleLocationSTTResult}
-                      onStart={handleLocationSTTStart}
+                      onResult={sttHandlers.handleLocationSTTResult}
+                      onStart={sttHandlers.handleLocationSTTStart}
                       onError={(error) => alert(error)}
                       size="md"
                       className="px-4 py-3 border border-white border-opacity-30"
@@ -2123,8 +2123,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                       style={{ fontSize: '0.8rem' }}
                     />
                     <SpeechToTextButton
-                      onResult={handleAttendeesSTTResult}
-                      onStart={handleAttendeesSTTStart}
+                      onResult={sttHandlers.handleAttendeesSTTResult}
+                      onStart={sttHandlers.handleAttendeesSTTStart}
                       onError={(error) => alert(error)}
                       size="md"
                       className="px-4 py-3 border border-white border-opacity-30"
@@ -2184,8 +2184,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                         placeholder="Enter description..."
                       />
                       <SpeechToTextButton
-                        onResult={handleEditDescriptionSTTResult}
-                        onStart={handleEditDescriptionSTTStart}
+                                              onResult={sttHandlers.handleEditDescriptionSTTResult}
+                      onStart={sttHandlers.handleEditDescriptionSTTStart}
                         onError={(error) => alert(error)}
                         size="md"
                         className="px-4 py-3"
