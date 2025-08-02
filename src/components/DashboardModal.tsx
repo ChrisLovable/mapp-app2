@@ -78,19 +78,43 @@ export default function DashboardModal({ isOpen, onClose }: DashboardModalProps)
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
+      <div className="rounded-2xl bg-black p-0 w-full max-w-6xl mx-4 flex flex-col" style={{ boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white', position: 'relative', zIndex: 1 }}>
+        {/* Modal Header */}
+        <div 
+          className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+            border: '2px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(10px)',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+            filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+            transform: 'translateZ(5px)'
+          }}
+        >
+          <h2 
+            className="text-white font-bold text-base text-center"
+            style={{
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+              filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+              transform: 'translateZ(3px)'
+            }}
+          >
+            📊 API Usage Dashboard
+          </h2>
+          <button
+            onClick={onClose}
+            className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+            style={{ background: '#000000', fontSize: '15px' }}
+            aria-label="Close modal"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="flex-1 px-4 pb-2 overflow-y-auto">
         <div className="space-y-6">
-          {/* Header */}
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-white">📊 API Usage Dashboard</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white text-2xl font-bold"
-            >
-              ×
-            </button>
-          </div>
 
           {/* Time Range Selector */}
           <div className="flex justify-between items-center">
@@ -320,6 +344,7 @@ export default function DashboardModal({ isOpen, onClose }: DashboardModalProps)
               )}
             </>
           )}
+        </div>
         </div>
       </div>
     </div>

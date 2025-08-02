@@ -28,22 +28,7 @@
   position: relative;
   z-index: 1;
 }
-.glassy-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 1rem;
-  padding: 2px;
-  background: linear-gradient(120deg, #ff00cc, #ff8800, #ffee00, #00ff00, #00fff7, #0066ff, #8f00ff, #ff00cc);
-  background-size: 400% 400%;
-  animation: rainbowBorder 3s linear infinite;
-  animation-delay: var(--rainbow-delay, 0s);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  z-index: 2;
-}
+
 .glassy-btn::after {
   content: '';
   position: absolute;
@@ -106,4 +91,40 @@
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+
+/* Holographic effect for small textbox icons - clear and readable */
+.textbox-holographic-icon {
+  color: #ffffff;
+  background: linear-gradient(120deg, #ff00cc, #ffee00, #00ff00, #00fff7, #0066ff, #8f00ff, #ff00cc);
+  background-size: 300% 300%;
+  animation: textboxHolographic 4s linear infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 4px rgba(0, 255, 247, 0.6));
+  position: relative;
+  font-weight: bold;
+}
+
+@keyframes textboxHolographic {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Subtle glow effect for textbox icons */
+.textbox-holographic-icon::before {
+  content: '';
+  position: absolute;
+  left: 20%;
+  top: 15%;
+  width: 60%;
+  height: 20%;
+  border-radius: 50%;
+  background: linear-gradient(120deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.05) 100%);
+  filter: blur(0.5px);
+  pointer-events: none;
+  z-index: -1;
 } 

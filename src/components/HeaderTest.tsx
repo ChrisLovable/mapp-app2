@@ -80,7 +80,7 @@ export default function HeaderTest({ onDashboardClick }: HeaderTestProps) {
         </button>
         {/* Dropdown */}
         {open && (
-          <div className="absolute left-0 top-16 w-48 bg-black/90 border border-blue-400 rounded-xl shadow-lg z-50">
+          <div className="absolute left-0 top-16 w-48 bg-black/90 border border-white rounded-xl shadow-lg z-50">
             {menuOptions.map((opt) => (
               <div key={opt.label}>
                 <div
@@ -107,7 +107,7 @@ export default function HeaderTest({ onDashboardClick }: HeaderTestProps) {
                 
                 {/* Personalize Submenu */}
                 {opt.hasSubmenu && personalizeOpen && (
-                  <div className="ml-4 mt-1 bg-black/80 border border-blue-400/50 rounded-lg">
+                  <div className="ml-4 mt-1 bg-black/80 border border-white/50 rounded-lg">
                     {themeOptions.map((theme) => (
                       <div
                         key={theme.value}

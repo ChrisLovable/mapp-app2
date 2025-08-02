@@ -160,12 +160,14 @@ export const useContinuousSpeechToText = (options: UseSpeechToTextOptions = {}):
   const recognitionRef = useRef<any>(null);
   const shouldContinueRef = useRef(false);
   const accumulatedTextRef = useRef('');
+  const lastResultIndexRef = useRef(0); // Track the last processed result index
 
   const isSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const resetTranscript = useCallback(() => {
     setTranscript('');
     accumulatedTextRef.current = '';
+    lastResultIndexRef.current = 0;
   }, []);
 
   const startRecognition = useCallback(() => {
@@ -187,12 +189,12 @@ export const useContinuousSpeechToText = (options: UseSpeechToTextOptions = {}):
     recognition.continuous = true;
 
     recognition.onresult = (event: any) => {
-      console.log('Recognition result received:', event.results.length, 'results');
+      console.log('Recognition result received:', event.results.length, 'results, lastIndex:', lastResultIndexRef.current);
       let interimTranscript = '';
       let finalTranscript = '';
       
-      // Process all results
-      for (let i = 0; i < event.results.length; i++) {
+      // Only process new results to prevent duplication
+      for (let i = lastResultIndexRef.current; i < event.results.length; i++) {
         const result = event.results.item(i);
         const transcript = result.item(0).transcript;
         
@@ -203,13 +205,15 @@ export const useContinuousSpeechToText = (options: UseSpeechToTextOptions = {}):
         }
       }
       
+      // Update the last processed index
+      lastResultIndexRef.current = event.results.length;
+      
       // Add only new final results to accumulated text
       if (finalTranscript) {
         accumulatedTextRef.current = (accumulatedTextRef.current + ' ' + finalTranscript).trim();
       }
       
       // For real-time display: show accumulated final text + current interim text
-      // But don't include accumulated text in interim results to prevent loops
       const realTimeTranscript = interimTranscript 
         ? (accumulatedTextRef.current + ' ' + interimTranscript).trim()
         : accumulatedTextRef.current;
@@ -224,6 +228,7 @@ export const useContinuousSpeechToText = (options: UseSpeechToTextOptions = {}):
     recognition.onstart = () => {
       console.log('Continuous recognition started! Setting isListening to true');
       setIsListening(true);
+      lastResultIndexRef.current = 0; // Reset index when starting
       onStart?.();
     };
 
@@ -279,6 +284,7 @@ export const useContinuousSpeechToText = (options: UseSpeechToTextOptions = {}):
     console.log('Starting recognition...');
     shouldContinueRef.current = true;
     accumulatedTextRef.current = ''; // Reset accumulated text for new session
+    lastResultIndexRef.current = 0; // Reset result index
     startRecognition();
   }, [startRecognition]); // Removed isListening dependency to fix circular dependency
 
@@ -316,12 +322,14 @@ export const useMobileSpeechToText = (options: UseSpeechToTextOptions = {}): Use
   const recognitionRef = useRef<any>(null);
   const shouldContinueRef = useRef(false);
   const accumulatedTextRef = useRef('');
+  const lastResultIndexRef = useRef(0); // Track the last processed result index
 
   const isSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const resetTranscript = useCallback(() => {
     setTranscript('');
     accumulatedTextRef.current = '';
+    lastResultIndexRef.current = 0;
   }, []);
 
   const startRecognition = useCallback(() => {
@@ -337,17 +345,19 @@ export const useMobileSpeechToText = (options: UseSpeechToTextOptions = {}): Use
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     
-    // Mobile-optimized settings - CHANGED TO TRUE FOR CONTINUOUS RECORDING
+    // Mobile-optimized settings
     recognition.lang = language;
     recognition.interimResults = true;
-    recognition.continuous = true; // Keep recording until manually stopped
+    recognition.continuous = true;
 
     recognition.onresult = (event: any) => {
-      console.log('Mobile recognition result:', event.results.length, 'results');
+      console.log('Mobile recognition result:', event.results.length, 'results, lastIndex:', lastResultIndexRef.current);
+      
       let interimTranscript = '';
       let finalTranscript = '';
       
-      for (let i = 0; i < event.results.length; i++) {
+      // Only process new results to prevent duplication
+      for (let i = lastResultIndexRef.current; i < event.results.length; i++) {
         const result = event.results.item(i);
         const transcript = result.item(0).transcript;
         
@@ -358,13 +368,15 @@ export const useMobileSpeechToText = (options: UseSpeechToTextOptions = {}): Use
         }
       }
       
+      // Update the last processed index
+      lastResultIndexRef.current = event.results.length;
+      
       // Add only new final results to accumulated text
       if (finalTranscript) {
         accumulatedTextRef.current = (accumulatedTextRef.current + ' ' + finalTranscript).trim();
       }
       
       // For real-time display: show accumulated final text + current interim text
-      // But don't include accumulated text in interim results to prevent loops
       const realTimeTranscript = interimTranscript 
         ? (accumulatedTextRef.current + ' ' + interimTranscript).trim()
         : accumulatedTextRef.current;
@@ -378,6 +390,7 @@ export const useMobileSpeechToText = (options: UseSpeechToTextOptions = {}): Use
     recognition.onstart = () => {
       console.log('Mobile recognition started!');
       setIsListening(true);
+      lastResultIndexRef.current = 0; // Reset index when starting
       onStart?.();
     };
 
@@ -432,6 +445,7 @@ export const useMobileSpeechToText = (options: UseSpeechToTextOptions = {}): Use
     
     shouldContinueRef.current = true;
     accumulatedTextRef.current = ''; // Reset accumulated text for new session
+    lastResultIndexRef.current = 0; // Reset result index
     startRecognition();
   }, [isListening, startRecognition]);
 

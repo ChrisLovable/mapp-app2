@@ -9,13 +9,14 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "@supabase/supabase-js": "^2.53.0",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "node-fetch": "^2.7.0",
+    "express": "^4.18.2",
     "helmet": "^7.1.0",
-    "compression": "^1.7.4",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
@@ -23,7 +24,12 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["api", "backend", "ai", "proxy"],
+  "keywords": [
+    "api",
+    "backend",
+    "ai",
+    "proxy"
+  ],
   "author": "Your Name",
   "license": "MIT"
-} 
+}

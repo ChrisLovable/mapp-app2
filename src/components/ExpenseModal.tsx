@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { askOpenAIVision, getGPTAnswer } from '../lib/AskMeLogic';
+
 import ExpenseJournalModal from './ExpenseJournalModal';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -962,15 +962,35 @@ Return ONLY the JSON array:`;
 
   return (
     <div className={`fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4 ${isProcessing || isCacheLoading ? 'cursor-wait' : ''}`}>
-      <div className="glassy-rainbow-btn rounded-2xl bg-black p-0 w-full max-w-4xl mx-4 flex flex-col border-0" style={{ boxSizing: 'border-box', maxHeight: '90vh' }}>
+      <div className="rounded-2xl bg-black p-0 w-full max-w-4xl mx-4 flex flex-col" style={{ boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white' }}>
         {/* Modal Header */}
-        <div className="relative mb-6 bg-[var(--favourite-blue)] px-4 py-3 rounded-xl mx-2 mt-2" style={{ background: 'var(--favourite-blue)' }}>
-          <h2 className="text-white font-bold text-base text-center">AI Expense Tracker</h2>
+        <div 
+          className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+            border: '2px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(10px)',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+            filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+            transform: 'translateZ(5px)'
+          }}
+        >
+          <h2 
+            className="text-white font-bold text-base text-center"
+            style={{
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+              filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+              transform: 'translateZ(3px)'
+            }}
+          >
+            AI Expense Tracker
+          </h2>
           <div className="absolute top-2 right-2 flex items-center gap-2">
             <button
               onClick={onClose}
               className="w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
-              style={{ background: '#111' }}
+              style={{ background: '#000000', fontSize: '15px' }}
               aria-label="Close modal"
             >
               ×
@@ -1153,7 +1173,7 @@ Return ONLY the JSON array:`;
                                       {newExpenses.length > 0 ? (
                       <div className="space-y-3">
                         {newExpenses.map((expense, index) => (
-                          <div key={index} className="bg-black border-2 border-[var(--favourite-blue)] rounded-2xl p-4">
+                          <div key={index} className="bg-black border-2 border-white rounded-2xl p-4">
                             <div className="space-y-3">
                               {/* Date and Amount */}
                               <div className="flex gap-2">
@@ -1161,14 +1181,14 @@ Return ONLY the JSON array:`;
                                   type="date"
                                   value={expense.expense_date}
                                   onChange={(e) => updateNewExpense(index, 'expense_date', e.target.value)}
-                                  className="flex-1 p-3 border-2 border-[var(--favourite-blue)] rounded-2xl text-white bg-black focus:outline-none text-sm"
+                                  className="flex-1 p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
                                 />
                                 <input
                                   type="number"
                                   step="0.01"
                                   value={expense.amount === 0 ? '' : expense.amount}
                                   onChange={(e) => updateNewExpense(index, 'amount', parseFloat(e.target.value) || 0)}
-                                  className="w-24 p-3 border-2 border-[var(--favourite-blue)] rounded-2xl text-white bg-black focus:outline-none text-sm"
+                                  className="w-24 p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
                                   placeholder="Amount"
                                 />
                               </div>
@@ -1180,14 +1200,14 @@ Return ONLY the JSON array:`;
                                   min="1"
                                   value={expense.quantity === 1 ? '' : expense.quantity}
                                   onChange={(e) => updateNewExpense(index, 'quantity', parseInt(e.target.value) || 1)}
-                                  className="w-20 p-3 border-2 border-[var(--favourite-blue)] rounded-2xl text-white bg-black focus:outline-none text-sm"
+                                  className="w-20 p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
                                   placeholder="Qty"
                                 />
                                 <input
                                   type="text"
                                   value={expense.vendor}
                                   onChange={(e) => updateNewExpense(index, 'vendor', e.target.value)}
-                                  className="flex-1 p-3 border-2 border-[var(--favourite-blue)] rounded-2xl text-white bg-black focus:outline-none text-sm"
+                                  className="flex-1 p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
                                   placeholder="Vendor"
                                 />
                               </div>
@@ -1198,7 +1218,7 @@ Return ONLY the JSON array:`;
                                   type="text"
                                   value={expense.category}
                                   onChange={(e) => updateNewExpense(index, 'category', e.target.value)}
-                                  className="w-full p-3 border-2 border-[var(--favourite-blue)] rounded-2xl text-white bg-black focus:outline-none text-sm"
+                                  className="w-full p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
                                   placeholder="Category"
                                 />
                               </div>
@@ -1209,7 +1229,7 @@ Return ONLY the JSON array:`;
                                   type="text"
                                   value={expense.description}
                                   onChange={(e) => updateNewExpense(index, 'description', e.target.value)}
-                                  className="w-full p-3 border-2 border-[var(--favourite-blue)] rounded-2xl text-white bg-black focus:outline-none text-sm"
+                                  className="w-full p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
                                   placeholder="Description"
                                 />
                               </div>
@@ -1244,7 +1264,7 @@ Return ONLY the JSON array:`;
                   ) : expenses.length > 0 ? (
                     <div className="space-y-3">
                       {expenses.map((expense) => (
-                        <div key={expense.id} className="bg-black border-2 border-[var(--favourite-blue)] rounded-2xl p-4 relative">
+                        <div key={expense.id} className="bg-black border-2 border-white rounded-2xl p-4 relative">
                           <div className="absolute top-3 right-3 flex gap-2">
                             {expense.receipt_image && (
                               <button 
@@ -1314,10 +1334,30 @@ Return ONLY the JSON array:`;
       {/* Receipt Preview Modal */}
       {showReceiptPreview && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
-          <div className="glassy-rainbow-btn rounded-2xl bg-black p-0 w-full max-w-4xl mx-4 flex flex-col border-0" style={{ boxSizing: 'border-box', maxHeight: '90vh' }}>
+                      <div className="rounded-2xl bg-black p-0 w-full max-w-4xl mx-4 flex flex-col" style={{ boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white' }}>
             {/* Modal Header */}
-            <div className="relative mb-6 bg-[var(--favourite-blue)] px-4 py-3 rounded-xl mx-2 mt-2" style={{ background: 'var(--favourite-blue)' }}>
-              <h2 className="text-white font-bold text-base text-center">Receipt Preview</h2>
+                                         <div 
+           className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+           style={{ 
+             background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+             border: '2px solid rgba(255, 255, 255, 0.4)',
+             boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+             backdropFilter: 'blur(10px)',
+             textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+             filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+             transform: 'translateZ(5px)'
+           }}
+         >
+           <h2 
+             className="text-white font-bold text-base text-center"
+             style={{
+               textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+               filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+               transform: 'translateZ(3px)'
+             }}
+           >
+             Receipt Preview
+           </h2>
               <button
                 onClick={() => setShowReceiptPreview(false)}
                 className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
@@ -1331,7 +1371,7 @@ Return ONLY the JSON array:`;
               <img
                 src={previewImageUrl}
                 alt="Receipt"
-                className="w-full h-auto rounded-2xl border-2 border-[var(--favourite-blue)]"
+                className="w-full h-auto rounded-2xl border-2 border-white"
                 style={{ maxHeight: 'calc(90vh - 120px)' }}
               />
             </div>
@@ -1348,10 +1388,30 @@ Return ONLY the JSON array:`;
       {/* Quick Question Modal */}
       {showQuickQuestion && (
         <div className={`fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4 ${isCacheLoading ? 'cursor-wait' : ''}`}>
-          <div className="glassy-rainbow-btn rounded-2xl bg-black p-0 w-full max-w-2xl mx-4 flex flex-col border-0" style={{ boxSizing: 'border-box', maxHeight: '90vh' }}>
+                      <div className="rounded-2xl bg-black p-0 w-full max-w-2xl mx-4 flex flex-col" style={{ boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white' }}>
             {/* Modal Header */}
-            <div className="relative mb-6 bg-[var(--favourite-blue)] px-4 py-3 rounded-xl mx-2 mt-2" style={{ background: 'var(--favourite-blue)' }}>
-              <h2 className="text-white font-bold text-base text-center">Quick Question</h2>
+                                         <div 
+           className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+           style={{ 
+             background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+             border: '2px solid rgba(255, 255, 255, 0.4)',
+             boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+             backdropFilter: 'blur(10px)',
+             textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+             filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+             transform: 'translateZ(5px)'
+           }}
+         >
+           <h2 
+             className="text-white font-bold text-base text-center"
+             style={{
+               textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+               filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+               transform: 'translateZ(3px)'
+             }}
+           >
+             Quick Question
+           </h2>
               <button
                 onClick={() => setShowQuickQuestion(false)}
                 className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
@@ -1386,7 +1446,7 @@ Return ONLY the JSON array:`;
                       type="text"
                       value={quickQuestion}
                       onChange={(e) => setQuickQuestion(e.target.value)}
-                      className="flex-1 p-3 border-2 border-[var(--favourite-blue)] rounded-2xl text-white bg-black focus:outline-none text-sm"
+                      className="flex-1 p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
                       placeholder="Type your question here..."
                       disabled={isAskingQuestion}
                     />
@@ -1436,7 +1496,7 @@ Return ONLY the JSON array:`;
                     <textarea
                       value={quickAnswer}
                       readOnly
-                      className="w-full p-4 border-2 border-[var(--favourite-blue)] rounded-2xl text-white bg-black focus:outline-none text-sm h-32 resize-none"
+                      className="w-full p-4 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm h-32 resize-none"
                       placeholder="Answer will appear here..."
                     />
                   </div>
@@ -1450,7 +1510,7 @@ Return ONLY the JSON array:`;
                   <textarea
                     value={JSON.stringify(expenseCache, null, 2)}
                     readOnly
-                    className="w-full p-4 border-2 border-[var(--favourite-blue)] rounded-2xl text-white bg-black focus:outline-none text-xs h-48 resize-none"
+                    className="w-full p-4 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-xs h-48 resize-none"
                     placeholder="Cache data will appear here..."
                   />
                 </div>

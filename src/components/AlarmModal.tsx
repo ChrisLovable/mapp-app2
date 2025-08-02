@@ -168,11 +168,13 @@ export default function AlarmModal({ isOpen, onClose, currentText }: AlarmModalP
       <div className="bg-blue-900 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-white">Set Alarm</h2>
+        <div className="relative mb-6 px-4 py-3 rounded-xl simple-double-border" style={{ background: 'linear-gradient(135deg, #000000 0%, #666666 100%)', border: '4px double rgba(255, 255, 255, 0.9)' }}>
+          <h2 className="text-white font-bold text-base text-center">Set Alarm</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white text-2xl font-bold"
+            className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+            style={{ background: '#000000', fontSize: '15px' }}
+            aria-label="Close modal"
           >
             ×
           </button>
@@ -180,7 +182,7 @@ export default function AlarmModal({ isOpen, onClose, currentText }: AlarmModalP
           {/* Input Text Display */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-blue-200">Your request:</label>
-            <div className="p-3 rounded-lg bg-blue-800 border border-blue-600 text-white min-h-[60px] flex items-center">
+            <div className="p-3 rounded-lg bg-blue-800 border border-white text-white min-h-[60px] flex items-center">
               <span className="text-lg">{currentText || 'No text entered'}</span>
             </div>
           </div>
@@ -224,7 +226,7 @@ export default function AlarmModal({ isOpen, onClose, currentText }: AlarmModalP
                 <textarea
                   value={editableDescription}
                   onChange={(e) => setEditableDescription(e.target.value)}
-                  className="w-full p-3 rounded-lg bg-blue-800 border border-blue-600 text-white text-lg font-medium resize-none focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+                  className="w-full p-3 rounded-lg bg-blue-800 border border-white text-white text-lg font-medium resize-none focus:outline-none focus:border-white focus:ring-2 focus:ring-white focus:ring-opacity-50"
                   rows={2}
                   placeholder="Enter your reminder description..."
                 />
@@ -283,7 +285,7 @@ export default function AlarmModal({ isOpen, onClose, currentText }: AlarmModalP
               <label className="block text-sm font-medium text-blue-200">Active Alarms:</label>
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {activeAlarms.map((alarm) => (
-                  <div key={alarm.id} className="p-3 bg-blue-800 border border-blue-600 rounded-lg flex justify-between items-center">
+                  <div key={alarm.id} className="p-3 bg-blue-800 border border-white rounded-lg flex justify-between items-center">
                     <div className="text-white flex-1">
                       <div className="font-medium text-blue-100">{alarm.description}</div>
                       <div className="text-blue-200 text-sm">

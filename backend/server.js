@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const fetch = require('node-fetch');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
@@ -25,6 +26,18 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 const REPLICATE_API_KEY = process.env.REPLICATE_API_KEY;
 const AZURE_TTS_KEY = process.env.AZURE_TTS_KEY;
+
+// ===== SUPABASE SETUP =====
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+let supabase = null;
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey);
+  console.log('✅ Supabase connected successfully');
+} else {
+  console.log('⚠️  Supabase credentials not found - using mock data');
+}
 
 // Make REPLICATE_API_KEY optional for development
 if (!REPLICATE_API_KEY) {
@@ -522,6 +535,411 @@ app.post('/api/azure-tts', async (req, res) => {
   } catch (error) {
     console.error('❌ TTS error:', error);
     res.status(500).json({ error: 'TTS failed', details: error.message });
+  }
+});
+
+// ===== TOKEN TRACKING API WITH SUPABASE =====
+
+// Today's session tracking - in-memory storage for this testing session
+let todaysSession = {
+  tokensAllocated: 100000,
+  tokensUsed: 148,
+  totalRequests: 4,
+  totalCostUsd: 0.0114,
+  usageHistory: [
+    {
+      id: 1,
+      api: 'openai_gpt',
+      endpoint: '/api/openai/chat',
+      tokens: 45,
+      cost: 0.0034,
+      response_status: '200',
+      response_time: 2340,
+      time: new Date(Date.now() - 5 * 60000).toISOString(),
+      status: 'success'
+    },
+    {
+      id: 2,
+      api: 'image_generation',
+      endpoint: '/api/replicate/predictions',
+      tokens: 23,
+      cost: 0.0021,
+      response_status: '200',
+      response_time: 4567,
+      time: new Date(Date.now() - 15 * 60000).toISOString(),
+      status: 'success'
+    },
+    {
+      id: 3,
+      api: 'text_to_speech',
+      endpoint: '/api/azure/tts',
+      tokens: 12,
+      cost: 0.0008,
+      response_status: '200',
+      response_time: 1234,
+      time: new Date(Date.now() - 30 * 60000).toISOString(),
+      status: 'success'
+    },
+    {
+      id: 4,
+      api: 'openai_gpt',
+      endpoint: '/api/openai/chat',
+      tokens: 67,
+      cost: 0.0051,
+      response_status: '500',
+      response_time: 890,
+      time: new Date(Date.now() - 45 * 60000).toISOString(),
+      status: 'failed'
+    }
+  ],
+  sessionStartTime: new Date().toISOString()
+};
+
+// Helper function to get current session data
+const getCurrentSessionStats = () => {
+  const tokensRemaining = Math.max(0, todaysSession.tokensAllocated - todaysSession.tokensUsed);
+  
+  // Calculate API usage breakdown
+  const apiUsageMap = {};
+  todaysSession.usageHistory.forEach(item => {
+    if (!apiUsageMap[item.api]) {
+      apiUsageMap[item.api] = { 
+        name: item.api, 
+        requests: 0, 
+        tokensUsed: 0, 
+        estimatedCost: 0, 
+        successCount: 0, 
+        failureCount: 0 
+      };
+    }
+    apiUsageMap[item.api].requests++;
+    apiUsageMap[item.api].tokensUsed += item.tokens || 0;
+    apiUsageMap[item.api].estimatedCost += item.cost || 0;
+    if (item.status === 'success') {
+      apiUsageMap[item.api].successCount++;
+    } else {
+      apiUsageMap[item.api].failureCount++;
+    }
+  });
+
+  return {
+    tokensAllocated: todaysSession.tokensAllocated,
+    tokensRemaining: tokensRemaining,
+    tokensUsed: todaysSession.tokensUsed,
+    totalRequests: todaysSession.totalRequests,
+    totalCostUsd: todaysSession.totalCostUsd,
+    apiUsage: Object.values(apiUsageMap),
+    sessionStartTime: todaysSession.sessionStartTime
+  };
+};
+
+const getFallbackStats = () => getCurrentSessionStats();
+const getFallbackUsage = () => {
+  return todaysSession.usageHistory.map(item => ({
+    id: item.id,
+    api: item.api,
+    endpoint: item.endpoint,
+    tokens: item.tokens,
+    costUsd: item.cost,
+    responseStatus: item.response_status || '200',
+    responseTimeMs: item.response_time,
+    timestamp: item.time,
+    status: item.status
+  }));
+};
+
+// Get token statistics
+app.get('/api/token-stats', async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.json(getFallbackStats());
+    }
+
+    // Get usage data from Supabase
+    const { data: usageData, error } = await supabase
+      .from('dashboard_api_usage')
+      .select('*')
+      .order('time', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.json(getFallbackStats());
+    }
+
+    // Calculate statistics from the data
+    const totalRequests = usageData.length;
+    const totalTokensUsed = usageData.reduce((sum, item) => sum + (item.tokens || 0), 0);
+    const totalCost = usageData.reduce((sum, item) => sum + (item.cost || 0), 0);
+    const tokensAllocated = 100000; // Today's allocation: 100,000 tokens
+    const tokensRemaining = Math.max(0, tokensAllocated - totalTokensUsed);
+
+    // Calculate API usage breakdown
+    const apiUsageMap = {};
+    usageData.forEach(item => {
+      if (!apiUsageMap[item.api]) {
+        apiUsageMap[item.api] = { 
+          name: item.api, 
+          requests: 0, 
+          tokensUsed: 0, 
+          estimatedCost: 0, 
+          successCount: 0, 
+          failureCount: 0 
+        };
+      }
+      apiUsageMap[item.api].requests++;
+      apiUsageMap[item.api].tokensUsed += item.tokens || 0;
+      apiUsageMap[item.api].estimatedCost += item.cost || 0;
+      if (item.status === 'success') {
+        apiUsageMap[item.api].successCount++;
+      } else {
+        apiUsageMap[item.api].failureCount++;
+      }
+    });
+
+    const stats = {
+      tokensAllocated,
+      tokensRemaining,
+      tokensUsed: totalTokensUsed,
+      totalRequests,
+      totalCostUsd: totalCost,
+      apiUsage: Object.values(apiUsageMap)
+    };
+
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching token stats:', error);
+    res.json(getFallbackStats());
+  }
+});
+
+// Get usage history
+app.get('/api/token-usage', async (req, res) => {
+  try {
+    const { limit = 100 } = req.query;
+    
+    if (!supabase) {
+      return res.json(getFallbackUsage().slice(0, parseInt(limit)));
+    }
+
+    const { data, error } = await supabase
+      .from('dashboard_api_usage')
+      .select('*')
+      .order('time', { ascending: false })
+      .limit(parseInt(limit));
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.json(getFallbackUsage().slice(0, parseInt(limit)));
+    }
+
+    // Transform data to match expected format
+    const formattedData = data.map(item => ({
+      id: item.id,
+      api: item.api,
+      endpoint: `/api/${item.api}`,
+      tokens: item.tokens,
+      costUsd: item.cost,
+      responseStatus: item.response_status || '200',
+      responseTimeMs: item.response_time,
+      timestamp: item.time,
+      status: item.status
+    }));
+
+    res.json(formattedData);
+  } catch (error) {
+    console.error('Error fetching usage history:', error);
+    res.json(getFallbackUsage().slice(0, parseInt(limit)));
+  }
+});
+
+// Get live token data
+app.get('/api/token-live', async (req, res) => {
+  try {
+    if (!supabase) {
+      const fallback = getFallbackStats();
+      return res.json({
+        tokensRemaining: fallback.tokensRemaining,
+        tokensUsed: fallback.tokensUsed,
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    // Get recent usage to calculate live data
+    const { data, error } = await supabase
+      .from('dashboard_api_usage')
+      .select('tokens')
+      .order('time', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      const fallback = getFallbackStats();
+      return res.json({
+        tokensRemaining: fallback.tokensRemaining,
+        tokensUsed: fallback.tokensUsed,
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    const totalTokensUsed = data.reduce((sum, item) => sum + (item.tokens || 0), 0);
+    const tokensAllocated = 100000;
+    const tokensRemaining = Math.max(0, tokensAllocated - totalTokensUsed);
+
+    res.json({
+      tokensRemaining,
+      tokensUsed: totalTokensUsed,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching live token data:', error);
+    const fallback = getFallbackStats();
+    res.json({
+      tokensRemaining: fallback.tokensRemaining,
+      tokensUsed: fallback.tokensUsed,
+      updatedAt: new Date().toISOString()
+    });
+  }
+});
+
+// Reset tokens
+app.post('/api/reset-tokens', async (req, res) => {
+  try {
+    const { tokensAllocated = 100000 } = req.body;
+    
+    // Always reset today's session
+    todaysSession = {
+      tokensAllocated: parseInt(tokensAllocated),
+      tokensUsed: 0,
+      totalRequests: 0,
+      totalCostUsd: 0.0000,
+      usageHistory: [],
+      sessionStartTime: new Date().toISOString()
+    };
+    
+    if (!supabase) {
+      return res.json({ 
+        success: true, 
+        message: `🔄 Session reset! New allocation: ${tokensAllocated.toLocaleString()} tokens` 
+      });
+    }
+
+    // Clear all usage data from Supabase
+    const { error } = await supabase
+      .from('dashboard_api_usage')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+
+    if (error) {
+      console.error('Error resetting tokens:', error);
+      return res.status(500).json({ success: false, message: 'Failed to reset tokens' });
+    }
+
+    res.json({ success: true, message: 'Tokens reset successfully' });
+  } catch (error) {
+    console.error('Error resetting tokens:', error);
+    res.status(500).json({ success: false, message: 'Failed to reset tokens' });
+  }
+});
+
+// Log API usage
+app.post('/api/log-usage', async (req, res) => {
+  try {
+    const { apiName, endpoint, tokensUsed, requestData, responseStatus, responseTimeMs, status, errorMessage } = req.body;
+    
+    // Always log to today's session for real-time tracking
+    const newEntry = {
+      id: todaysSession.usageHistory.length + 1,
+      api: apiName,
+      endpoint,
+      tokens: tokensUsed,
+      cost: tokensUsed * 0.0001, // Cost calculation
+      response_status: responseStatus?.toString() || '200',
+      response_time: responseTimeMs,
+      status: status,
+      error_message: errorMessage,
+      time: new Date().toISOString(),
+      user_id: '11111111-1111-1111-1111-111111111111'
+    };
+    
+    // Add to session tracking
+    todaysSession.usageHistory.unshift(newEntry);
+    todaysSession.tokensUsed += tokensUsed;
+    todaysSession.totalRequests += 1;
+    todaysSession.totalCostUsd += newEntry.cost;
+    
+    if (!supabase) {
+      return res.json({ 
+        success: true, 
+        message: `✅ Usage logged! Tokens used: ${tokensUsed}, Total used today: ${todaysSession.tokensUsed}/100,000`,
+        data: newEntry 
+      });
+    }
+
+    // Insert new usage record into Supabase
+    const { data, error } = await supabase
+      .from('dashboard_api_usage')
+      .insert([
+        {
+          api: apiName,
+          tokens: tokensUsed,
+          cost: tokensUsed * 0.0001, // Mock cost calculation
+          status: status,
+          response_time: responseTimeMs,
+          user_id: '11111111-1111-1111-1111-111111111111', // Default user for testing
+          time: new Date().toISOString()
+        }
+      ])
+      .select();
+
+    if (error) {
+      console.error('Error logging usage:', error);
+      return res.status(500).json({ success: false, message: 'Failed to log usage' });
+    }
+
+    res.json({ success: true, message: 'Usage logged successfully', data });
+  } catch (error) {
+    console.error('Error logging usage:', error);
+    res.status(500).json({ success: false, message: 'Failed to log usage' });
+  }
+});
+
+// Export usage data
+app.get('/api/export-usage', async (req, res) => {
+  try {
+    const { format = 'csv', days = 30 } = req.query;
+    
+    let usageData = [];
+    
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('dashboard_api_usage')
+        .select('*')
+        .order('time', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching usage data for export:', error);
+        usageData = getFallbackUsage();
+      } else {
+        usageData = data;
+      }
+    } else {
+      usageData = getFallbackUsage();
+    }
+    
+    if (format === 'csv') {
+      const csvContent = 'Time,API,Tokens,Cost,Status,Response Time\n' +
+        usageData.map(entry => 
+          `${new Date(entry.time || entry.timestamp).toLocaleString()},${entry.api},${entry.tokens},$${(entry.cost || entry.costUsd || 0).toFixed(4)},${entry.status},${entry.response_time || entry.responseTimeMs}ms`
+        ).join('\n');
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=usage-export-${new Date().toISOString().split('T')[0]}.csv`);
+      res.send(csvContent);
+    } else {
+      res.json(usageData);
+    }
+  } catch (error) {
+    console.error('Error exporting usage data:', error);
+    res.status(500).json({ success: false, message: 'Failed to export usage data' });
   }
 });
 

@@ -112,6 +112,12 @@ export const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
           : undefined,
         position: 'relative',
         zIndex: 1,
+        borderRadius: '50%',
+        aspectRatio: '1.15',
+        minWidth: '32px',
+        minHeight: '28px',
+        width: '32px',
+        height: '28px',
       }}
     >
       {children || (
@@ -373,6 +379,7 @@ export const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
   const handleClick = () => {
     if (!text.trim()) {
       console.warn('No text to speak');
+      // Still allow the button to be clicked even with no text
       return;
     }
 
@@ -418,11 +425,11 @@ export const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
 
   // Speaking state classes
   const speakingClasses = isSpeaking 
-    ? 'scale-110 animate-pulse ring-2 ring-green-500 ring-opacity-60' 
+    ? 'scale-110 animate-pulse ring-2 ring-gray-400 ring-opacity-60' 
     : '';
 
   // Disabled state
-  if (disabled || !text.trim()) {
+  if (disabled) {
     return (
       <button
         className={`${baseClasses} opacity-50 cursor-not-allowed`}
@@ -441,18 +448,33 @@ export const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
       aria-label={isSpeaking ? 'Stop speaking' : 'Speak text'}
       type="button"
       style={{
-        background: isSpeaking ? '#059669' : '#111111', // Green when speaking, black when not
-        color: isSpeaking ? 'white' : 'var(--text-color)',
+        background: isSpeaking 
+          ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8), rgba(59, 130, 246, 0.2))'
+          : 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(59, 130, 246, 0.15))',
+        color: isSpeaking ? '#333333' : 'var(--text-color)',
+        backdropFilter: 'blur(20px)',
+        border: '2px solid rgba(255, 255, 255, 0.4)',
         boxShadow: isSpeaking
-          ? '0 0 16px 4px #10b981, 0 0 32px 8px #10b981cc, 0 1px 4px 0 #05966988, 0 1.5px 3px rgba(5, 150, 105, 0.3), 0 0 2px rgba(255, 255, 255, 0.1)'
-          : undefined,
+          ? '0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(59, 130, 246, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2)'
+          : '0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(59, 130, 246, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2)',
+        filter: isSpeaking
+          ? 'drop-shadow(0 0 5px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 10px rgba(59, 130, 246, 0.4)) drop-shadow(0 0 15px rgba(59, 130, 246, 0.3))'
+          : 'drop-shadow(0 0 5px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 10px rgba(59, 130, 246, 0.4)) drop-shadow(0 0 15px rgba(59, 130, 246, 0.3))',
+        transform: 'translateZ(20px) perspective(1000px) rotateX(5deg)',
+        borderRadius: '50%',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
         zIndex: 1,
-        animation: isSpeaking ? 'pulse-green 1.5s ease-in-out infinite' : 'none',
+        animation: isSpeaking ? 'pulse-white 1.5s ease-in-out infinite' : 'none',
+        aspectRatio: '1.15',
+        minWidth: '32px',
+        minHeight: '28px',
+        width: '32px',
+        height: '28px',
       }}
     >
       {children || (
-        <span className={`transition-colors duration-200 ${isSpeaking ? 'text-green-500' : ''}`}>
+        <span className={`transition-colors duration-200 ${isSpeaking ? 'text-gray-700' : ''}`}>
           🔊
         </span>
       )}
@@ -538,11 +560,28 @@ export const LanguageToggleButton: React.FC<LanguageToggleButtonProps> = ({
       aria-label={`Switch to ${isEnglish ? 'Afrikaans' : 'English'}`}
       type="button"
       style={{
-        background: isEnglish ? '#eab308' : '#3b82f6', // Yellow for EN, Blue for AF
+        background: isEnglish 
+          ? 'linear-gradient(135deg, rgba(34, 197, 94, 0.95), rgba(34, 197, 94, 0.8), rgba(59, 130, 246, 0.2))'
+          : 'linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(59, 130, 246, 0.8), rgba(59, 130, 246, 0.2))',
         color: 'black',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+        backdropFilter: 'blur(20px)',
+        border: '2px solid rgba(255, 255, 255, 0.4)',
+        boxShadow: isEnglish
+          ? '0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(34, 197, 94, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2)'
+          : '0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(59, 130, 246, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2)',
+        filter: isEnglish
+          ? 'drop-shadow(0 0 5px rgba(34, 197, 94, 0.5)) drop-shadow(0 0 10px rgba(34, 197, 94, 0.4)) drop-shadow(0 0 15px rgba(34, 197, 94, 0.3))'
+          : 'drop-shadow(0 0 5px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 10px rgba(59, 130, 246, 0.4)) drop-shadow(0 0 15px rgba(59, 130, 246, 0.3))',
+        transform: 'translateZ(20px) perspective(1000px) rotateX(5deg)',
+        borderRadius: '50%',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
         zIndex: 1,
+        aspectRatio: '1.15',
+        minWidth: '32px',
+        minHeight: '28px',
+        width: '32px',
+        height: '28px',
       }}
     >
       <span className={`transition-colors duration-200 font-bold ${languageClasses}`}>

@@ -259,31 +259,68 @@ export default function TokenDashboard({ isOpen, onClose }: TokenDashboardProps)
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black bg-opacity-75 backdrop-blur-sm">
-      <div className="relative bg-black border border-[var(--favourite-blue)] rounded-2xl shadow-lg p-6 w-full max-w-6xl h-[90vh] flex flex-col glassy-modal-bg">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-white hover:text-gray-300 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-800 z-10"
-          aria-label="Close"
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
+      <div className="rounded-2xl bg-black p-0 w-full max-w-6xl mx-4 flex flex-col" style={{ boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white' }}>
+        {/* Modal Header */}
+        <div 
+          className="absolute left-0 right-0 px-4 py-3 glassy-btn" 
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+            borderBottom: '2px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(10px)',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+            filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+            transform: 'translateZ(5px) translateX(-50%)',
+            borderRadius: '10px',
+            top: '10px',
+            left: '50%',
+            width: '120%',
+            marginLeft: '-25px',
+            marginRight: '-25px'
+          }}
         >
-          <FaTimes className="w-5 h-5" />
-        </button>
-
-        {/* Header */}
-        <div className="pb-4 border-b border-[var(--favourite-blue)] mb-6 text-center">
-          <h2 className="text-3xl font-extrabold text-white drop-shadow-lg">Token Dashboard</h2>
-          <p className="text-gray-400 text-sm mt-1">Monitor API Usage & Token Consumption</p>
+          <h2 
+            className="text-white font-bold text-base text-center"
+            style={{
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+              filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+              transform: 'translateZ(3px)'
+            }}
+          >
+            Token Dashboard
+          </h2>
+          <button
+            onClick={onClose}
+            className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+            style={{ background: '#000000', fontSize: '15px' }}
+            aria-label="Close modal"
+          >
+            ×
+          </button>
         </div>
+
+        <div className="flex-1 px-4 pb-2 overflow-y-auto">
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-white text-xl">Loading dashboard data...</div>
         ) : error ? (
           <div className="flex-1 flex items-center justify-center text-red-500 text-xl">Error: {error}</div>
         ) : (
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-6">
             {/* Live Token Counter */}
-            <div className="glassy-btn neon-grid-btn p-6 mb-6 flex items-center justify-between rounded-xl shadow-lg border border-[var(--favourite-blue)]">
+            <div 
+              className="p-6 mb-6 flex items-center justify-between rounded-xl"
+              style={{
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7), rgba(59, 130, 246, 0.2))',
+                backdropFilter: 'blur(20px)',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 25px 50px rgba(0, 0, 0, 0.8), 0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4)',
+                filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.5))',
+                transform: 'translateZ(30px) perspective(1000px)',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+            >
               <div>
                 <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
                   <FaClock className="text-cyan-400" /> Your Tokens
@@ -335,7 +372,7 @@ export default function TokenDashboard({ isOpen, onClose }: TokenDashboardProps)
                   <p className="text-gray-400 col-span-full text-center">No API usage data available yet. Make some API calls or log test usage!</p>
                 )}
                 {stats?.apiUsage.map((api) => (
-                  <div key={api.name} className="glassy-btn neon-grid-btn p-4 rounded-xl shadow-md border border-[var(--favourite-blue)] flex flex-col justify-between">
+                  <div key={api.name} className="glassy-btn neon-grid-btn p-4 rounded-xl shadow-md border border-white flex flex-col justify-between">
                     <div>
                       <h4 className="text-lg font-semibold text-white mb-2 capitalize">{api.name.replace(/_/g, ' ')}</h4>
                       <p className="text-gray-300 text-sm">Requests: <span className="font-medium">{api.requests}</span></p>
@@ -366,7 +403,7 @@ export default function TokenDashboard({ isOpen, onClose }: TokenDashboardProps)
               <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
                 <FaClock className="text-green-400" /> Usage History
               </h3>
-              <div className="bg-black border border-[var(--favourite-blue)] rounded-xl overflow-hidden shadow-lg">
+              <div className="bg-black border border-white rounded-xl overflow-hidden shadow-lg">
                 <table className="min-w-full divide-y divide-[var(--favourite-blue)]">
                   <thead className="bg-gray-900">
                     <tr>
@@ -420,6 +457,7 @@ export default function TokenDashboard({ isOpen, onClose }: TokenDashboardProps)
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

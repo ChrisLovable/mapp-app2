@@ -182,42 +182,56 @@ Answer:`)
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <MdDataUsage className="text-blue-600" size={24} />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Excel Data Query</h2>
-              <p className="text-sm text-gray-600">Ask questions about your Excel data</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
+      <div className="rounded-2xl bg-black p-0 w-full max-w-4xl mx-4 flex flex-col" style={{ boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white' }}>
+        {/* Modal Header */}
+        <div 
+          className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+            border: '2px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(10px)',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+            filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+            transform: 'translateZ(5px)'
+          }}
+        >
+          <h2 
+            className="text-white font-bold text-base text-center"
+            style={{
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+              filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+              transform: 'translateZ(3px)'
+            }}
+          >
+            Excel Data Query
+          </h2>
+          <div className="absolute top-2 right-2 flex items-center gap-2">
             <button
               onClick={() => setShowPromptEditor(!showPromptEditor)}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+              style={{ background: '#000000', fontSize: '15px' }}
               title="Edit Prompt Template"
             >
-              <MdSettings size={20} />
+              ⚙️
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+              style={{ background: '#000000', fontSize: '15px' }}
+              aria-label="Close modal"
             >
-              <MdClose size={20} />
+              ×
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex flex-col h-[calc(90vh-120px)] p-4">
+        <div className="flex-1 px-4 pb-2 overflow-y-auto">
           {/* File Info Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
             {excelFile && (
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-white">
                 <div className="flex items-center gap-2 mb-2">
                   <MdInfo className="text-blue-600" size={16} />
                   <h3 className="font-medium text-blue-900">File Information</h3>

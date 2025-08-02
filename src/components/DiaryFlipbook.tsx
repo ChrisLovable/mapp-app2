@@ -207,7 +207,9 @@ export default function DiaryFlipbook({ isOpen, onClose }: DiaryFlipbookProps) {
   // const createTestEntry = async () => { ... };
 
   useEffect(() => {
+    console.log('DiaryFlipbook useEffect - isOpen changed to:', isOpen);
     if (isOpen) {
+      console.log('DiaryFlipbook is open - calling fetchAllEntries');
       fetchAllEntries();
     }
   }, [isOpen]);
@@ -342,10 +344,14 @@ export default function DiaryFlipbook({ isOpen, onClose }: DiaryFlipbookProps) {
     return pageNumber;
   };
 
+  console.log('DiaryFlipbook render - isOpen:', isOpen, 'entries.length:', entries.length, 'isLoading:', isLoading);
+  
   if (!isOpen) return null;
 
+  console.log('DiaryFlipbook returning JSX - isOpen:', isOpen);
+  
   return (
-    <div className="fixed inset-0 bg-amber-50 bg-opacity-95 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-amber-50 bg-opacity-95 flex items-center justify-center z-[9999] p-4">
       <div className="w-full h-full max-w-6xl max-h-[90vh] mx-auto relative">
         {/* Close Button */}
         <button
@@ -551,12 +557,14 @@ export default function DiaryFlipbook({ isOpen, onClose }: DiaryFlipbookProps) {
                           {page.content}
                         </p>
                         {/* Images - only show on last page of each entry */}
-                        {page.images && page.images.length > 0 && (
+                        {page.images && page.images.filter(url => !url.startsWith('blob:')).length > 0 && (
                           <div 
                             className="mt-4 flex flex-wrap gap-2 justify-center"
                             onPointerDownCapture={(e) => e.stopPropagation()}
                           >
-                            {page.images.map((url: string, imgIndex: number) => {
+                            {page.images
+                              .filter(url => !url.startsWith('blob:')) // Skip blob URLs
+                              .map((url: string, imgIndex: number) => {
                               console.log('Rendering image:', url, 'at index:', imgIndex);
                               return (
                                 <button
@@ -581,7 +589,7 @@ export default function DiaryFlipbook({ isOpen, onClose }: DiaryFlipbookProps) {
                                     pointerEvents: 'auto',
                                     position: 'relative'
                                   }}
-                                  className="focus:outline-none hover:border-blue-600 transition-colors"
+                                  className="focus:outline-none hover:border-white transition-colors"
                                 >
                                   <span className="sr-only">View image</span>
                                 </button>

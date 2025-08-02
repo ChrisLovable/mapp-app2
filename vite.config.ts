@@ -3,52 +3,16 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/', // Correct base for Vercel deployment
   plugins: [react()],
-  build: {
-    outDir: 'dist',
-    sourcemap: false, // Disable sourcemaps in production
-    minify: 'esbuild',
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          supabase: ['@supabase/supabase-js'],
-          icons: ['react-icons'],
-          pdfjs: ['pdfjs-dist']
-        }
-      }
-    }
-  },
   server: {
-    port: 5173,
-    host: true,
+    host: '0.0.0.0', // Allow external connections
+    // HTTPS disabled for easier development - clipboard will use fallback method
     proxy: {
       '/api': {
-        target: process.env.NODE_ENV === 'production' 
-          ? process.env.VITE_BACKEND_URL || 'https://your-vercel-app.vercel.app'
-          : 'http://localhost:3000',
+        target: 'http://192.168.101.105:3000', // Use network IP instead of localhost
         changeOrigin: true,
-        secure: false,
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (_proxyReq, req, _res) => {
-            console.log('Sending Request to the Target:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
-          });
-        },
+        rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
-  },
-  preview: {
-    port: 4173,
-    host: true
-  },
-  optimizeDeps: {
-    exclude: ['pdfjs-dist/build/pdf.worker.min.mjs']
   }
 })

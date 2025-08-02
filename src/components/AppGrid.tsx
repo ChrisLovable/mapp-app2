@@ -26,7 +26,7 @@ import {
 import { useRef, useEffect } from 'react';
 
 interface AppGridProps {
-  onAskMeClick: () => void;
+  onAskAIClick: () => void;
   onTranslateClick: () => void;
   onRewriteClick: () => void;
   onDiaryClick: () => void;
@@ -79,29 +79,7 @@ function DiaryBookIcon() {
   );
 }
 
-function AskMeQuestionIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="askme-question-icon">
-      <defs>
-        <linearGradient id="rainbow-gradient-q" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#ff00cc">
-            <animate attributeName="stop-color" values="#ff00cc;#ffee00;#00ff00;#00fff7;#0066ff;#8f00ff;#ff00cc" dur="3s" repeatCount="indefinite" />
-          </stop>
-          <stop offset="50%" stopColor="#00fff7">
-            <animate attributeName="stop-color" values="#00fff7;#0066ff;#8f00ff;#ff00cc;#ffee00;#00ff00;#00fff7" dur="3s" repeatCount="indefinite" />
-          </stop>
-          <stop offset="100%" stopColor="#8f00ff">
-            <animate attributeName="stop-color" values="#8f00ff;#ff00cc;#ffee00;#00ff00;#00fff7;#0066ff;#8f00ff" dur="3s" repeatCount="indefinite" />
-          </stop>
-        </linearGradient>
-      </defs>
-      {/* Question mark body (flipped to face correct direction) */}
-      <path d="M16 8c3 0 5 2 5 4.5 0 2.5-2 3.5-3.5 3.5-1.5 0-2.5 1-2.5 2.5 0 1.5 1 2.5 2.5 2.5" stroke="url(#rainbow-gradient-q)" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
-      {/* Dot */}
-      <circle cx="16" cy="24" r="1.5" fill="#181a1b" stroke="url(#rainbow-gradient-q)" strokeWidth="1.2"/>
-    </svg>
-  );
-}
+
 
 // Custom animated SVG icons for each button
 function AlarmIcon() {
@@ -388,6 +366,34 @@ function ShoppingTrolleyIcon() {
   );
 }
 
+function AskAIIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="ask-ai-icon">
+      <defs>
+        <linearGradient id="rainbow-gradient-ask" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ff00cc">
+            <animate attributeName="stop-color" values="#ff00cc;#ffee00;#00ff00;#00fff7;#0066ff;#8f00ff;#ff00cc" dur="3s" repeatCount="indefinite" />
+          </stop>
+          <stop offset="50%" stopColor="#00fff7">
+            <animate attributeName="stop-color" values="#00fff7;#0066ff;#8f00ff;#ff00cc;#ffee00;#00ff00;#00fff7" dur="3s" repeatCount="indefinite" />
+          </stop>
+          <stop offset="100%" stopColor="#8f00ff">
+            <animate attributeName="stop-color" values="#8f00ff;#ff00cc;#ffee00;#00ff00;#00fff7;#0066ff;#8f00ff" dur="3s" repeatCount="indefinite" />
+          </stop>
+        </linearGradient>
+      </defs>
+      {/* Question mark body */}
+      <path d="M16 8c3 0 5 2 5 4.5 0 2.5-2 3.5-3.5 3.5-1.5 0-2.5 1-2.5 2.5 0 1.5 1 2.5 2.5 2.5" stroke="url(#rainbow-gradient-ask)" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+      {/* Dot */}
+      <circle cx="16" cy="24" r="1.5" fill="#181a1b" stroke="url(#rainbow-gradient-ask)" strokeWidth="1.2"/>
+      {/* AI brain symbol overlay */}
+      <circle cx="20" cy="12" r="2" fill="#181a1b" stroke="url(#rainbow-gradient-ask)" strokeWidth="1"/>
+      <path d="M19 11 Q20 10 21 11 Q20 12 19 11" fill="none" stroke="url(#rainbow-gradient-ask)" strokeWidth="0.6"/>
+      <path d="M19 13 Q20 14 21 13 Q20 12 19 13" fill="none" stroke="url(#rainbow-gradient-ask)" strokeWidth="0.6"/>
+    </svg>
+  );
+}
+
 function CreateAIImageIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -425,7 +431,7 @@ function CreateAIImageIcon() {
 }
 
 const buttons = [
-  { label: "ASK AI", icon: <AskMeQuestionIcon /> },
+  { label: "ASK AI", icon: <AskAIIcon /> },
   { label: "Diary", icon: <DiaryBookIcon /> },
   { label: "Calendar", icon: <AlarmIcon /> },
   { label: "Expenses", icon: <ExpensesDollarIcon /> },
@@ -443,17 +449,17 @@ export default function AppGrid(props: AppGridProps) {
   return (
     <div className="relative w-full h-full">
       {/* FloatingNeonTextInGridButton removed */}
-      <div className="grid grid-cols-3 gap-4 mt-4 relative z-10">
+      <div className="grid grid-cols-3 mt-4 relative z-10 justify-items-center" style={{ gap: '5px', rowGap: '15px', width: '80vw', margin: '0 auto' }}>
         {buttons.map((button, i) => (
           <GridButton 
             key={i} 
             label={button.label} 
             icon={button.icon}
             onClick={
-              button.label === "Diary"
+              button.label === "ASK AI"
+                ? props.onAskAIClick
+                : button.label === "Diary"
                 ? props.onDiaryClick
-                : button.label === "ASK AI"
-                ? props.onAskMeClick
                 : button.label === "Calendar"
                 ? props.onCalendarClick
                 : button.label === "Translate"

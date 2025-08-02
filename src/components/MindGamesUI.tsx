@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getGPTAnswer } from '../lib/AskMeLogic';
+
 
 // Add CSS animation for loading spinner
 const spinnerStyle = `

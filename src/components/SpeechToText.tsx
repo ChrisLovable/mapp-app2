@@ -17,16 +17,57 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
 }) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const isSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
+  // Diagnostic logging
+  useEffect(() => {
+    console.log('=== SPEECH RECOGNITION DIAGNOSTICS ===');
+    console.log('Browser support:', {
+      SpeechRecognition: !!window.SpeechRecognition,
+      webkitSpeechRecognition: !!window.webkitSpeechRecognition,
+      isSupported
+    });
+    console.log('HTTPS required:', window.location.protocol === 'https:');
+    console.log('User agent:', navigator.userAgent);
+    console.log('Language:', language);
+  }, [language]);
+
   const startListening = useCallback(() => {
+    console.log('=== STARTING SPEECH RECOGNITION ===');
+    
     if (!isSupported) {
-      console.error('Speech recognition not supported');
+      const errorMsg = 'Speech recognition not supported in this browser';
+      console.error(errorMsg);
+      setError(errorMsg);
       return;
     }
 
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      const errorMsg = 'Speech recognition requires HTTPS (except on localhost)';
+      console.error(errorMsg);
+      setError(errorMsg);
+      return;
+    }
+
+    // Check microphone permissions
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: 'microphone' as PermissionName }).then((result) => {
+        console.log('🎤 Microphone permission status:', result.state);
+        if (result.state === 'denied') {
+          const errorMsg = 'Microphone access denied. Please allow microphone access in your browser settings.';
+          console.error(errorMsg);
+          setError(errorMsg);
+          return;
+        }
+      }).catch((error) => {
+        console.log('Could not check microphone permissions:', error);
+      });
+    }
+
     if (isListening) {
+      console.log('Already listening, ignoring start request');
       return; // Already listening
     }
 
@@ -39,12 +80,14 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
       recognition.lang = language;
 
       recognition.onstart = () => {
-        console.log('Speech recognition started');
+        console.log('✅ Speech recognition started successfully');
         setIsListening(true);
+        setError(null);
         onListeningChange?.(true);
       };
 
       recognition.onresult = (event: any) => {
+        console.log('🎤 Speech recognition result received:', event.results);
         let finalTranscript = '';
         let interimTranscript = '';
 
@@ -63,31 +106,38 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
         // Combine final and interim results
         const combinedTranscript = (finalTranscript + interimTranscript).trim();
         
+        console.log('📝 Transcript updated:', combinedTranscript);
+        
         // Update local state and notify parent
         setTranscript(combinedTranscript);
         onTranscriptChange(combinedTranscript);
       };
 
       recognition.onend = () => {
-        console.log('Speech recognition ended');
+        console.log('🛑 Speech recognition ended');
         setIsListening(false);
         onListeningChange?.(false);
       };
 
       recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
+        console.error('❌ Speech recognition error:', event.error);
+        console.error('Error details:', event);
+        setError(`Speech recognition error: ${event.error}`);
         setIsListening(false);
         onListeningChange?.(false);
       };
 
       recognitionRef.current = recognition;
+      console.log('🚀 Starting speech recognition...');
       recognition.start();
     } catch (error) {
-      console.error('Error starting speech recognition:', error);
+      console.error('❌ Error starting speech recognition:', error);
+      setError(`Failed to start speech recognition: ${error}`);
     }
   }, [isSupported, isListening, language, onListeningChange, onTranscriptChange]);
 
   const stopListening = useCallback(() => {
+    console.log('🛑 Stopping speech recognition...');
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       setIsListening(false);
@@ -96,6 +146,7 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
   }, [onListeningChange]);
 
   const toggleListening = useCallback(() => {
+    console.log('🔄 Toggling speech recognition, current state:', isListening);
     if (isListening) {
       stopListening();
     } else {
@@ -127,11 +178,16 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
 
   return (
     <div className={`speech-to-text ${className}`}>
-      {children ? (
-        React.cloneElement(children as React.ReactElement<any>, {
-          onClick: toggleListening,
-          className: `w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-lg ${isListening ? 'bg-red-600 border-red-400 hover:bg-red-700 text-white' : 'bg-white border-gray-400 hover:bg-gray-100 text-gray-700'}`
-        })
+      {error && (
+        <div className="text-red-500 text-xs mb-1">
+          {error}
+        </div>
+      )}
+             {children ? (
+         React.cloneElement(children as React.ReactElement<any>, {
+           onClick: toggleListening,
+           className: `w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-lg ${isListening ? 'bg-white border-gray-400 hover:bg-gray-100 text-gray-700' : 'bg-white border-gray-400 hover:bg-gray-100 text-gray-700'}`
+         })
       ) : (
         <button
           onClick={toggleListening}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Service Worker Killer</title>
+</head>
+<body>
+    <h1>Killing Service Workers...</h1>
+    <div id="status">Processing...</div>
+    
+    <script>
+        async function killAllServiceWorkers() {
+            const status = document.getElementById('status');
+            let messages = [];
+            
+            try {
+                // Get all registrations
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                messages.push(`Found ${registrations.length} service worker registrations`);
+                
+                // Unregister all
+                for (let registration of registrations) {
+                    const result = await registration.unregister();
+                    messages.push(`Unregistered: ${result}`);
+                }
+                
+                // Clear all caches
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    messages.push(`Found ${cacheNames.length} caches`);
+                    
+                    for (let cacheName of cacheNames) {
+                        const deleted = await caches.delete(cacheName);
+                        messages.push(`Deleted cache "${cacheName}": ${deleted}`);
+                    }
+                }
+                
+                messages.push('✅ ALL SERVICE WORKERS AND CACHES CLEARED!');
+                messages.push('🔄 Redirecting back to app in 3 seconds...');
+                
+                status.innerHTML = messages.join('<br>');
+                
+                // Redirect back to the main app
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+                
+            } catch (error) {
+                messages.push(`❌ Error: ${error.message}`);
+                status.innerHTML = messages.join('<br>');
+            }
+        }
+        
+        // Auto-run when page loads
+        killAllServiceWorkers();
+    </script>
+</body>
+</html>

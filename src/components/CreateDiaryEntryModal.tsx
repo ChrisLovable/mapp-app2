@@ -7,6 +7,48 @@ import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import Select from 'react-select';
 import type { SingleValue } from 'react-select';
+import ThreeDComponent from './ThreeDComponent';
+import AddChapterModal from './AddChapterModal';
+import PhotoUploadModal from './PhotoUploadModal';
+import ConfirmationModal from './ConfirmationModal';
+
+// Reusable Modal Header Component with consistent styling
+const ModalHeader: React.FC<{ title: string; onClose?: () => void }> = ({ title, onClose }) => (
+  <div 
+    className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+    style={{ 
+      background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+      border: '2px solid rgba(255, 255, 255, 0.4)',
+      boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+      backdropFilter: 'blur(10px)',
+      textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+      filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+      transform: 'translateZ(5px)'
+    }}
+  >
+    <h2 
+      className="text-white font-bold text-base text-center"
+      style={{
+        textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+        filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+        transform: 'translateZ(3px)'
+      }}
+    >
+      {title}
+    </h2>
+    {onClose && (
+      <button
+        onClick={onClose}
+        className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+        style={{ background: '#000000', fontSize: '15px' }}
+        aria-label="Close modal"
+      >
+        ×
+      </button>
+    )}
+  </div>
+);
+
 
 
 interface CreateDiaryEntryModalProps {
@@ -35,29 +77,19 @@ export default function CreateDiaryEntryModal({ isOpen, onClose, currentText }: 
   const [diaryEntry, setDiaryEntry] = useState(currentText);
   const [chapters, setChapters] = useState<string[]>([]);
   const [selectedChapter, setSelectedChapter] = useState('');
-  const [newChapterName, setNewChapterName] = useState('');
-  const [showAddChapter, setShowAddChapter] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<PhotoFile[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
   const [existingEntries, setExistingEntries] = useState<DiaryEntry[]>([]);
   const [isLoadingEntries, setIsLoadingEntries] = useState(false);
   const [isFlipbookOpen, setIsFlipbookOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const calendarRef = useRef<HTMLDivElement>(null);
+  const [showAddChapter, setShowAddChapter] = useState(false);
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false);
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
   const [duplicateEntryId, setDuplicateEntryId] = useState<string | null>(null);
-  const [addChapterStatus, setAddChapterStatus] = useState('');
   const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
   const [pendingEntryData, setPendingEntryData] = useState<any>(null);
-  // Add state for photo source choice
-  const [showPhotoSourceChoice, setShowPhotoSourceChoice] = useState(false);
-  const [photoCaptureMode, setPhotoCaptureMode] = useState<'camera' | 'gallery' | null>(null);
 
-  
   // Update diary entry when modal opens or currentText changes
   useEffect(() => {
     if (isOpen) {
@@ -96,95 +128,66 @@ export default function CreateDiaryEntryModal({ isOpen, onClose, currentText }: 
     fetchChaptersFromPreferences();
   }, [isOpen]);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
-        setShowCalendar(false);
-      }
-    }
-    if (showCalendar) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showCalendar]);
+  const handleAddChapter = async (newChapterName: string) => {
+    const updatedChapters = chapters.includes(newChapterName)
+      ? chapters
+      : [...chapters, newChapterName];
+    setChapters(updatedChapters);
+    setSelectedChapter(newChapterName);
 
-  const handleAddChapter = async () => {
-    if (newChapterName.trim()) {
-      const newChapter = newChapterName.trim();
-      const updatedChapters = chapters.includes(newChapter)
-        ? chapters
-        : [...chapters, newChapter];
-      setChapters(updatedChapters);
-      setSelectedChapter(newChapter);
-      setNewChapterName('');
-      // Do NOT close the modal yet
-
-      // Update user_preferences table to add the new chapter name
-      try {
-        console.log('Adding new chapter:', newChapter);
-        console.log('Updated chapters array:', updatedChapters);
-        const { error, data } = await supabase
-          .from('user_preferences')
-          .upsert(
-            { user_id: 'test-user-123', chapter_names: updatedChapters },
-            { onConflict: 'user_id' }
-          );
-        if (error) {
-          console.error('Supabase upsert error:', error);
-        } else {
-          console.log('Supabase upsert response:', data);
-          setAddChapterStatus('Chapter successfully added to the database');
-          setTimeout(() => {
-            setAddChapterStatus('');
-            setShowAddChapter(false); // Close modal after message disappears
-          }, 2000);
-        }
-      } catch (err) {
-        console.error('Error updating user preferences:', err);
+    // Update user_preferences table to add the new chapter name
+    try {
+      console.log('Adding new chapter:', newChapterName);
+      console.log('Updated chapters array:', updatedChapters);
+      const { error, data } = await supabase
+        .from('user_preferences')
+        .upsert(
+          { user_id: 'test-user-123', chapter_names: updatedChapters },
+          { onConflict: 'user_id' }
+        );
+      if (error) {
+        console.error('Supabase upsert error:', error);
+      } else {
+        console.log('Supabase upsert response:', data);
       }
+    } catch (err) {
+      console.error('Error updating user preferences:', err);
     }
   };
 
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      const validFiles = Array.from(files).filter(file => {
-        // Check if file is an image
-        const isValidImage = file.type.startsWith('image/') || 
-                            file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|heic|heif)$/);
-        
-        if (!isValidImage) {
-          console.warn(`Skipping invalid file: ${file.name} (type: ${file.type})`);
-          return false;
-        }
-        
-        // Check file size (max 10MB)
-        const maxSize = 10 * 1024 * 1024; // 10MB
-        if (file.size > maxSize) {
-          console.warn(`Skipping large file: ${file.name} (size: ${file.size} bytes)`);
-          return false;
-        }
-        
-        return true;
-      });
+  const handlePhotoUpload = (files: FileList) => {
+    const validFiles = Array.from(files).filter(file => {
+      // Check if file is an image
+      const isValidImage = file.type.startsWith('image/') || 
+                          file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|heic|heif)$/);
       
-      if (validFiles.length === 0) {
-        console.warn('No valid image files selected');
-        return;
+      if (!isValidImage) {
+        console.warn(`Skipping invalid file: ${file.name} (type: ${file.type})`);
+        return false;
       }
       
-      const newPhotos: PhotoFile[] = validFiles.map(file => ({
-        id: Date.now() + Math.random().toString(36).substr(2, 9),
-        file,
-        preview: URL.createObjectURL(file)
-      }));
+      // Check file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        console.warn(`Skipping large file: ${file.name} (size: ${file.size} bytes)`);
+        return false;
+      }
       
-      setUploadedPhotos(prev => [...prev, ...newPhotos]);
+      return true;
+    });
+    
+    if (validFiles.length === 0) {
+      console.warn('No valid image files selected');
+      return;
     }
+    
+    const newPhotos: PhotoFile[] = validFiles.map(file => ({
+      id: Date.now() + Math.random().toString(36).substr(2, 9),
+      file,
+      preview: URL.createObjectURL(file)
+    }));
+    
+    setUploadedPhotos(prev => [...prev, ...newPhotos]);
   };
 
   const handleRemovePhoto = (photoId: string) => {
@@ -266,8 +269,6 @@ export default function CreateDiaryEntryModal({ isOpen, onClose, currentText }: 
       setIsLoadingEntries(false);
     }
   };
-
-
 
   const handleSave = async () => {
     if (!selectedChapter || selectedChapter.trim() === '') {
@@ -511,460 +512,320 @@ export default function CreateDiaryEntryModal({ isOpen, onClose, currentText }: 
     }
   };
 
-
   if (!isOpen) return null;
-
-  // Custom styles for DayPicker table and day cells
-  const dayPickerTableStyles = {
-    width: '100%',
-    tableLayout: 'fixed',
-  };
-  const dayCellStyles = {
-    width: '14.2857%', // 100% / 7 days
-    padding: 0,
-    fontSize: '0.85rem',
-    textAlign: 'center',
-    boxSizing: 'border-box',
-  };
 
   type ChapterOption = { value: string; label: string };
   const chapterOptions: ChapterOption[] = chapters.map(chapter => ({ value: chapter, label: chapter }));
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9998] p-4">
-      <div className="w-full flex items-center justify-center">
-        <div className="glassy-rainbow-btn rounded-2xl bg-black p-2 w-full min-h-0 h-auto flex flex-col border-0" style={{ boxSizing: 'border-box' }}>
-          <div className="overflow-y-auto max-h-[90vh]">
-        {/* Header */}
-        <div className="relative mb-6 px-0 py-3 rounded-lg" style={{ backgroundColor: 'var(--favourite-blue)' }}>
-          <h2 className="text-xl font-bold text-white">Create Diary Entry</h2>
-          <button
-            onClick={onClose}
-            className="absolute top-1 right-1 w-6 h-6 rounded-full text-sm font-bold text-white hover:text-gray-300 flex items-center justify-center"
-            style={{ background: '#111', border: 'none', outline: 'none' }}
-          >
-            ×
-          </button>
-        </div>
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9998] p-4">
+        <div className="w-full flex items-center justify-center">
+          <div className="rounded-2xl bg-black p-4 w-full flex flex-col border-0 transition-all duration-300 relative" style={{ boxSizing: 'border-box', border: '2px solid rgba(255, 255, 255, 0.8)', boxShadow: '0 0 8px rgba(255, 255, 255, 0.3)', height: '90vh' }}>
+            <div className="overflow-y-auto max-h-[90vh]">
+              {/* Header */}
+              <ModalHeader title="Create Diary Entry" onClose={onClose} />
+              <button
+                onClick={onClose}
+                className="absolute w-8 h-8 rounded-full text-sm font-bold text-white hover:text-gray-300 flex items-center justify-center"
+                style={{ border: 'none', outline: 'none', margin: '4px 8px 8px 4px', right: '-270px', top: '-65px', background: '#000000', fontSize: '15px' }}
+              >
+                ×
+              </button>
 
-        <div className="space-y-6">
-          {/* Date and Chapter with Add Chapter Button */}
-          <div className="w-full px-0" style={{ marginTop: '-20px' }}>
-            <div className="space-y-2 mb-2">
-              {/* Chapter Selection and Add Chapter Button */}
-                  <div className="flex flex-col mb-4 w-full">
-                    <label className="text-white font-medium text-[10px] mb-1 text-left" style={{ fontSize: '0.85rem' }}>Choose Chapter</label>
-                    <div className="flex flex-row items-center gap-2 w-full">
-                      <Select
-                        className="flex-1 min-w-0"
-                        value={chapterOptions.find(opt => opt.value === selectedChapter) || null}
-                        onChange={(option: SingleValue<ChapterOption>) => setSelectedChapter(option ? option.value : '')}
-                        options={chapterOptions}
-                        placeholder=""
-                        isClearable={false}
-                        components={{
-                          DropdownIndicator: (props) => (
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              height: '100%',
-                              paddingRight: 10,
-                              color: '#fff',
-                              opacity: 0.8,
-                              fontSize: '1.2rem',
-                            }}>
-                              ▼
-                            </div>
-                          )
-                        }}
-                        styles={{
-                          container: (base: any) => ({ ...base, width: 200, zIndex: 20 }),
-                          control: (base: any, state: any) => ({
-                            ...base,
-                            borderRadius: 16,
-                            border: state.isFocused ? '2px solid #2563eb' : '2px solid var(--favourite-blue)',
-                            background: '#111',
-                            color: '#fff',
-                            boxShadow: 'none',
-                            fontWeight: 'bold',
-                            fontSize: '0.9rem',
-                            minHeight: 44,
-                            transition: 'border 0.2s, box-shadow 0.2s',
-                          }),
-                          menu: (base: any) => ({
-                            ...base,
-                            background: '#181a1b',
-                            borderRadius: 12,
-                            marginTop: 2,
-                            zIndex: 9999,
-                            boxShadow: '0 4px 24px 0 #2563eb99',
-                            color: '#fff',
-                          }),
-                          option: (base: any, state: any) => ({
-                            ...base,
-                            background: state.isSelected
-                              ? 'linear-gradient(90deg, #2563eb 60%, #00fff7 100%)'
-                              : state.isFocused
-                              ? 'rgba(37,99,235,0.3)'
-                              : 'transparent',
-                            color: state.isSelected || state.isFocused ? '#fff' : '#fff',
-                            fontWeight: state.isSelected ? 700 : 500,
-                            borderRadius: 8,
-                            padding: '10px 16px',
-                            cursor: 'pointer',
-                            transition: 'background 0.2s',
-                          }),
-                          singleValue: (base: any) => ({ ...base, color: '#fff' }),
-                          placeholder: (base: any) => ({ ...base, color: '#60a5fa', fontWeight: 500 }),
-                          dropdownIndicator: (base: any, state: any) => ({
-                            ...base,
-                            color: '#fff',
-                            opacity: 0.8,
-                            fontSize: '1.2rem',
-                            paddingRight: 10,
-                            transition: 'color 0.2s',
-                          }),
-                          clearIndicator: (base: any) => ({ ...base, color: '#60a5fa' }),
-                          indicatorSeparator: (base: any) => ({ ...base, display: 'none' }),
-                          input: (base: any) => ({ ...base, color: '#fff' }),
-                          menuList: (base: any) => ({ ...base, background: 'transparent', padding: 0 }),
-                        }}
-                      />
-                <button
-                  onClick={() => setShowAddChapter(true)}
-                        className="glassy-btn px-4 py-2 rounded-2xl text-white transition-colors text-sm border-0 ml-2"
-                  style={{ background: '#111', fontSize: '0.9rem', minWidth: '120px' }}
-                >
-                  New chapter
-                </button>
+              {/* Chapter Selection - Moved below header */}
+              <div className="flex flex-col mb-4 w-full px-4" style={{ marginTop: '10px', marginLeft: '-10px' }}>
+                <label className="text-white font-medium text-[10px] mb-1 text-left" style={{ fontSize: '0.85rem' }}>Choose Chapter</label>
+                <div className="flex flex-row items-center gap-2 w-full">
+                  <Select
+                    className="flex-1 min-w-0"
+                    value={chapterOptions.find(opt => opt.value === selectedChapter) || null}
+                    onChange={(option: SingleValue<ChapterOption>) => setSelectedChapter(option ? option.value : '')}
+                    options={chapterOptions}
+                    placeholder=""
+                    isClearable={false}
+                    onMenuOpen={() => {
+                      // Prevent keyboard from opening
+                      const activeElement = document.activeElement as HTMLElement;
+                      if (activeElement) {
+                        activeElement.blur();
+                      }
+                    }}
+                    components={{
+                      DropdownIndicator: (props) => (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          height: '100%',
+                          paddingRight: 10,
+                          color: '#fff',
+                          opacity: 0.8,
+                          fontSize: '1.2rem',
+                        }}>
+                          ▼
+                        </div>
+                      )
+                    }}
+                    styles={{
+                      container: (base: any) => ({ ...base, width: 200, zIndex: 20 }),
+                      control: (base: any, state: any) => ({
+                        ...base,
+                        borderRadius: 16,
+                        border: '2px solid white',
+                        background: '#111',
+                        color: '#fff',
+                        boxShadow: 'none',
+                        fontWeight: 'bold',
+                        fontSize: '0.9rem',
+                        minHeight: 44,
+                        transition: 'border 0.2s, box-shadow 0.2s',
+                      }),
+                      menu: (base: any) => ({
+                        ...base,
+                        background: '#181a1b',
+                        borderRadius: 12,
+                        marginTop: 2,
+                        zIndex: 9999,
+                        boxShadow: '0 4px 24px 0 #2563eb99',
+                        color: '#fff',
+                      }),
+                      option: (base: any, state: any) => ({
+                        ...base,
+                        background: state.isSelected
+                          ? 'linear-gradient(90deg, #2563eb 60%, #00fff7 100%)'
+                          : state.isFocused
+                          ? 'rgba(37,99,235,0.3)'
+                          : 'transparent',
+                        color: state.isSelected || state.isFocused ? '#fff' : '#fff',
+                        fontWeight: state.isSelected ? 700 : 500,
+                        borderRadius: 8,
+                        padding: '10px 16px',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s',
+                      }),
+                      singleValue: (base: any) => ({ ...base, color: '#fff' }),
+                      placeholder: (base: any) => ({ ...base, color: '#60a5fa', fontWeight: 500 }),
+                      dropdownIndicator: (base: any, state: any) => ({
+                        ...base,
+                        color: '#fff',
+                        opacity: 0.8,
+                        fontSize: '1.2rem',
+                        paddingRight: 10,
+                        transition: 'color 0.2s',
+                      }),
+                      clearIndicator: (base: any) => ({ ...base, color: '#60a5fa' }),
+                      indicatorSeparator: (base: any) => ({ ...base, display: 'none' }),
+                      input: (base: any) => ({ ...base, color: '#fff' }),
+                      menuList: (base: any) => ({ ...base, background: 'transparent', padding: 0 }),
+                    }}
+                  />
+                  <button
+                    onClick={() => setShowAddChapter(true)}
+                    className="glassy-btn px-4 py-2 rounded-2xl text-white transition-colors text-sm border-0 ml-2 animated-white-border"
+                    style={{ background: '#111', fontSize: '0.9rem', minWidth: '120px' }}
+                  >
+                    New chapter
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Date and Chapter Selection */}
+                <div className="w-full px-0" style={{ marginTop: '0px' }}>
+                  <div className="space-y-2 mb-2">
+                    {/* Date Picker */}
+                    <div style={{ background: '#111', padding: '0.5rem 0.25rem 0.5rem 0.5rem', borderRadius: '1rem', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginLeft: '0', width: '100%', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                      <CustomDatePicker value={selectedDate} onChange={setSelectedDate} />
                     </div>
-              </div>
-              {/* Date Picker */}
-                  <div style={{ background: '#111', padding: '0.5rem 0.25rem 0.5rem 0.5rem', borderRadius: '1rem', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginLeft: '0', width: '100%', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                <CustomDatePicker value={selectedDate} onChange={setSelectedDate} />
-              </div>
-            </div>
-          </div>
+                  </div>
+                </div>
 
+                {/* New Entry Text Area */}
+                <div className="space-y-2" style={{ marginTop: '20px' }}>
+                  <div className="flex justify-between items-center">
+                    <label className="block text-xs font-medium" style={{ fontSize: '0.65rem' }}>
+                      New Entry
+                      {currentText && diaryEntry === currentText && (
+                        <span className="ml-2 text-xs text-green-400">(Text copied from main textbox)</span>
+                      )}
+                    </label>
+                  </div>
+                  <textarea
+                    value={diaryEntry}
+                    onChange={(e) => setDiaryEntry(e.target.value)}
+                    placeholder="Write your diary entry here..."
+                    className="w-full p-2 px-4 rounded-2xl text-black placeholder-gray-600 min-h-[100px] resize-none photo-frame-3d-sm textbox-white"
+                    style={{ fontSize: '0.8rem', background: 'linear-gradient(135deg, #d3d3d3 0%, #ffffff 100%)', boxShadow: 'inset 2px 2px 4px rgba(0, 0, 0, 0.3), inset -1px -1px 2px rgba(255, 255, 255, 0.5)' }}
+                  />
+                </div>
 
+                {/* Upload Button */}
+                <div className="flex justify-start" style={{ marginTop: '3px' }}>
+                  <div className="flex-2">
+                    <button
+                      onClick={() => setShowPhotoUpload(true)}
+                      className="w-full glassy-btn px-4 py-2 rounded-2xl text-white transition-colors flex items-center gap-2 border-0 ml-2 animated-white-border"
+                      style={{ background: '#111', fontSize: '0.9rem' }}
+                    >
+                      Upload photos
+                    </button>
+                  </div>
+                </div>
 
-
-
-          {/* Add Chapter Modal */}
-          {showAddChapter && (
-            <div className="bg-black glassy-rainbow-btn rounded-2xl p-0 border-0">
-              <div className="relative mb-6 px-0 py-3 rounded-lg" style={{ backgroundColor: 'var(--favourite-blue)' }}>
-                <h3 className="text-xl font-bold text-white">New Chapter</h3>
-                <button
-                  onClick={() => {
-                    setShowAddChapter(false);
-                    setNewChapterName('');
-                  }}
-                  className="absolute top-1 right-1 w-6 h-6 rounded-full text-sm font-bold text-white hover:text-gray-300 flex items-center justify-center"
-                  style={{ background: '#111', border: 'none', outline: 'none' }}
-                >
-                  ×
-                </button>
-              </div>
-              <div className="space-y-2 w-full">
-                <input
-                  type="text"
-                  value={newChapterName}
-                  onChange={(e) => setNewChapterName(e.target.value)}
-                  placeholder="Enter chapter name..."
-                  className="w-full p-2 rounded-2xl text-white border-2 placeholder-gray-400"
-                  style={{ background: '#111', borderColor: 'var(--favourite-blue)' }}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddChapter()}
-                />
-                <button
-                  onClick={handleAddChapter}
-                  className="w-full glassy-btn px-3 py-2 rounded-2xl text-white transition-colors border-0"
-                  style={{ background: '#111' }}
-                >
-                  Add
-                </button>
-                    {addChapterStatus && (
-                      <div className="relative flex items-center p-3 rounded-2xl text-sm font-medium bg-green-600 text-white border-0 shadow-lg" style={{ boxShadow: '0 2px 12px 2px #00ff99, 0 1.5px 6px #007a4d', background: 'linear-gradient(135deg, #00ff99 80%, #007a4d 100%)', fontWeight: 600, backdropFilter: 'blur(2px)' }}>
-                        <span className="pr-8">{addChapterStatus}</span>
+                {/* Photo Display */}
+                {uploadedPhotos.length > 0 && (
+                  <div className="grid grid-cols-4 gap-3">
+                    {uploadedPhotos.map((photo) => (
+                      <div key={photo.id} className="relative">
                         <button
-                          onClick={() => setAddChapterStatus('')}
-                          className="absolute top-1 right-1 w-6 h-6 rounded-full text-sm font-bold text-white hover:text-green-200 flex items-center justify-center z-10"
-                          style={{ background: '#111', border: 'none', outline: 'none', boxShadow: '0 0 6px 1.5px #00ff99' }}
-                          aria-label="Dismiss success"
+                          onClick={() => handleRemovePhoto(photo.id)}
+                          className="absolute -top-2 -right-2 glassy-btn bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold z-10 border-0"
+                        >
+                          ×
+                        </button>
+                        <div className="w-16 h-16 rounded-2xl overflow-hidden" style={{ border: '2px solid white' }}>
+                          <img
+                            src={photo.preview}
+                            alt="Uploaded photo"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Existing Entries Display */}
+                <div className="space-y-2" style={{ marginTop: '30px' }}>
+                  <label className="block text-xs font-medium text-left" style={{ fontSize: '0.65rem', marginTop: '-5px' }}>
+                    Existing entries found for {selectedDate.toLocaleDateString()} for this Diary chapter
+                    {isLoadingEntries && <span className="ml-2 text-xs text-blue-400">Loading...</span>}
+                  </label>
+                  
+                  {existingEntries.length === 0 && !isLoadingEntries ? (
+                    <div className="p-2 rounded-2xl text-black text-sm min-h-[100px] text-left photo-frame-3d-sm textbox-white" style={{ marginTop: '5px', background: 'linear-gradient(135deg, #d3d3d3 0%, #ffffff 100%)', boxShadow: 'inset 2px 2px 4px rgba(0, 0, 0, 0.3), inset -1px -1px 2px rgba(255, 255, 255, 0.5)' }}>
+                      No entries found for this date.
+                    </div>
+                  ) : (
+                    <div className="space-y-3" style={{ marginTop: '21px' }}>
+                      {existingEntries.map((entry) => (
+                        <div key={entry.id} className="p-2 rounded-2xl text-black min-h-[100px] text-left photo-frame-3d-sm textbox-white" style={{ background: 'linear-gradient(135deg, #d3d3d3 0%, #ffffff 100%)', boxShadow: 'inset 2px 2px 4px rgba(0, 0, 0, 0.3), inset -1px -1px 2px rgba(255, 255, 255, 0.5)' }}>
+                          <div className="flex justify-between items-start mb-2 text-left">
+                            <span className="text-xs text-blue-600 font-medium">
+                              {entry.diary_chapter}
+                            </span>
+                          </div>
+                          <div className="text-gray-800 text-sm mb-2 text-left">
+                            {entry.content}
+                          </div>
+                          {entry.photo_urls && entry.photo_urls.length > 0 && (
+                            <div className="flex gap-2 flex-wrap">
+                              {entry.photo_urls.map((url: string, photoIndex: number) => (
+                                <img
+                                  key={photoIndex}
+                                  src={url}
+                                  alt={`Photo ${photoIndex + 1}`}
+                                  className="w-12 h-12 rounded-2xl object-cover"
+                style={{ border: '2px solid white' }}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Status Message */}
+                {(saveStatus && (
+                  saveStatus.includes('successfully') || saveStatus === 'Saving...'
+                    ? (
+                      <div className="relative flex items-center p-3 rounded-2xl text-sm font-medium bg-green-600 text-white border-0 shadow-lg" style={{ boxShadow: '0 2px 12px 2px #00ff99, 0 1.5px 6px #007a4d', background: 'linear-gradient(135deg, #00ff99 80%, #007a4d 100%)', fontWeight: 600, backdropFilter: 'blur(2px)' }}>
+                        <span>{saveStatus}</span>
+                      </div>
+                    ) : (
+                      <div className="relative flex items-center p-3 rounded-2xl text-sm font-medium bg-red-600 text-white border-0 shadow-lg" style={{ boxShadow: '0 2px 12px 2px #ff0033, 0 1.5px 6px #a1001a', background: 'linear-gradient(135deg, #ff0033 80%, #a1001a 100%)', fontWeight: 600 }}>
+                        <span className="pr-8">{saveStatus}</span>
+                        <button
+                          onClick={() => setSaveStatus('')}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full text-sm font-bold text-white hover:text-gray-300 flex items-center justify-center z-10"
+                          style={{ background: '#111', border: 'none', outline: 'none', boxShadow: '0 0 6px 1.5px #ff0033' }}
+                          aria-label="Dismiss error"
                         >
                           ×
                         </button>
                       </div>
-                    )}
-              </div>
-            </div>
-          )}
-
-          {/* New Entry Text Area */}
-          <div className="space-y-2" style={{ marginTop: '20px' }}>
-            <div className="flex justify-between items-center">
-              <label className="block text-xs font-medium" style={{ fontSize: '0.65rem' }}>
-                New Entry
-                {currentText && diaryEntry === currentText && (
-                  <span className="ml-2 text-xs text-green-400">(Text copied from main textbox)</span>
-                )}
-              </label>
-            </div>
-            <textarea
-              value={diaryEntry}
-              onChange={(e) => setDiaryEntry(e.target.value)}
-              placeholder="Write your diary entry here..."
-              className="w-full p-3 rounded-2xl text-white border-2 placeholder-gray-400 min-h-[100px] resize-none"
-              style={{ fontSize: '0.8rem', background: '#111', borderColor: 'var(--favourite-blue)' }}
-            />
-          </div>
-          {/* Upload Button below the text box */}
-          <div className="flex justify-start" style={{ marginTop: '3px' }}>
-            <div className="flex-2">
-              <button
-                    onClick={() => setShowPhotoSourceChoice(true)}
-                    className="w-full glassy-btn px-4 py-2 rounded-2xl text-white transition-colors flex items-center gap-2 border-0 ml-2"
-                style={{ background: '#111', fontSize: '0.9rem' }}
-              >
-                Upload photos
-              </button>
-            </div>
-          </div>
-
-              {/* Hidden File Inputs */}
-          <input
-                ref={cameraInputRef}
-            type="file"
-            multiple
-                accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif"
-            capture="environment"
-                onChange={(event) => {
-                  try {
-                    handlePhotoUpload(event);
-                  } catch (error) {
-                    console.error('Error uploading camera photo:', error);
-                  }
-                }}
-                className="hidden"
-              />
-              <input
-                ref={galleryInputRef}
-                type="file"
-                multiple
-                accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif"
-                onChange={(event) => {
-                  try {
-                    handlePhotoUpload(event);
-                  } catch (error) {
-                    console.error('Error uploading gallery photo:', error);
-                  }
-                }}
-            className="hidden"
-          />
-
-          {/* Photo Upload Section */}
-          {uploadedPhotos.length > 0 && (
-            <div className="grid grid-cols-4 gap-3">
-              {uploadedPhotos.map((photo) => (
-                    <div key={photo.id} className="relative">
-                  <button
-                    onClick={() => handleRemovePhoto(photo.id)}
-                        className="absolute -top-2 -right-2 glassy-btn bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold z-10 border-0"
-                  >
-                    ×
-                  </button>
-                  <div className="w-16 h-16 rounded-2xl overflow-hidden glassy-rainbow-btn border-0">
-                    <img
-                      src={photo.preview}
-                      alt="Uploaded photo"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Existing Entries Display */}
-          <div className="space-y-2" style={{ marginTop: '30px' }}>
-            <label className="block text-xs font-medium text-left" style={{ fontSize: '0.65rem', marginTop: '-5px' }}>
-              Existing entries found for {selectedDate.toLocaleDateString()} for this Diary chapter
-              {isLoadingEntries && <span className="ml-2 text-xs text-blue-400">Loading...</span>}
-            </label>
-            
-            {existingEntries.length === 0 && !isLoadingEntries ? (
-                              <div className="p-3 rounded-2xl text-white text-sm border-2 min-h-[100px] text-left" style={{ background: '#111', borderColor: 'var(--favourite-blue)', marginTop: '5px' }}>
-                  No entries found for this date.
-                </div>
-            ) : (
-              <div className="space-y-3" style={{ marginTop: '21px' }}>
-                {existingEntries.map((entry) => (
-                      <div key={entry.id} className="p-3 rounded-2xl text-white border-2 min-h-[100px] text-left" style={{ background: '#111', borderColor: 'var(--favourite-blue)' }}>
-                        <div className="flex justify-between items-start mb-2 text-left">
-                      <span className="text-xs text-blue-400 font-medium">
-                        {entry.diary_chapter}
-                      </span>
-                          {/* Timestamp removed */}
-                    </div>
-                        <div className="text-gray-200 text-sm mb-2 text-left">
-                      {entry.content}
-                    </div>
-                    {entry.photo_urls && entry.photo_urls.length > 0 && (
-                      <div className="flex gap-2 flex-wrap">
-                        {entry.photo_urls.map((url: string, photoIndex: number) => (
-                          <img
-                            key={photoIndex}
-                            src={url}
-                            alt={`Photo ${photoIndex + 1}`}
-                            className="w-12 h-12 rounded-2xl object-cover glassy-rainbow-btn border-0"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                    )
                 ))}
+
               </div>
-            )}
-          </div>
-
-          {/* Status Message */}
-              {(saveStatus && (
-                saveStatus.includes('successfully') || saveStatus === 'Saving...'
-                  ? (
-                    <div className="relative flex items-center p-3 rounded-2xl text-sm font-medium bg-green-600 text-white border-0 shadow-lg" style={{ boxShadow: '0 2px 12px 2px #00ff99, 0 1.5px 6px #007a4d', background: 'linear-gradient(135deg, #00ff99 80%, #007a4d 100%)', fontWeight: 600, backdropFilter: 'blur(2px)' }}>
-                      <span>{saveStatus}</span>
-                    </div>
-                  ) : (
-            <div className="relative flex items-center p-3 rounded-2xl text-sm font-medium bg-red-600 text-white border-0 shadow-lg" style={{ boxShadow: '0 2px 12px 2px #ff0033, 0 1.5px 6px #a1001a', background: 'linear-gradient(135deg, #ff0033 80%, #a1001a 100%)', fontWeight: 600 }}>
-              <span className="pr-8">{saveStatus}</span>
-              <button
-                onClick={() => setSaveStatus('')}
-                className="absolute top-1 right-1 w-6 h-6 rounded-full text-sm font-bold text-white hover:text-gray-300 flex items-center justify-center z-10"
-                style={{ background: '#111', border: 'none', outline: 'none', boxShadow: '0 0 6px 1.5px #ff0033' }}
-                aria-label="Dismiss error"
-              >
-                ×
-              </button>
-            </div>
-                  )
-              ))}
-
-          {/* Action Buttons */}
-          <div className="flex justify-start gap-3 pt-2">
-            <button
-              onClick={() => setIsFlipbookOpen(true)}
-              disabled={isSaving}
-              className="flex-1 p-3 rounded-2xl glassy-btn text-white font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border-0"
-              style={{ background: '#111' }}
-            >
-              Read Diary
-            </button>
-            <button
+              
+              {/* Action Buttons - Moved to bottom */}
+              <div className="flex justify-start gap-3 mt-4 px-4 pb-4">
+                <button
+                  onClick={() => {
+                    console.log('Read Diary button clicked - setting isFlipbookOpen to true');
+                    setIsFlipbookOpen(true);
+                  }}
+                  disabled={isSaving}
+                  className="flex-1 p-3 rounded-2xl glassy-btn text-white font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border-0 animated-white-border"
+                  style={{ background: '#111' }}
+                >
+                  Read Diary
+                </button>
+                <button
                   onClick={handleSave}
-              disabled={isSaving}
-              className="flex-1 p-3 rounded-2xl glassy-btn text-white font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border-0"
-              style={{ background: '#111' }}
-            >
-              {isSaving ? 'Saving...' : 'Save Entry'}
-            </button>
+                  disabled={isSaving}
+                  className="flex-1 p-3 rounded-2xl glassy-btn text-white font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border-0 animated-white-border"
+                  style={{ background: '#111' }}
+                >
+                  {isSaving ? 'Saving...' : 'Save Entry'}
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
-      
+
+      {/* Sub-modals */}
+      <AddChapterModal 
+        isOpen={showAddChapter}
+        onClose={() => setShowAddChapter(false)}
+        onAddChapter={handleAddChapter}
+      />
+
+      <PhotoUploadModal
+        isOpen={showPhotoUpload}
+        onClose={() => setShowPhotoUpload(false)}
+        onPhotoUpload={handlePhotoUpload}
+      />
+
+      <ConfirmationModal
+        isOpen={showDuplicateConfirm}
+        title="Duplicate Entry"
+        message="There is already an entry for this date and chapter. Do you want to replace the existing entry or cancel?"
+        onConfirm={handleReplaceDuplicate}
+        onCancel={() => setShowDuplicateConfirm(false)}
+        confirmText="Replace"
+        cancelText="Cancel"
+      />
+
+      <ConfirmationModal
+        isOpen={showReplaceConfirm}
+        title="Duplicate Entry"
+        message="An entry for this user, date, and chapter already exists. Do you want to replace the existing entry or cancel?"
+        onConfirm={handleReplaceConfirmed}
+        onCancel={() => { setShowReplaceConfirm(false); setSaveStatus(''); }}
+        confirmText="Replace"
+        cancelText="Cancel"
+      />
+
       {/* Diary Flipbook */}
       <DiaryFlipbook 
         isOpen={isFlipbookOpen} 
         onClose={() => setIsFlipbookOpen(false)} 
       />
-
-      {/* Confirmation Modal for Duplicate Entry */}
-      {showDuplicateConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9999]">
-          <div className="bg-white rounded-2xl p-6 shadow-lg max-w-sm w-full">
-            <h2 className="text-lg font-bold mb-4 text-black">Duplicate Entry</h2>
-            <p className="mb-6 text-black">There is already an entry for this date and chapter. Do you want to replace the existing entry or cancel?</p>
-            <div className="flex justify-end gap-4">
-              <button
-                onClick={() => setShowDuplicateConfirm(false)}
-                className="px-4 py-2 rounded-lg bg-gray-400 text-white font-medium hover:bg-gray-500"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReplaceDuplicate}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700"
-              >
-                Replace
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Replace Confirmation Modal for Duplicate Entry */}
-      {showReplaceConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9999]">
-          <div className="relative flex flex-col items-center p-6 rounded-2xl text-sm font-medium bg-blue-700 text-white border-0 shadow-lg" style={{ boxShadow: '0 2px 12px 2px #2563eb, 0 1.5px 6px #00fff7', background: 'linear-gradient(135deg, #2563eb 80%, #00fff7 100%)', fontWeight: 600, backdropFilter: 'blur(2px)', minWidth: 320 }}>
-            <h2 className="text-lg font-bold mb-4 text-white">Duplicate Entry</h2>
-            <p className="mb-6 text-white">An entry for this user, date, and chapter already exists. Do you want to replace the existing entry or cancel?</p>
-            <div className="flex justify-end gap-4 w-full">
-              <button
-                onClick={() => { setShowReplaceConfirm(false); setSaveStatus(''); }}
-                className="px-4 py-2 rounded-lg bg-gray-400 text-white font-bold hover:bg-gray-500 shadow-md"
-                style={{ boxShadow: '0 0 6px 1.5px #2563eb' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReplaceConfirmed}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 shadow-md"
-                style={{ boxShadow: '0 0 6px 1.5px #00fff7' }}
-              >
-                Replace
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Photo Source Choice Modal */}
-      {showPhotoSourceChoice && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-[#181a1b] rounded-2xl p-6 shadow-xl flex flex-col items-center min-w-[220px]">
-            <div className="text-white text-lg font-semibold mb-4">Choose photo source</div>
-            <button
-              className="w-full mb-2 glassy-btn px-4 py-2 rounded-2xl text-white font-bold border-0"
-              style={{ background: '#111', fontSize: '1rem' }}
-              onClick={() => {
-                setPhotoCaptureMode('camera');
-                setShowPhotoSourceChoice(false);
-                setTimeout(() => cameraInputRef.current?.click(), 0);
-              }}
-            >
-              Use Camera
-            </button>
-            <button
-              className="w-full glassy-btn px-4 py-2 rounded-2xl text-white font-bold border-0"
-              style={{ background: '#111', fontSize: '1rem' }}
-              onClick={() => {
-                setPhotoCaptureMode('gallery');
-                setShowPhotoSourceChoice(false);
-                setTimeout(() => galleryInputRef.current?.click(), 0);
-              }}
-            >
-              Select from Gallery
-            </button>
-            <button
-              className="mt-4 text-xs text-gray-400 hover:text-white"
-              onClick={() => setShowPhotoSourceChoice(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 } 

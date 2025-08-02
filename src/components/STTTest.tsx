@@ -9,7 +9,7 @@ export const STTTest: React.FC = () => {
   };
 
   return (
-    <div className="p-6 bg-black border border-[var(--favourite-blue)] rounded-xl">
+    <div className="p-6 bg-black border border-white rounded-xl">
       <h3 className="text-xl font-bold text-white mb-4">STT Test</h3>
       <div className="flex gap-3 mb-4">
         <input
@@ -17,7 +17,7 @@ export const STTTest: React.FC = () => {
           value={transcript}
           onChange={(e) => setTranscript(e.target.value)}
           placeholder="Speech will appear here..."
-          className="flex-1 px-4 py-3 bg-black border-2 border-[var(--favourite-blue)] rounded-xl text-white"
+          className="flex-1 px-4 py-3 bg-black border-2 border-white rounded-xl text-white"
         />
         <SpeechToTextButton
           onResult={handleSTTResult}

@@ -5,6 +5,48 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide browser UI and force fullscreen */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  overflow: hidden !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+/* Override glassy-blue-btn for textbox */
+.textbox-container {
+  background-color: #000000 !important;
+  border: 2px solid white !important;
+}
+
+.textbox-container::before {
+  display: none !important;
+}
+
+#root {
+  height: 100vh !important;
+  width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Hide browser chrome */
+@media screen and (max-width: 768px) {
+  body {
+    height: 100vh !important;
+    width: 100vw !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    overflow: hidden !important;
+  }
+}
+
   /* Theme Variables */
   :root {
     --primary-color: #2563eb;
@@ -887,5 +929,263 @@ div[style*="box-shadow: rgb(0, 255, 247)"] {
   
   .calendar-day-view .timeline-hour {
     height: 60px;
+  }
+}
+
+/* Photo Frame 3D Effect - Reusable for textboxes and buttons */
+.photo-frame-3d {
+  border: 6px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 
+    0 12px 24px rgba(0, 0, 0, 0.8), 
+    0 6px 12px rgba(0, 0, 0, 0.6), 
+    0 3px 6px rgba(0, 0, 0, 0.4), 
+    inset 0 4px 0 rgba(255, 255, 255, 0.6), 
+    inset 0 -4px 0 rgba(0, 0, 0, 0.7), 
+    inset 0 2px 0 rgba(255, 255, 255, 0.4), 
+    inset 0 -2px 0 rgba(0, 0, 0, 0.5), 
+    0 0 0 4px rgba(255, 255, 255, 0.4), 
+    0 0 0 3px rgba(255, 255, 255, 0.3), 
+    0 0 0 2px rgba(255, 255, 255, 0.2), 
+    0 0 0 1px rgba(255, 255, 255, 0.1), 
+    0 0 12px rgba(255, 255, 255, 0.4), 
+    0 0 24px rgba(255, 255, 255, 0.3), 
+    inset 0 0 0 2px rgba(255, 255, 255, 0.3), 
+    inset 0 0 0 4px rgba(0, 0, 0, 0.4) !important;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.4)) drop-shadow(0 0 4px rgba(255, 255, 255, 0.2)) !important;
+  transform: translateZ(30px) perspective(1200px) rotateX(2deg) !important;
+  transform-origin: center center !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  z-index: 1 !important;
+  background-color: #000000 !important;
+}
+
+/* Photo Frame 3D Effect for smaller elements (buttons) */
+.photo-frame-3d-sm {
+  border: 4px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 
+    0 6px 12px rgba(0, 0, 0, 0.7), 
+    0 3px 6px rgba(0, 0, 0, 0.5), 
+    0 2px 4px rgba(0, 0, 0, 0.4), 
+    inset 0 2px 0 rgba(255, 255, 255, 0.5), 
+    inset 0 -2px 0 rgba(0, 0, 0, 0.6), 
+    inset 0 1px 0 rgba(255, 255, 255, 0.3), 
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4), 
+    0 0 0 3px rgba(255, 255, 255, 0.3), 
+    0 0 0 2px rgba(255, 255, 255, 0.2), 
+    0 0 0 1px rgba(255, 255, 255, 0.1), 
+    0 0 6px rgba(255, 255, 255, 0.3), 
+    0 0 12px rgba(255, 255, 255, 0.2), 
+    inset 0 0 0 2px rgba(255, 255, 255, 0.2), 
+    inset 0 0 0 4px rgba(0, 0, 0, 0.3) !important;
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.3)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.2)) !important;
+  transform: translateZ(15px) perspective(1000px) rotateX(1deg) !important;
+  transform-origin: center center !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  z-index: 1 !important;
+  background-color: #000000 !important;
+}
+
+/* Photo Frame 3D Effect for tiny elements (small buttons) */
+.photo-frame-3d-xs {
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 
+    0 3px 6px rgba(0, 0, 0, 0.6), 
+    0 2px 4px rgba(0, 0, 0, 0.4), 
+    0 1px 2px rgba(0, 0, 0, 0.3), 
+    inset 0 1px 0 rgba(255, 255, 255, 0.4), 
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5), 
+    0 0 0 2px rgba(255, 255, 255, 0.2), 
+    0 0 0 1px rgba(255, 255, 255, 0.1), 
+    0 0 3px rgba(255, 255, 255, 0.2), 
+    0 0 6px rgba(255, 255, 255, 0.1), 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1), 
+    inset 0 0 0 2px rgba(0, 0, 0, 0.2) !important;
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.2)) !important;
+  transform: translateZ(8px) perspective(800px) rotateX(0.5deg) !important;
+  transform-origin: center center !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  z-index: 1 !important;
+  background-color: #000000 !important;
+}
+
+/* Photo Frame 3D Effect for textboxes with white background */
+.photo-frame-3d-sm textarea,
+.photo-frame-3d-sm input[type="text"],
+.photo-frame-3d-sm div {
+  background-color: white !important;
+  color: black !important;
+}
+
+.photo-frame-3d-xs input[type="text"] {
+  background-color: white !important;
+  color: black !important;
+}
+
+/* Force white background for textboxes with photo frame styling */
+.photo-frame-3d-sm.textbox-white,
+.photo-frame-3d-sm.textbox-white * {
+  background-color: white !important;
+  color: black !important;
+}
+
+.photo-frame-3d-xs.textbox-white,
+.photo-frame-3d-xs.textbox-white * {
+  background-color: white !important;
+  color: black !important;
+}
+
+/* Animated White Border for Buttons */
+.animated-white-border {
+  border: 2px solid rgba(255, 255, 255, 0.8) !important;
+  animation: whiteBorderPulse 2s ease-in-out infinite !important;
+  box-shadow: 
+    0 0 0 2px rgba(255, 255, 255, 0.3),
+    0 0 0 4px rgba(255, 255, 255, 0.1),
+    0 0 8px rgba(255, 255, 255, 0.4),
+    0 0 16px rgba(255, 255, 255, 0.2) !important;
+}
+
+@keyframes whiteBorderPulse {
+  0%, 100% {
+    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 
+      0 0 0 2px rgba(255, 255, 255, 0.3),
+      0 0 0 4px rgba(255, 255, 255, 0.1),
+      0 0 8px rgba(255, 255, 255, 0.4),
+      0 0 16px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    border-color: rgba(255, 255, 255, 1);
+    box-shadow: 
+      0 0 0 3px rgba(255, 255, 255, 0.5),
+      0 0 0 6px rgba(255, 255, 255, 0.2),
+      0 0 12px rgba(255, 255, 255, 0.6),
+      0 0 24px rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* ThreeDComponent Styles */
+.three-d-component {
+  transform-style: preserve-3d !important;
+  perspective: 1000px !important;
+}
+
+.three-d-component * {
+  transform-style: preserve-3d !important;
+}
+
+/* Override photo-frame-3d rules for ThreeDComponent */
+.simple-double-border {
+  background-color: #333333 !important;
+  border: 4px double rgba(255, 255, 255, 0.9) !important;
+  color: white !important;
+}
+
+.simple-double-border * {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+/* FORCE BLACK BUTTON - NUCLEAR OPTION */
+.force-black-button {
+  background: #000000 !important;
+  background-color: #000000 !important;
+  background-image: none !important;
+  background-attachment: initial !important;
+  background-blend-mode: initial !important;
+  background-clip: initial !important;
+  background-origin: initial !important;
+  background-position: initial !important;
+  background-repeat: initial !important;
+  background-size: initial !important;
+}
+
+.force-black-button::before,
+.force-black-button::after {
+  display: none !important;
+}
+
+/* Override ANY theme */
+.theme-light .force-black-button,
+.theme-dark .force-black-button,
+.theme-blue .force-black-button,
+.theme-pink .force-black-button,
+.theme-green .force-black-button,
+.theme-purple .force-black-button,
+.theme-red .force-black-button,
+.theme-orange .force-black-button,
+html .force-black-button,
+body .force-black-button,
+* .force-black-button {
+  background: #000000 !important;
+  background-color: #000000 !important;
+  background-image: none !important;
+}
+
+/* TOKEN DASHBOARD HEADER STYLE - REUSABLE 
+ * Usage: 
+ * <div className="token-dashboard-header">
+ *   <h2 className="header-title">Your Title</h2>
+ *   <button className="header-close-btn force-black-button" onClick={onClose}>×</button>
+ * </div>
+ */
+.token-dashboard-header {
+  background-color: #333333 !important;
+  background: #333333 !important;
+  border: 4px double rgba(255, 255, 255, 0.9) !important;
+  border-radius: 30px !important;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.token-dashboard-header .header-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.2), 0 0 8px rgba(255, 255, 255, 0.4), 0 0 16px rgba(255, 255, 255, 0.2);
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+  transform: translateZ(10px);
+  position: relative;
+  z-index: 2;
+}
+
+.token-dashboard-header .header-close-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: bold;
+  color: white;
+  border: 2px solid white;
+  outline: none;
+  transition: all 0.2s;
+  margin-right: -10px;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.token-dashboard-header .header-close-btn:hover {
+  color: #d1d5db;
+}
+
+/* Fade in up animation for notifications */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(0) scale(1);
   }
 }

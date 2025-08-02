@@ -63,7 +63,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange }) 
           background: '#111',
           color: '#fff',
           borderRadius: 16,
-          border: showCalendar ? '2px solid #2563eb' : '2px solid var(--favourite-blue)',
+          border: '2px solid white',
           boxShadow: 'none',
           padding: '0.5rem',
           paddingRight: '2rem',
@@ -83,7 +83,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange }) 
             background: '#111',
             color: '#fff',
             borderRadius: 8,
-            border: '2px solid #2563eb',
+            border: '2px solid white',
             zIndex: 11000,
             padding: 12,
             minWidth: 300,
@@ -100,8 +100,8 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange }) 
             <button
               onClick={() => setViewDate(new Date(year, month - 1, 1))}
               style={{
-                background: '#0000FF',
-                border: 'none',
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
                 color: '#fff',
                 fontSize: '2rem',
                 cursor: 'pointer',
@@ -111,7 +111,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange }) 
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(37,99,235,0.15)',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
                 padding: 0
               }}
             >‹</button>
@@ -125,8 +125,8 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange }) 
             <button
               onClick={() => setViewDate(new Date(year, month + 1, 1))}
               style={{
-                background: '#0000FF',
-                border: 'none',
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
                 color: '#fff',
                 fontSize: '2rem',
                 cursor: 'pointer',
@@ -136,7 +136,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange }) 
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(37,99,235,0.15)',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
                 padding: 0
               }}
             >›</button>
@@ -171,14 +171,14 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange }) 
                           height: 32,
                           textAlign: 'center',
                           borderRadius: 4,
-                          background: isSelected ? 'var(--favourite-blue)' : 'transparent',
+                          background: isSelected ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))' : 'transparent',
                           color: isSelected ? '#fff' : '#ddd',
                           cursor: d ? 'pointer' : 'default',
                           opacity: d ? 1 : 0,
                           fontSize: '1.0rem',
                           fontWeight: 'bold',
                           ...(d && (new Date(year, month, d).toDateString() === new Date().toDateString()) ? {
-                            border: '2px solid var(--favourite-blue)',
+                            border: '2px solid rgba(30, 58, 138, 0.9)',
                             borderRadius: '50%'
                           } : {})
                         }}

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MdClose, MdUpload, MdDescription, MdQuestionAnswer, MdSummarize, MdVisibility, MdSend, MdWarning, MdZoomIn, MdZoomOut, MdNavigateNext, MdNavigateBefore, MdFullscreen, MdFullscreenExit } from 'react-icons/md';
 import * as pdfjsLib from 'pdfjs-dist';
 import '../lib/pdf-worker';
-import { getGPTAnswer } from '../lib/AskMeLogic';
+
 
 
 
@@ -731,19 +731,21 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9998] p-2 sm:p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9998] p-2 sm:p-4" style={{ height: '100vh' }}>
       <div 
         ref={containerRef}
-        className="glassy-rainbow-btn rounded-2xl bg-black p-4 w-full max-w-[90vw] max-h-[95vh] flex flex-col border-0"
-        style={{ boxSizing: 'border-box' }}
+        className="rounded-2xl bg-black p-4 max-h-[95vh] flex flex-col"
+        style={{ width: '85vw', boxSizing: 'border-box', border: '2px solid white' }}
       >
         {/* Header */}
-        <div className="relative px-4 pb-[7px] pt-3 rounded-lg flex-shrink-0" style={{ backgroundColor: 'var(--favourite-blue)' }}>
-          <h2 className="text-xl font-bold text-white">PDF Reader</h2>
+        <div className="relative px-4 pb-[7px] pt-3 rounded-lg flex-shrink-0 simple-double-border" style={{ background: 'linear-gradient(135deg, #000000 0%, #666666 100%)', border: '4px double rgba(255, 255, 255, 0.9)' }}>
+                        <div className="token-dashboard-header">
+                <h2 className="header-title text-white font-bold text-base text-center">PDF Reader</h2>
+              </div>
             <button
               onClick={onClose}
             className="absolute top-1 right-1 w-6 h-6 rounded-full text-sm font-bold text-white hover:text-gray-300 flex items-center justify-center"
-            style={{ background: '#111', border: 'none', outline: 'none' }}
+            style={{ background: '#000000', border: 'none', outline: 'none', fontSize: '15px' }}
             >
             ×
             </button>
@@ -840,11 +842,11 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                     value={topTextboxValue}
                     onChange={e => setTopTextboxValue(e.target.value)}
                     placeholder="PDF text will appear here..."
-                    className="w-full min-w-0 p-3 animated-rainbow-border bg-black border-2 border-[var(--favourite-blue)] rounded-2xl resize-none font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[10px] overflow-y-scroll touch-pan-y touch-manipulation overscroll-contain pdf-reader-textarea"
+                    className="w-full min-w-0 p-3 animated-rainbow-border bg-black border-2 border-white rounded-2xl resize-none font-bold focus:ring-2 focus:ring-white focus:border-transparent text-[10px] overflow-y-scroll touch-pan-y touch-manipulation overscroll-contain pdf-reader-textarea"
                     style={{ 
                       color: '#fff', 
                       background: '#000', 
-                      borderColor: 'var(--favourite-blue)',
+                      borderColor: 'white',
                       fontSize: `${Math.max(8, Math.min(16, 10 * scale))}px`,
                       lineHeight: `${Math.max(1.2, Math.min(2.0, 1.4 * scale))}`,
                       height: '150px'
@@ -924,7 +926,7 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                       value={question}
                       onChange={(e) => setQuestion(e.target.value)}
                       placeholder="Enter your question about the PDF content..."
-                      className="w-full min-w-0 p-3 animated-rainbow-border bg-black border-0 rounded-2xl resize-none font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full min-w-0 p-3 animated-rainbow-border bg-black border-0 rounded-2xl resize-none font-bold focus:ring-2 focus:ring-white focus:border-transparent"
                       style={{ color: '#fff', background: '#000' }}
                       rows={3}
                     />
@@ -938,11 +940,11 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                       value={analysisTextboxValue}
                       onChange={e => setAnalysisTextboxValue(e.target.value)}
                       placeholder="PDF text will appear here..."
-                      className="w-full min-w-0 p-3 animated-rainbow-border bg-black border-2 border-[var(--favourite-blue)] rounded-2xl resize-none font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[10px] overflow-y-scroll max-h-96 touch-pan-y touch-manipulation overscroll-contain pdf-reader-textarea"
+                      className="w-full min-w-0 p-3 animated-rainbow-border bg-black border-2 border-white rounded-2xl resize-none font-bold focus:ring-2 focus:ring-white focus:border-transparent text-[10px] overflow-y-scroll max-h-96 touch-pan-y touch-manipulation overscroll-contain pdf-reader-textarea"
                       style={{ 
                         color: '#fff', 
                         background: '#000', 
-                        borderColor: 'var(--favourite-blue)',
+                        borderColor: 'white',
                         fontSize: `${Math.max(8, Math.min(16, 10 * scale))}px`,
                         lineHeight: `${Math.max(1.2, Math.min(2.0, 1.4 * scale))}`
                       }}
@@ -1021,17 +1023,37 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
       {/* Query Document Modal */}
       {showQueryModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-75">
-          <div className="glassy-rainbow-btn rounded-2xl bg-black p-0 w-full max-w-md mx-4 flex flex-col border-0" style={{ boxSizing: 'border-box' }}>
+          <div className="rounded-2xl bg-black p-0 w-full max-w-md mx-4 flex flex-col" style={{ boxSizing: 'border-box', border: '2px solid white' }}>
             {/* Modal Header */}
-            <div className="relative mb-6 bg-[var(--favourite-blue)] px-4 py-3 rounded-xl mx-2 mt-2" style={{ background: 'var(--favourite-blue)' }}>
-              <h2 className="text-white font-bold text-base text-center">Query Document</h2>
+            <div 
+              className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+                backdropFilter: 'blur(10px)',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+                transform: 'translateZ(5px)'
+              }}
+            >
+              <h2 
+                className="text-white font-bold text-base text-center"
+                style={{
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+                  filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+                  transform: 'translateZ(3px)'
+                }}
+              >
+                Query Document
+              </h2>
               <button
                 onClick={() => {
                   setShowQueryModal(false);
                   setQueryText('');
                 }}
                 className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
-                style={{ background: '#111' }}
+                style={{ background: '#000000' }}
                 aria-label="Close modal"
               >
                 ×
@@ -1051,8 +1073,8 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                 value={queryText}
                 onChange={(e) => setQueryText(e.target.value)}
                 placeholder="Record or type your question"
-                className="w-full p-3 bg-black border-2 border-[var(--favourite-blue)] rounded-2xl text-white font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
-                style={{ borderColor: 'var(--favourite-blue)' }}
+                className="w-full p-3 bg-black border-2 border-white rounded-2xl text-white font-bold focus:ring-2 focus:ring-white focus:border-transparent text-sm resize-none"
+                style={{ borderColor: 'white' }}
                 rows={3}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -1115,14 +1137,34 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
       {/* PDF Flipbook Modal */}
       {showPdfFlipbookModal && selectedFile && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-75">
-          <div className="glassy-rainbow-btn rounded-2xl bg-black p-0 w-full max-w-4xl mx-4 flex flex-col border-0" style={{ boxSizing: 'border-box', height: '90vh' }}>
+          <div className="rounded-2xl bg-black p-0 w-full max-w-4xl mx-4 flex flex-col" style={{ boxSizing: 'border-box', height: '90vh', border: '2px solid white' }}>
             {/* Modal Header */}
-            <div className="relative mb-6 bg-[var(--favourite-blue)] px-4 py-3 rounded-xl mx-2 mt-2" style={{ background: 'var(--favourite-blue)' }}>
-              <h2 className="text-white font-bold text-base text-center">PDF Flipbook - {selectedFile.name}</h2>
+            <div 
+              className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+                backdropFilter: 'blur(10px)',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+                transform: 'translateZ(5px)'
+              }}
+            >
+              <h2 
+                className="text-white font-bold text-base text-center"
+                style={{
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+                  filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+                  transform: 'translateZ(3px)'
+                }}
+              >
+                PDF Flipbook - {selectedFile.name}
+              </h2>
               <button
                 onClick={() => setShowPdfFlipbookModal(false)}
                 className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
-                style={{ background: '#111' }}
+                style={{ background: '#000000' }}
                 aria-label="Close modal"
               >
                 ×

@@ -14,6 +14,8 @@ interface EnhancedTouchDragSelectProps {
   className?: string;
   placeholder?: string;
   onChange?: (text: string) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  style?: React.CSSProperties;
   features?: {
     showHandles?: boolean;
     showActions?: boolean;
@@ -39,6 +41,8 @@ const EnhancedTouchDragSelect = ({
   className = '',
   placeholder = '',
   onChange,
+  onKeyDown,
+  style,
   features = {
     showHandles: true,
     showActions: true,
@@ -56,6 +60,23 @@ const EnhancedTouchDragSelect = ({
   // Update currentText when text prop changes
   useEffect(() => {
     setCurrentText(text);
+  }, [text]);
+
+  // Auto-scroll to show new content with proper spacing
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea && text) {
+      // Delay scroll to allow content to render
+      setTimeout(() => {
+        // Scroll to bottom minus some offset for better visibility
+        const scrollHeight = textarea.scrollHeight;
+        const clientHeight = textarea.clientHeight;
+        const maxScrollTop = scrollHeight - clientHeight;
+        
+        // Scroll with 20px offset from the very bottom for better text visibility
+        textarea.scrollTop = Math.max(0, maxScrollTop - 20);
+      }, 100);
+    }
   }, [text]);
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -275,6 +296,7 @@ const EnhancedTouchDragSelect = ({
         ref={textareaRef}
         value={currentText}
         onChange={handleInput}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -306,10 +328,12 @@ const EnhancedTouchDragSelect = ({
           textAlign: 'left',
           border: 'none',
           borderRadius: '0',
-          padding: '0.5rem',
-          fontSize: '0.875rem',
+          padding: '0.5rem 0.5rem 3rem 0.5rem', // Added extra bottom padding for better scrolling
+          fontSize: 'inherit',
           lineHeight: '1.5rem',
           fontFamily: 'inherit',
+          scrollBehavior: 'smooth',
+          scrollPaddingBottom: '2rem', // Ensures content can scroll well past the bottom
         }}
       />
 
@@ -335,7 +359,7 @@ const EnhancedTouchDragSelect = ({
               <button
                 onClick={() => console.log('Send to AI:', selection.text)}
                 className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-                title="Ask AI"
+                title="AI"
               >
                 🤖
               </button>

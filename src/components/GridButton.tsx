@@ -42,19 +42,17 @@ export default function GridButton({ label, icon, onClick }: Props) {
     }
   };
 
-  // Neon styles
-  const defaultBoxShadow = '0 0 6px 1.5px #00fff7, 0 0 8px 2px #00fff766, 0 3px 6px rgba(30, 64, 175, 0.3), 0 0 5px rgba(255, 255, 255, 0.1)';
-  const defaultFilter = 'drop-shadow(0 0 3px #00fff7cc)';
-  const activeBoxShadow = '0 0 10px 2px #00fff7, 0 0 16px 4px #00fff766, 0 6px 10px rgba(30, 64, 175, 0.3), 0 0 10px rgba(255, 255, 255, 0.1)';
-  const activeFilter = 'drop-shadow(0 0 6px #00fff7cc)';
-  // Random animation delay for rainbow border
-  const rainbowDelay = `${Math.random() * 3}s`;
+    // Neon styles
+  const defaultBoxShadow = '0 0 3px 1px rgba(255, 255, 255, 0.3), 0 0 4px 1px rgba(255, 255, 255, 0.2), 0 2px 4px rgba(255, 255, 255, 0.1)';
+  const defaultFilter = 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.4))';
+  const activeBoxShadow = '0 0 6px 1.5px rgba(255, 255, 255, 0.4), 0 0 8px 2px rgba(255, 255, 255, 0.3), 0 3px 6px rgba(255, 255, 255, 0.15)';
+  const activeFilter = 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.5))';
 
   // Create data-action attribute for Gabby to identify buttons
   const getDataAction = (label: string): string => {
     switch (label.toLowerCase()) {
       case 'ask me':
-        return 'askMe';
+        return 'ai';
       case 'translate':
         return 'translate';
       case 'rewrite':
@@ -82,8 +80,8 @@ export default function GridButton({ label, icon, onClick }: Props) {
 
   return (
     <div className="
-      font-semibold text-[10px]
-      rounded-2xl text-center p-3 select-none cursor-pointer
+      font-semibold text-[12px]
+      rounded-2xl text-center p-2 select-none cursor-pointer
       border-0
       backdrop-blur-xl
       transition-all duration-200
@@ -96,12 +94,11 @@ export default function GridButton({ label, icon, onClick }: Props) {
     style={{
       background: '#111',
       color: 'white',
+      width: '90px',
       boxShadow: isActive ? activeBoxShadow : defaultBoxShadow,
       filter: isActive ? activeFilter : defaultFilter,
       position: 'relative',
       zIndex: 1,
-      // Randomize the rainbow border animation delay
-      '--rainbow-delay': rainbowDelay,
     } as React.CSSProperties}
     onClick={handleClick}
     onMouseDown={() => setIsActive(true)}
@@ -110,10 +107,10 @@ export default function GridButton({ label, icon, onClick }: Props) {
     data-action={getDataAction(label)}
     data-label={label.toLowerCase()}
     >
-      <div className="flex justify-center text-lg mb-0.5 drop-shadow-lg transition-transform duration-300 hover:scale-110">
+      <div className="flex justify-center text-xl mb-0.5 drop-shadow-lg transition-transform duration-300 hover:scale-110">
         {icon || '🔹'}
       </div>
-      <div className="leading-tight uppercase text-[8px]">
+      <div className="leading-tight uppercase text-[10px]">
         {label}
       </div>
       <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{

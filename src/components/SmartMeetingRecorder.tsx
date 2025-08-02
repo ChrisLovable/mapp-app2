@@ -591,15 +591,16 @@ Please format the minutes in a clear, professional structure with proper heading
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
       <div
         ref={containerRef}
-        className="glassy-rainbow-btn rounded-2xl bg-black p-2 w-full max-w-[90vw] max-h-[95vh] flex flex-col border-0"
-        style={{ boxSizing: 'border-box' }}
+        className="rounded-2xl p-2 w-full max-w-[90vw] max-h-[90vh] flex flex-col"
+        style={{ border: '2px solid white', boxSizing: 'border-box', background: 'linear-gradient(135deg, #000000 0%, #666666 100%)' }}
       >
         {/* Header */}
         <div className="w-full bg-blue-600 rounded-t-2xl rounded-b-2xl flex items-center justify-between px-4 py-3 mb-4">
           <h2 className="text-white font-bold text-lg sm:text-xl mx-auto w-full text-center">Smart Meeting Recorder</h2>
           <button
             onClick={onClose}
-            className="absolute right-6 top-4 text-white text-xl font-bold bg-transparent rounded-full hover:bg-blue-800 hover:text-gray-200 transition-colors w-8 h-8 flex items-center justify-center"
+            className="absolute right-6 top-4 text-white font-bold rounded-full hover:bg-blue-800 hover:text-gray-200 transition-colors w-8 h-8 flex items-center justify-center"
+            style={{ background: '#000000', fontSize: '15px' }}
             aria-label="Close"
           >
             ×
@@ -660,7 +661,7 @@ Please format the minutes in a clear, professional structure with proper heading
                       control: (base, state) => ({
                         ...base,
                         borderRadius: 16,
-                        border: state.isFocused ? '2px solid #2563eb' : '2px solid var(--favourite-blue)',
+                        border: '2px solid white',
                         background: '#111',
                         color: '#fff',
                         boxShadow: 'none',
@@ -711,7 +712,7 @@ Please format the minutes in a clear, professional structure with proper heading
                   value={meetingAgenda}
                   onChange={(e) => setMeetingAgenda(e.target.value)}
                   placeholder="Enter meeting agenda..."
-                  className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-[var(--favourite-blue)] resize-none"
+                  className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-white resize-none"
                   rows={3}
                 />
               </div>
@@ -769,7 +770,7 @@ Please format the minutes in a clear, professional structure with proper heading
                   setMeetingRecording(baseValue);
                 }}
                 placeholder="Recording will appear here..."
-                className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-[var(--favourite-blue)] resize-none"
+                className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-white resize-none"
                 rows={8}
                 readOnly={isRecording}
               />
@@ -814,7 +815,7 @@ Please format the minutes in a clear, professional structure with proper heading
           {meetingMinutes && (
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-white">Generated Meeting Minutes</h3>
-              <div className="bg-black bg-opacity-50 p-4 rounded-xl border border-[var(--favourite-blue)] max-h-64 overflow-y-auto">
+              <div className="bg-black bg-opacity-50 p-4 rounded-xl border border-white max-h-64 overflow-y-auto">
                 <pre className="text-white text-sm whitespace-pre-wrap">{meetingMinutes}</pre>
               </div>
               <div className="flex gap-2">
@@ -848,7 +849,7 @@ Please format the minutes in a clear, professional structure with proper heading
         {/* Confirmation Dialog */}
         {showConfirmDialog && confirmAction && (
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
-            <div className="glassy-rainbow-btn rounded-2xl bg-black p-4 w-full max-w-sm text-white text-center">
+            <div className="rounded-2xl bg-black p-4 w-full max-w-sm text-white text-center" style={{ border: '2px solid white' }}>
               <h3 className="text-base font-bold mb-2">{confirmAction.message}</h3>
               <div className="flex justify-center gap-3">
                 <button
@@ -881,7 +882,7 @@ Please format the minutes in a clear, professional structure with proper heading
       {/* Meeting Journal Modal */}
       {showMeetingJournal && (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[9999] p-4">
-          <div className="w-full h-full max-w-6xl max-h-[90vh] glassy-rainbow-btn rounded-2xl bg-black p-6 text-white overflow-hidden">
+          <div className="w-full h-full max-w-6xl max-h-[90vh] rounded-2xl bg-black p-6 text-white overflow-hidden" style={{ border: '2px solid white' }}>
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Meeting Journal</h2>
@@ -907,7 +908,7 @@ Please format the minutes in a clear, professional structure with proper heading
               ) : (
                 <div className="space-y-6">
                   {/* Cover Page */}
-                  <div className="glassy-rainbow-btn rounded-2xl p-8 text-center border-2 border-[var(--favourite-blue)]">
+                  <div className="rounded-2xl p-8 text-center" style={{ border: '2px solid white' }}>
                     <h1 className="text-4xl font-bold mb-4">Meeting Journal</h1>
                     <p className="text-xl text-gray-300">Your Professional Meeting Records</p>
                     <p className="text-lg text-gray-400 mt-2">
@@ -916,7 +917,7 @@ Please format the minutes in a clear, professional structure with proper heading
                   </div>
 
                   {/* Table of Contents */}
-                  <div className="glassy-rainbow-btn rounded-2xl p-6 border-2 border-[var(--favourite-blue)]">
+                  <div className="rounded-2xl p-6" style={{ border: '2px solid white' }}>
                     <h2 className="text-2xl font-bold mb-4">Table of Contents</h2>
                     <div className="space-y-3">
                       {savedMeetings.map((meeting, index) => (
@@ -941,7 +942,7 @@ Please format the minutes in a clear, professional structure with proper heading
 
                   {/* Meeting Pages */}
                   {savedMeetings.map((meeting, index) => (
-                    <div key={meeting.id} className="glassy-rainbow-btn rounded-2xl p-6 border-2 border-[var(--favourite-blue)]">
+                    <div key={meeting.id} className="rounded-2xl p-6" style={{ border: '2px solid white' }}>
                       <div className="flex justify-between items-start mb-4">
                         <h3 className="text-xl font-bold text-[var(--favourite-blue)]">
                           Meeting {index + 1}: {meeting.meeting_agenda || 'Untitled Meeting'}

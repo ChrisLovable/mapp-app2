@@ -452,7 +452,7 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
 
   return (
          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-5">
-      <div className="bg-[#111] rounded-2xl p-6 w-[90vw] max-h-[90vh] overflow-y-auto border-2 border-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 shadow-lg">
+      <div className="bg-[#111] rounded-2xl p-6 w-[90vw] max-h-[90vh] overflow-y-auto shadow-lg" style={{ border: '2px solid white' }}>
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -462,11 +462,12 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
           className="hidden"
         />
         {/* Page Title */}
-                          <div className="mb-6 bg-blue-600 rounded-xl p-4 shadow-lg w-[calc(100%+40px)] -ml-5 relative">
+                          <div className="mb-6 rounded-xl p-4 shadow-lg w-[calc(100%+40px)] -ml-5 relative simple-double-border" style={{ background: 'linear-gradient(135deg, #000000 0%, #666666 100%)', border: '4px double rgba(255, 255, 255, 0.9)' }}>
            <h1 className="text-xl font-bold text-white text-center">AI Image Generator</h1>
           <button
             onClick={onClose}
-             className="absolute -top-2 -right-2 bg-black text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold z-30"
+             className="absolute -top-2 -right-2 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold z-30"
+             style={{ background: '#000000' }}
           >
              <FaTimes size={12} />
           </button>
@@ -481,7 +482,7 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
                 <img
                   src={referenceImage}
                   alt="Reference"
-                   className="w-[300px] h-auto object-cover rounded-xl border border-[var(--favourite-blue)]"
+                   className="w-[300px] h-auto object-cover rounded-xl border border-white"
                 />
                 <button
                   onClick={removeReferenceImage}
@@ -494,10 +495,10 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
               <div className="flex-1">
                 <button
                   onClick={triggerFileUpload}
-                   className="w-[100px] h-24 border-2 border-dashed border-[var(--favourite-blue)] rounded-xl flex flex-col items-center justify-center text-white hover:bg-[var(--favourite-blue)] hover:bg-opacity-10 transition-colors"
+                   className="w-full p-3 rounded-2xl glassy-btn text-white font-medium transition-all duration-200 border-0 animated-white-border"
+                   style={{ background: '#111', fontSize: '1rem' }}
                 >
-                  <FaUpload size={24} className="mb-2" />
-                   <span className="text-xs font-medium text-center">Upload Reference Image</span>
+                  Upload Reference Image
                 </button>
               </div>
             )}
@@ -536,7 +537,7 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
              }}
              onKeyPress={handleKeyPress}
              placeholder=""
-             className="w-full p-4 bg-black border border-[var(--favourite-blue)] rounded-xl text-white resize-none focus:outline-none focus:ring-2 focus:ring-[var(--favourite-blue)] focus:ring-opacity-50"
+             className="w-full p-4 bg-black border border-white rounded-xl text-white resize-none focus:outline-none focus:ring-2 focus:ring-[var(--favourite-blue)] focus:ring-opacity-50"
              style={{ minHeight: '60px', maxHeight: '200px', overflowY: 'auto' }}
            />
         </div>
@@ -548,7 +549,7 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
             generatedImage ? 'w-full' : 'w-24 h-24 mx-auto'
           }`}>
             {generatedImage ? (
-              <div className="bg-black border border-[var(--favourite-blue)] rounded-xl p-4">
+              <div className="bg-black border border-white rounded-xl p-4">
                 <img
                   src={generatedImage}
                   alt="AI Generated"
@@ -556,7 +557,7 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
                 />
               </div>
             ) : (
-                             <div className="w-24 h-24 border-2 border-dashed border-[var(--favourite-blue)] rounded-xl flex flex-col items-start justify-center text-white bg-black bg-opacity-50 p-2">
+                             <div className="w-24 h-24 border-2 border-dashed border-white rounded-xl flex flex-col items-start justify-center text-white bg-black bg-opacity-50 p-2">
                  <span className="text-xs opacity-70 text-left">Generated image will appear here</span>
                </div>
             )}
@@ -714,7 +715,7 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
           
           {/* Selected Style Display */}
            {selectedStyle !== 'none' ? (
-            <div className="mt-3 p-3 bg-[var(--favourite-blue)] bg-opacity-20 border border-[var(--favourite-blue)] rounded-lg">
+            <div className="mt-3 p-3 bg-[var(--favourite-blue)] bg-opacity-20 border border-white rounded-lg">
               <p className="text-white text-sm">
                 <span className="font-bold">Selected Style:</span> {getSelectedStyleText()}
               </p>
@@ -823,7 +824,7 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
           </ul>
               </div>
               
-          <div className="p-4 bg-blue-900 border border-blue-500 rounded-xl">
+          <div className="p-4 bg-blue-900 border border-white rounded-xl">
                  <p className="font-bold text-blue-200 text-base mb-1">🎨 PyxlPro Image Generation</p>
                  <p className="text-blue-100 text-sm">Using PyxlPro for true image-to-image transformation. Make sure your VITE_PYXLPRO_API_KEY is set in your .env file.</p>
                </div>

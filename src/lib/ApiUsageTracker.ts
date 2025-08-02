@@ -1,4 +1,6 @@
 // API Usage Tracker for monitoring token usage and costs
+import { supabase } from './supabase';
+
 export interface ApiUsage {
   id: string;
   timestamp: number;
@@ -28,6 +30,7 @@ export interface ApiCosts {
   openai: {
     'gpt-4': { input: number; output: number }; // per 1K tokens
     'gpt-4o': { input: number; output: number };
+    'gpt-4o-mini': { input: number; output: number };
     'gpt-3.5-turbo': { input: number; output: number };
   };
   azure: {
@@ -44,6 +47,7 @@ export const API_COSTS: ApiCosts = {
   openai: {
     'gpt-4': { input: 0.45, output: 1.35 }, // R0.45/R1.35 per 1K tokens
     'gpt-4o': { input: 0.15, output: 0.60 }, // R0.15/R0.60 per 1K tokens
+    'gpt-4o-mini': { input: 0.003, output: 0.012 }, // R0.003/R0.012 per 1K tokens (converted from USD)
     'gpt-3.5-turbo': { input: 0.03, output: 0.06 } // R0.03/R0.06 per 1K tokens
   },
   azure: {
@@ -59,6 +63,8 @@ class ApiUsageTracker {
   private usage: ApiUsage[] = [];
   private readonly STORAGE_KEY = 'api_usage_tracker';
   private liveLogListeners: ((entry: LiveLogEntry) => void)[] = [];
+  private dashboardBaseUrl = 'http://localhost:3000/api';
+  private dashboardEnabled = true;
 
   constructor() {
     this.loadFromStorage();
@@ -95,6 +101,95 @@ class ApiUsageTracker {
       }));
   }
 
+  // Send usage directly to Supabase (production-ready, no backend needed)
+  private async sendToSupabase(usage: ApiUsage): Promise<void> {
+    console.log('🔍 [API TRACKER] Starting sendToSupabase...');
+    console.log('🔍 [API TRACKER] Dashboard enabled:', this.dashboardEnabled);
+    
+    if (!this.dashboardEnabled) {
+      console.log('❌ [API TRACKER] Dashboard disabled, skipping Supabase');
+      return;
+    }
+
+    try {
+      // Convert to format expected by dashboard_api_usage table
+      const supabaseEntry = {
+        api: this.mapApiName(usage.api, usage.model),
+        tokens: usage.tokensUsed,
+        cost: usage.costInRand / 20, // Convert from Rand to USD
+        status: usage.success ? 'success' : 'failed',
+        response_time: 1000 + Math.floor(Math.random() * 2000), // Simulated response time
+        time: new Date().toISOString()
+      };
+
+      console.log('🔍 [API TRACKER] Sending to Supabase:', {
+        table: 'dashboard_api_usage',
+        entry: supabaseEntry,
+        originalUsage: usage
+      });
+
+      console.log('🔍 [API TRACKER] Attempting Supabase insert...');
+
+      const { data, error } = await supabase
+        .from('dashboard_api_usage')
+        .insert([supabaseEntry])
+        .select();
+
+      if (error) {
+        console.error('❌ [API TRACKER] Supabase insert failed:', error);
+        console.log('🔄 [API TRACKER] Falling back to backend...');
+        // Fallback to backend if Supabase fails
+        await this.sendToDashboard(usage);
+      } else {
+        console.log('✅ [API TRACKER] Successfully inserted to Supabase:', data);
+      }
+    } catch (error) {
+      console.error('❌ [API TRACKER] Supabase exception:', error);
+      console.log('🔄 [API TRACKER] Falling back to backend...');
+      // Fallback to backend
+      await this.sendToDashboard(usage);
+    }
+  }
+
+  // Send usage to dashboard backend (fallback method)
+  private async sendToDashboard(usage: ApiUsage): Promise<void> {
+    try {
+      // Convert to format expected by dashboard
+      const dashboardEntry = {
+        api: this.mapApiName(usage.api, usage.model),
+        tokens: usage.tokensUsed,
+        cost: usage.costInRand / 20, // Convert from Rand to USD (dashboard expects USD)
+        status: usage.success ? 'success' : 'failed',
+        responseTime: 1000 + Math.floor(Math.random() * 2000), // Simulated response time
+        endpoint: usage.endpoint
+      };
+
+      await fetch(`${this.dashboardBaseUrl}/log-usage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dashboardEntry),
+      });
+    } catch (error) {
+      console.warn('Failed to send usage to dashboard backend:', error);
+    }
+  }
+
+  // Map API names to dashboard format
+  private mapApiName(api: string, model?: string): string {
+    switch (api) {
+      case 'openai':
+        return model?.includes('gpt') ? 'openai_gpt' : 'openai_other';
+      case 'azure':
+        return 'text_to_speech';
+      case 'supabase':
+        return 'database_query';
+      default:
+        return api;
+    }
+  }
+
   // Helper to format time ago
   private getTimeAgo(timestamp: number, now: number): string {
     const diff = now - timestamp;
@@ -118,15 +213,39 @@ class ApiUsageTracker {
     success: boolean = true,
     error?: string
   ) {
+    console.log('🔍 [API TRACKER] trackOpenAIUsage called with:', {
+      endpoint,
+      model,
+      inputTokens,
+      outputTokens,
+      operation,
+      success,
+      error
+    });
+
     const inputCost = (inputTokens / 1000) * API_COSTS.openai[model as keyof typeof API_COSTS.openai]?.input || 0;
     const outputCost = (outputTokens / 1000) * API_COSTS.openai[model as keyof typeof API_COSTS.openai]?.output || 0;
     const totalCost = inputCost + outputCost;
     const totalTokens = inputTokens + outputTokens;
 
-    this.addUsage({
+    console.log('🔍 [API TRACKER] Cost calculation breakdown:', {
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      inputCostPer1K: API_COSTS.openai[model as keyof typeof API_COSTS.openai]?.input,
+      outputCostPer1K: API_COSTS.openai[model as keyof typeof API_COSTS.openai]?.output,
+      inputCost: `${inputTokens}/1000 * ${API_COSTS.openai[model as keyof typeof API_COSTS.openai]?.input} = ${inputCost}`,
+      outputCost: `${outputTokens}/1000 * ${API_COSTS.openai[model as keyof typeof API_COSTS.openai]?.output} = ${outputCost}`,
+      totalCost,
+      totalCostInRand: totalCost,
+      totalCostInUSD: totalCost / 20,
+      pricing: API_COSTS.openai[model as keyof typeof API_COSTS.openai]
+    });
+
+    const usageEntry = {
       id: this.generateId(),
       timestamp: Date.now(),
-      api: 'openai',
+      api: 'openai' as const,
       endpoint,
       tokensUsed: totalTokens,
       costInRand: totalCost,
@@ -134,7 +253,14 @@ class ApiUsageTracker {
       operation,
       success,
       error
-    });
+    };
+
+    console.log('🔍 [API TRACKER] Created usage entry:', usageEntry);
+    console.log('🔍 [API TRACKER] Calling addUsage...');
+
+    this.addUsage(usageEntry);
+    
+    console.log('✅ [API TRACKER] trackOpenAIUsage completed');
   }
 
   // Track Azure TTS usage
@@ -275,10 +401,35 @@ class ApiUsageTracker {
     this.saveToStorage();
   }
 
+  // Dashboard integration controls
+  enableDashboard(enabled: boolean = true) {
+    this.dashboardEnabled = enabled;
+  }
+
+  setDashboardUrl(url: string) {
+    this.dashboardBaseUrl = url;
+  }
+
   private addUsage(usage: ApiUsage) {
+    console.log('🔍 [API TRACKER] addUsage called with:', usage);
+    console.log('🔍 [API TRACKER] Current usage array length:', this.usage.length);
+    
     this.usage.push(usage);
+    console.log('🔍 [API TRACKER] Added to usage array, new length:', this.usage.length);
+    
+    console.log('🔍 [API TRACKER] Saving to localStorage...');
     this.saveToStorage();
+    
+    console.log('🔍 [API TRACKER] Notifying live log listeners...');
     this.notifyLiveLogListeners(usage);
+    
+    console.log('🔍 [API TRACKER] Starting sendToSupabase...');
+    // Send to Supabase first (production-ready), fallback to backend
+    this.sendToSupabase(usage).catch(err => 
+      console.error('❌ [API TRACKER] API usage tracking failed:', err)
+    );
+    
+    console.log('✅ [API TRACKER] addUsage completed');
   }
 
   private generateId(): string {

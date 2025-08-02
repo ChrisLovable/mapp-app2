@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { AiOutlineFileImage, AiOutlineQuestion } from 'react-icons/ai';
-import { getGPTAnswer } from '../lib/AskMeLogic';
+
 import { apiUsageTracker } from '../lib/ApiUsageTracker';
 import heic2any from 'heic2any';
 
@@ -164,7 +164,7 @@ export default function ImageToTextModal({ isOpen, onClose }: ImageToTextModalPr
       const inputTokens = data.usage?.prompt_tokens || 0;
       const outputTokens = data.usage?.completion_tokens || 0;
       apiUsageTracker.trackOpenAIUsage(
-        'https://api.openai.com/v1/chat/completions',
+        'chat/completions',
         'gpt-4o',
         inputTokens,
         outputTokens,
@@ -181,7 +181,7 @@ export default function ImageToTextModal({ isOpen, onClose }: ImageToTextModalPr
       
       // Track failed API usage
       apiUsageTracker.trackOpenAIUsage(
-        'https://api.openai.com/v1/chat/completions',
+        'chat/completions',
         'gpt-4o',
         0,
         0,
@@ -202,6 +202,12 @@ export default function ImageToTextModal({ isOpen, onClose }: ImageToTextModalPr
     setAnswer('');
 
     try {
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error('OpenAI API key not found. Please check your .env file.');
+      }
+
       const prompt = `Based on the following extracted text from an image, please answer the user's question:
 
 EXTRACTED TEXT:
@@ -211,11 +217,69 @@ USER QUESTION: ${question}
 
 Please provide a clear, accurate answer based only on the information in the extracted text. If the text doesn't contain information relevant to the question, state that clearly.`;
 
-      const response = await getGPTAnswer(prompt);
-      setAnswer(response);
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant that answers questions based on extracted text from images. Only use the information provided in the extracted text.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.1
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      const answer = data.choices[0]?.message?.content;
+
+      if (!answer) {
+        throw new Error('No response received from OpenAI');
+      }
+
+      // Track API usage
+      const inputTokens = data.usage?.prompt_tokens || 0;
+      const outputTokens = data.usage?.completion_tokens || 0;
+      apiUsageTracker.trackOpenAIUsage(
+        'chat/completions',
+        'gpt-4o-mini',
+        inputTokens,
+        outputTokens,
+        'Image Q&A',
+        true
+      );
+
+      setAnswer(answer);
 
     } catch (error) {
+      console.error('Question answering error:', error);
       setError(`Failed to get answer: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Track failed API usage
+      apiUsageTracker.trackOpenAIUsage(
+        'chat/completions',
+        'gpt-4o-mini',
+        0,
+        0,
+        'Image Q&A',
+        false,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
     } finally {
       setIsAnswering(false);
     }
@@ -289,14 +353,34 @@ Please provide a clear, accurate answer based only on the information in the ext
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
-      <div className="glassy-rainbow-btn rounded-2xl bg-black p-0 w-full max-w-4xl mx-4 flex flex-col border-0" style={{ boxSizing: 'border-box', maxHeight: '90vh' }}>
+      <div className="rounded-2xl bg-black p-0 w-full max-w-4xl mx-4 flex flex-col" style={{ boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white' }}>
         {/* Modal Header */}
-        <div className="relative mb-6 bg-[var(--favourite-blue)] px-4 py-3 rounded-xl mx-2 mt-2" style={{ background: 'var(--favourite-blue)' }}>
-          <h2 className="text-white font-bold text-base text-center">Image to Text</h2>
+        <div 
+          className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+            border: '2px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(10px)',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+            filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+            transform: 'translateZ(5px)'
+          }}
+        >
+          <h2 
+            className="text-white font-bold text-base text-center"
+            style={{
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+              filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+              transform: 'translateZ(3px)'
+            }}
+          >
+            Image to Text
+          </h2>
           <button
             onClick={onClose}
             className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
-            style={{ background: '#111' }}
+            style={{ background: '#000000', fontSize: '15px' }}
             aria-label="Close modal"
           >
             ×
@@ -324,20 +408,20 @@ Please provide a clear, accurate answer based only on the information in the ext
               />
               
               {/* Upload Buttons */}
-              <div className="flex flex-col gap-3 mb-4">
+              <div className="space-y-4 mb-4">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full p-4 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0 flex items-center justify-center gap-2"
-                  style={{ background: '#111' }}
+                  className="w-full p-3 rounded-2xl glassy-btn text-white font-medium transition-all duration-200 border-0 animated-white-border"
+                  style={{ background: '#111', fontSize: '1rem' }}
                 >
-                  📷 Open Camera
+                  Use Camera
                 </button>
                 <button
                   onClick={() => galleryInputRef.current?.click()}
-                  className="w-full p-4 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0 flex items-center justify-center gap-2"
-                  style={{ background: '#111' }}
+                  className="w-full p-3 rounded-2xl glassy-btn text-white font-medium transition-all duration-200 border-0 animated-white-border"
+                  style={{ background: '#111', fontSize: '1rem' }}
                 >
-                  🖼️ Upload Image from Gallery
+                  Select from Gallery
                 </button>
               </div>
               
@@ -356,7 +440,7 @@ Please provide a clear, accurate answer based only on the information in the ext
                     <img
                       src={selectedImage}
                       alt="Uploaded document"
-                      className="w-full max-h-[150px] object-contain rounded-2xl border-2 border-[var(--favourite-blue)]"
+                      className="w-full max-h-[150px] object-contain rounded-2xl border-2 border-white"
                     />
                     {isExtracting && (
                       <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center rounded-2xl">
@@ -377,7 +461,7 @@ Please provide a clear, accurate answer based only on the information in the ext
                       type="text"
                       value={question}
                       onChange={(e) => setQuestion(e.target.value)}
-                      className="w-full p-3 rounded-2xl bg-black border-2 border-[var(--favourite-blue)] text-white text-sm focus:outline-none mb-3"
+                      className="w-full p-3 rounded-2xl bg-black border-2 border-white text-white text-sm focus:outline-none mb-3"
                       placeholder="e.g., What is this document about? What are the main items listed?"
                       disabled={isAnswering}
                     />
@@ -424,7 +508,7 @@ Please provide a clear, accurate answer based only on the information in the ext
                     <textarea
                       value={extractedText}
                       onChange={(e) => setExtractedText(e.target.value)}
-                      className="relative w-full p-4 rounded-2xl bg-black border-2 border-[var(--favourite-blue)] text-white text-xs h-[150px] resize-none focus:outline-none overflow-y-scroll touch-pan-y touch-manipulation overscroll-contain pdf-reader-textarea"
+                      className="relative w-full p-4 rounded-2xl bg-black border-2 border-white text-white text-xs h-[150px] resize-none focus:outline-none overflow-y-scroll touch-pan-y touch-manipulation overscroll-contain pdf-reader-textarea"
                       placeholder="Extracted text will appear here..."
                       readOnly={isExtracting}
                     />
@@ -461,7 +545,7 @@ Please provide a clear, accurate answer based only on the information in the ext
                 <textarea
                   value={answer}
                   readOnly
-                  className="w-full p-4 rounded-2xl bg-black border-2 border-[var(--favourite-blue)] text-white text-xs h-[150px] resize-none focus:outline-none overflow-y-scroll touch-pan-y touch-manipulation overscroll-contain pdf-reader-textarea"
+                  className="w-full p-4 rounded-2xl bg-black border-2 border-white text-white text-xs h-[150px] resize-none focus:outline-none overflow-y-scroll touch-pan-y touch-manipulation overscroll-contain pdf-reader-textarea"
                   placeholder="AI answer will appear here..."
                 />
                 <button

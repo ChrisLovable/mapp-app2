@@ -6,6 +6,43 @@ import CustomDatePicker from './CustomDatePicker';
 import Select from 'react-select';
 import type { SingleValue } from 'react-select';
 
+// Reusable Modal Header Component with consistent styling
+const ModalHeader: React.FC<{ title: string; onClose?: () => void }> = ({ title, onClose }) => (
+  <div 
+    className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+    style={{ 
+      background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+      border: '2px solid rgba(255, 255, 255, 0.4)',
+      boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+      backdropFilter: 'blur(10px)',
+      textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+      filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+      transform: 'translateZ(5px)'
+    }}
+  >
+    <h2 
+      className="text-white font-bold text-base text-center"
+      style={{
+        textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+        filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+        transform: 'translateZ(3px)'
+      }}
+    >
+      {title}
+    </h2>
+    {onClose && (
+      <button
+        onClick={onClose}
+        className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+        style={{ background: '#000000', fontSize: '15px' }}
+        aria-label="Close modal"
+      >
+        ×
+      </button>
+    )}
+  </div>
+);
+
 
 
 // Custom Time Picker Component
@@ -27,8 +64,92 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange }) => {
       type="time"
       value={value || ''}
       onChange={handleTimeChange}
-      className="w-full px-4 py-3 bg-black border-2 border-[var(--favourite-blue)] rounded-xl text-white focus:outline-none focus:border-blue-500 transition-all"
+      className="w-full px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all"
     />
+  );
+};
+
+// Styled notification component
+const StyledNotification: React.FC<{
+  message: string;
+  type: 'success' | 'error' | 'info';
+  onClose: () => void;
+}> = ({ message, type, onClose }) => {
+  const getIcon = () => {
+    switch (type) {
+      case 'success': return '✅';
+      case 'error': return '❌';
+      case 'info': return 'ℹ️';
+      default: return 'ℹ️';
+    }
+  };
+
+  const getColors = () => {
+    switch (type) {
+      case 'success': return { ring: 'ring-green-400', bg: 'rgba(34, 197, 94, 0.2)' };
+      case 'error': return { ring: 'ring-red-400', bg: 'rgba(239, 68, 68, 0.2)' };
+      case 'info': return { ring: 'ring-blue-400', bg: 'rgba(59, 130, 246, 0.2)' };
+      default: return { ring: 'ring-blue-400', bg: 'rgba(59, 130, 246, 0.2)' };
+    }
+  };
+
+  const colors = getColors();
+
+  return (
+    <div 
+      className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[9999]"
+      style={{ animation: 'fadeInUp 0.3s ease-out' }}
+    >
+      <div 
+        className={`glassy-btn neon-grid-btn rounded-2xl border-0 p-6 min-w-[300px] max-w-[90vw] ring-2 ${colors.ring} ring-opacity-60`}
+        style={{
+          background: `linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), ${colors.bg})`,
+          backdropFilter: 'blur(20px)',
+          border: '2px solid rgba(255, 255, 255, 0.4)',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.8), 0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4)',
+          filter: `drop-shadow(0 0 10px ${colors.ring.includes('green') ? 'rgba(34, 197, 94, 0.5)' : colors.ring.includes('red') ? 'rgba(239, 68, 68, 0.5)' : 'rgba(59, 130, 246, 0.5)'})`,
+          transform: 'translateZ(30px) perspective(1000px)',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+      >
+        <div className="flex items-center gap-4">
+          <div 
+            className="text-3xl"
+            style={{
+              filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 16px rgba(255, 255, 255, 0.4))',
+              textShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.6)',
+              transform: 'translateZ(10px)'
+            }}
+          >
+            {getIcon()}
+          </div>
+          <div className="flex-1">
+            <p 
+              className="text-white font-bold text-lg"
+              style={{
+                textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+                filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+                transform: 'translateZ(5px)'
+              }}
+            >
+              {message}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:text-gray-300 transition-colors force-black-button"
+            style={{
+              border: '1px solid rgba(255, 255, 255, 0.4)',
+              background: 'rgba(0, 0, 0, 0.6)',
+              backdropFilter: 'blur(10px)',
+              fontSize: '15px'
+            }}
+          >
+            ×
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -69,6 +190,15 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
   const [showEventForm, setShowEventForm] = useState(false);
   const [showSavedEventsModal, setShowSavedEventsModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editingFormData, setEditingFormData] = useState<any>(null);
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({ show: false, message: '', type: 'info' });
 
   const [currentView, setCurrentView] = useState('month');
 
@@ -728,7 +858,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
     control: (base: any, state: any) => ({
       ...base,
       borderRadius: 16,
-      border: state.isFocused ? '2px solid #2563eb' : '2px solid var(--favourite-blue)',
+      border: '2px solid white',
       background: '#111',
       color: '#fff',
                               boxShadow: 'none',
@@ -996,7 +1126,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
       modal.innerHTML = `
-        <div class="bg-black border-2 border-[var(--favourite-blue)] rounded-2xl p-6 max-w-md mx-4 text-white">
+        <div class="bg-black border-2 border-white rounded-2xl p-6 max-w-md mx-4 text-white">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-bold text-white">⚠️ Required Fields Missing</h3>
             <button class="text-white hover:text-gray-300 text-2xl font-bold" onclick="this.closest('.fixed').remove()">×</button>
@@ -1035,7 +1165,75 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
     alert(`Event: ${event.title}\nTime: ${new Date(event.start).toLocaleString()}\nDescription: ${event.description || 'No description'}`);
   };
 
+  // Handle delete confirmation
+  const handleDeleteConfirm = () => {
+    if (eventToDelete) {
+      deleteEvent(eventToDelete);
+      setEventToDelete(null);
+      setShowDeleteConfirm(false);
+      setShowSavedEventsModal(false); // Close the Upcoming Events modal as well
+    }
+  };
 
+  const handleDeleteCancel = () => {
+    setEventToDelete(null);
+    setShowDeleteConfirm(false);
+  };
+
+  // Handle inline editing
+  const handleStartEdit = (event: CalendarEvent) => {
+    setEditingEventId(event.id);
+    setEditingFormData({
+      title: event.title,
+      description: event.description || '',
+      start: event.start,
+      allDay: event.allDay,
+      event_type: event.event_type,
+      location: event.location || '',
+      attendees: event.attendees ? event.attendees.join(', ') : '',
+      reminder_minutes: event.reminder_minutes,
+      duration: 60
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (editingEventId && editingFormData) {
+      try {
+        await updateEvent(editingEventId, editingFormData);
+        setEditingEventId(null);
+        setEditingFormData(null);
+        
+        // Show success notification
+        setNotification({
+          show: true,
+          message: 'Event updated successfully!',
+          type: 'success'
+        });
+        
+        // Auto-hide notification after 3 seconds
+        setTimeout(() => {
+          setNotification(prev => ({ ...prev, show: false }));
+        }, 3000);
+      } catch (error) {
+        // Show error notification
+        setNotification({
+          show: true,
+          message: 'Failed to update event. Please try again.',
+          type: 'error'
+        });
+        
+        // Auto-hide notification after 3 seconds
+        setTimeout(() => {
+          setNotification(prev => ({ ...prev, show: false }));
+        }, 3000);
+      }
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEventId(null);
+    setEditingFormData(null);
+  };
 
   // Reset form
   const resetForm = () => {
@@ -1321,17 +1519,38 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 glassy-rainbow-btn z-[9999]">
-      <div className="w-full h-full bg-black text-white" style={{ padding: '10px', display: 'flex', flexDirection: 'column' }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ height: '100vh' }}>
+      <div className="w-full h-full bg-black text-white" style={{ width: '85vw', padding: '10px', display: 'flex', flexDirection: 'column', border: '2px solid white', borderRadius: '1rem' }}>
         {/* Sticky Top Section */}
         <div className="sticky top-0 z-10 bg-black pb-4" style={{ marginBottom: '20px' }}>
           {/* Header */}
-          <div className="relative px-4 py-3 rounded-lg" style={{ backgroundColor: 'var(--favourite-blue)', marginBottom: '5px' }}>
-            <h2 className="text-xl font-bold text-white">Calendar</h2>
+                            <div 
+            className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+              border: '2px solid rgba(255, 255, 255, 0.4)',
+              boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+              backdropFilter: 'blur(10px)',
+              textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+              filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+              transform: 'translateZ(5px)'
+            }}
+          >
+          <h2 
+            className="text-white font-bold text-base text-center"
+            style={{
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+              filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+              transform: 'translateZ(3px)'
+            }}
+          >
+            Calendar
+          </h2>
             <button
               onClick={onClose}
-              className="absolute top-1 right-1 w-6 h-6 rounded-full text-sm font-bold text-white hover:text-gray-300 flex items-center justify-center"
-              style={{ background: '#111', border: 'none', outline: 'none' }}
+              className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+              style={{ background: '#000000', fontSize: '15px' }}
+              aria-label="Close modal"
             >
               ×
             </button>
@@ -1339,7 +1558,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
           
           {/* Current Date Display */}
           <div className="text-center mb-2">
-            <div className="text-white" style={{ fontSize: '11px' }}>
+            <div className="text-blue-500" style={{ fontSize: '12px' }}>
               <span className="font-bold">
                 {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
               </span>
@@ -1353,29 +1572,31 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
             </div>
           </div>
           
-          {/* Add New Entry and Saved Events Buttons */}
+          {/* Add New Entry and Upcoming Events Buttons */}
           <div className="flex justify-center mb-4 gap-4">
             <button
               onClick={() => setShowEventForm(true)}
-              className="px-6 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 hover:scale-105"
+              className="px-6 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all hover:scale-105"
               style={{ 
                 background: '#111',
                 boxShadow: '0 0 20px rgba(0, 0, 0, 0.5)',
-                fontSize: '15px'
+                fontSize: '14px',
+                border: '1px solid rgba(255, 255, 255, 0.3)'
               }}
             >
               Add New Entry
             </button>
             <button
               onClick={() => setShowSavedEventsModal(true)}
-              className="px-6 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 hover:scale-105"
+              className="px-6 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all hover:scale-105"
               style={{ 
                 background: '#111',
                 boxShadow: '0 0 20px rgba(0, 0, 0, 0.5)',
-                fontSize: '15px'
+                fontSize: '14px',
+                border: '1px solid rgba(255, 255, 255, 0.3)'
               }}
             >
-              Saved Events
+              Upcoming Events
             </button>
           </div>
 
@@ -1391,12 +1612,14 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
               <button
                 key={view.key}
                 onClick={() => setCurrentView(view.key)}
-                className={`px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm ${
+                className={`px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all text-sm ${
                   currentView === view.key
                     ? 'border-2 border-white'
                     : ''
                 }`}
-                
+                style={{ 
+                  border: currentView === view.key ? '2px solid white' : '1px solid rgba(255, 255, 255, 0.3)'
+                }}
               >
                 {view.label}
               </button>
@@ -1417,7 +1640,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                 }
                 setCurrentDate(newDate);
               }}
-              className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
+              className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all text-sm"
+              style={{ border: '1px solid rgba(255, 255, 255, 0.3)' }}
             >
               ←
             </button>
@@ -1425,7 +1649,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
               onClick={() => {
                 setCurrentDate(new Date());
               }}
-              className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
+              className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all text-sm"
+              style={{ border: '1px solid rgba(255, 255, 255, 0.3)' }}
             >
               Today
             </button>
@@ -1441,7 +1666,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                 }
                 setCurrentDate(newDate);
               }}
-              className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
+              className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all text-sm"
+              style={{ border: '1px solid rgba(255, 255, 255, 0.3)' }}
             >
               →
             </button>
@@ -1463,108 +1689,131 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
 
             {/* Calendar Content */}
             {currentView === 'month' && (
-              <div className="calendar-month-view" style={{ border: '2px solid var(--favourite-blue)', borderRadius: '8px', padding: '10px' }}>
-                {/* Month Title Row */}
-                <div className="text-center mb-2 rounded-lg" style={{ backgroundColor: 'var(--favourite-blue)', padding: '5px' }}>
-                  <h3 className="text-white font-bold text-lg">
-                    {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                  </h3>
-                </div>
-                
-                {/* Event Type Legend */}
-                <div className="flex flex-wrap justify-center gap-2 mb-2 p-2 bg-gray-800 rounded">
-                  {[
-                    { type: 'meeting', label: 'Meeting' },
-                    { type: 'work', label: 'Work' },
-                    { type: 'health', label: 'Health' },
-                    { type: 'social', label: 'Social' },
-                    { type: 'personal', label: 'Personal' }
-                  ].map(({ type, label }) => (
-                    <div key={type} className="flex items-center space-x-1">
-                      <div 
-                        className="w-3 h-3 rounded"
-                        style={{ backgroundColor: getEventTypeColor(type) }}
-                      />
-                      <span className="text-xs text-white">{label}</span>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Month Grid */}
-                <div className="grid grid-cols-7 gap-1">
-                  {/* Day Headers */}
-                  {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
-                    <div key={index} className="text-center p-2 border-b border-gray-700" style={{ backgroundColor: 'var(--favourite-blue)' }}>
-                      <div className="text-white font-bold text-sm">{day}</div>
-                    </div>
-                  ))}
+              <div className="calendar-month-view" style={{ border: '2px solid white', borderRadius: '8px', padding: '10px', height: '70vh' }}>
+                {/* Fixed Header Section - Always Visible */}
+                <div style={{ 
+                  height: '180px',
+                  background: 'rgba(0, 0, 0, 0.95)',
+                  paddingBottom: '10px',
+                  marginBottom: '10px',
+                  borderBottom: '2px solid rgba(255, 255, 255, 0.3)',
+                  position: 'relative',
+                  zIndex: 20
+                }}>
+                  {/* Month Title Row */}
+                  <div className="text-center mb-2 rounded-lg" style={{ background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))', padding: '5px' }}>
+                    <h3 className="text-white font-bold text-lg">
+                      {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </h3>
+                  </div>
                   
-                  {/* Month Days */}
-                  {getCalendarDays().map((day: any, index) => {
-                    const eventsByType = getEventsByTypeForDate(day.date);
-                    const totalEvents = getEventsForDate(day.date).length;
-                    
-                    return (
-                    <div
-                      key={index}
-                        className={`calendar-day p-2 text-center cursor-pointer transition-colors border border-gray-700 min-h-[80px] ${
-                        day.isCurrentMonth
-                          ? 'text-white hover:bg-white hover:text-black'
-                          : 'text-gray-400 bg-gray-800'
-                      } ${
-                        day.isToday ? 'bg-blue-600 text-white' : ''
-                      }`}
-                      onClick={() => day.isCurrentMonth && handleDayClick(day.date)}
-                    >
-                      <div className="text-sm font-bold mb-1">{day.dayNumber}</div>
-                        
-                        {/* Event Type Blocks with Counts */}
-                        <div className="event-type-blocks space-y-1">
-                          {Object.entries(eventsByType).map(([eventType, events]) => (
-                            <div
-                              key={eventType}
-                              className="flex items-center justify-center rounded px-1 py-0.5 text-xs font-bold text-white shadow-sm"
-                              style={{ 
-                                backgroundColor: getEventTypeColor(eventType),
-                                minWidth: '24px'
-                              }}
-                            >
-                              <span className="mr-1">{eventType.charAt(0).toUpperCase()}</span>
-                              <span>{events.length}</span>
-                            </div>
-                          ))}
+                  {/* Event Type Legend */}
+                  <div className="flex flex-wrap justify-center gap-2 mb-2 p-2 bg-gray-800 rounded">
+                    {[
+                      { type: 'meeting', label: 'Meeting' },
+                      { type: 'work', label: 'Work' },
+                      { type: 'health', label: 'Health' },
+                      { type: 'social', label: 'Social' },
+                      { type: 'personal', label: 'Personal' }
+                    ].map(({ type, label }) => (
+                      <div key={type} className="flex items-center space-x-1">
+                        <div 
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: getEventTypeColor(type) }}
+                        />
+                        <span className="text-xs text-white">{label}</span>
                       </div>
-                        
-                        {/* Total Events Count */}
-                        {totalEvents > 0 && (
-                          <div className="text-xs text-gray-300 mt-1">
-                            {totalEvents} event{totalEvents !== 1 ? 's' : ''}
-                    </div>
-                        )}
+                    ))}
+                  </div>
+                  
+                  {/* Day Headers */}
+                  <div className="grid grid-cols-7 gap-1 mb-1">
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
+                      <div key={index} className="text-center p-2 border-b border-gray-700" style={{ background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))' }}>
+                        <div className="text-white font-bold text-sm">{day}</div>
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Scrollable Calendar Days - Separate Container */}
+                <div style={{ 
+                  height: 'calc(70vh - 200px)', 
+                  overflowY: 'auto', 
+                  paddingTop: '5px',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '4px',
+                  position: 'relative',
+                  zIndex: 10
+                }}>
+                  <div className="grid grid-cols-7 gap-1">
+                    {getCalendarDays().map((day: any, index) => {
+                      const eventsByType = getEventsByTypeForDate(day.date);
+                      const totalEvents = getEventsForDate(day.date).length;
+                      
+                      return (
+                      <div
+                        key={index}
+                          className={`calendar-day p-2 text-center cursor-pointer transition-colors border border-gray-700 min-h-[80px] ${
+                          day.isCurrentMonth
+                            ? 'text-white hover:bg-white hover:text-black'
+                            : 'text-gray-400 bg-gray-800'
+                        } ${
+                          day.isToday ? 'text-white' : ''
+                        }`}
+                        style={day.isToday ? { background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))' } : {}}
+                        onClick={() => day.isCurrentMonth && handleDayClick(day.date)}
+                      >
+                        <div className="text-sm font-bold mb-1">{day.dayNumber}</div>
+                          
+                          {/* Event Type Blocks with Counts */}
+                          <div className="event-type-blocks space-y-1">
+                            {Object.entries(eventsByType).map(([eventType, events]) => (
+                              <div
+                                key={eventType}
+                                className="flex items-center justify-center rounded px-1 py-0.5 text-xs font-bold text-white shadow-sm"
+                                style={{ 
+                                  backgroundColor: getEventTypeColor(eventType),
+                                  minWidth: '24px'
+                                }}
+                              >
+                                <span className="mr-1">{eventType.charAt(0).toUpperCase()}</span>
+                                <span>{events.length}</span>
+                              </div>
+                            ))}
+                        </div>
+                          
+                          {/* Total Events Count */}
+                          {totalEvents > 0 && (
+                            <div className="text-xs text-gray-300 mt-1 text-center">
+                              {totalEvents} event{totalEvents !== 1 ? 's' : ''}
+                      </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
 
             {currentView === 'week' && (
-              <div className="calendar-week-view" style={{ border: '2px solid var(--favourite-blue)', borderRadius: '8px' }}>
+              <div className="calendar-week-view" style={{ border: '2px solid white', borderRadius: '8px' }}>
                 {/* Week Headers */}
                 <div className="grid grid-cols-8 gap-0 rounded-t-lg overflow-hidden">
                   {/* Time Header */}
-                  <div className="text-center" style={{ width: '50px', backgroundColor: 'var(--favourite-blue)', border: '1px solid black', padding: '5px' }}>
+                  <div className="text-center" style={{ width: '50px', background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))', border: '1px solid black', padding: '5px' }}>
                     <div className="text-white font-bold text-sm"></div>
                   </div>
                   
                   {/* Day Headers */}
                   {getCalendarDays().map((day: any, index) => (
                     <div key={index} className="text-center" style={{ 
-                      backgroundColor: day.isToday ? '#10B981' : 'var(--favourite-blue)',
+                      background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
                       border: '1px solid black',
-                      borderLeft: day.isToday ? '2px solid #10B981' : '1px solid black',
-                      borderRight: day.isToday ? '2px solid #10B981' : '1px solid black',
-                      borderTop: day.isToday ? '2px solid #10B981' : '1px solid black',
+                                              borderLeft: '1px solid black',
+                        borderRight: '1px solid black',
+                        borderTop: '1px solid black',
                       borderTopLeftRadius: day.isToday ? '10px' : '0',
                       borderTopRightRadius: day.isToday ? '10px' : '0',
                       padding: '5px'
@@ -1582,10 +1831,10 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                 {/* Week Grid */}
                 <div className="grid grid-cols-8 gap-0 rounded-b-lg overflow-hidden">
                   {/* Time Column */}
-                  <div className="time-column" style={{ width: '50px', backgroundColor: 'var(--favourite-blue)' }}>
+                  <div className="time-column" style={{ width: '50px', background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))' }}>
                     {Array.from({ length: 17 }, (_, i) => i + 7).map((hour) => (
                       <div key={hour} className="text-white text-xs p-2 h-16 flex items-center justify-center" style={{ 
-                        backgroundColor: 'var(--favourite-blue)', 
+                        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))', 
                         border: '1px solid black'
                       }}>
                         <div className="text-center flex items-center justify-center h-full" style={{ marginLeft: '-10px' }}>
@@ -1600,9 +1849,9 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                   {/* Day Columns */}
                   {getCalendarDays().map((day: any, dayIndex) => (
                     <div key={dayIndex} className="day-column bg-black" style={{ 
-                      borderLeft: day.isToday ? '2px solid #10B981' : '1px solid #666',
-                      borderRight: day.isToday ? '2px solid #10B981' : '1px solid #666',
-                      borderBottom: day.isToday ? '2px solid #10B981' : '1px solid #666',
+                                              borderLeft: '1px solid #666',
+                        borderRight: '1px solid #666',
+                                              borderBottom: '1px solid #666',
                       borderBottomLeftRadius: day.isToday ? '10px' : '0',
                       borderBottomRightRadius: day.isToday ? '10px' : '0'
                     }}>
@@ -1665,9 +1914,9 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
             )}
 
             {currentView === 'day' && (
-              <div className="calendar-day-view" style={{ border: '2px solid var(--favourite-blue)', borderRadius: '8px', padding: '10px' }}>
+              <div className="calendar-day-view" style={{ border: '2px solid white', borderRadius: '8px', padding: '10px' }}>
                 {/* Day Header */}
-                <div className="mb-2 text-center rounded-lg" style={{ backgroundColor: 'var(--favourite-blue)', padding: '5px' }}>
+                <div className="mb-2 text-center rounded-lg" style={{ background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))', padding: '5px' }}>
                   <div className="text-white font-bold" style={{ fontSize: '15px' }}>
                     {currentDate.toLocaleDateString('en-US', { 
                       weekday: 'long', 
@@ -1727,24 +1976,17 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
         {/* Event Form Modal */}
         {showEventForm && (
           <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-black bg-opacity-70">
-            <div className="relative rounded-2xl bg-black px-4 pb-6 w-full max-w-[90vw] max-h-[90vh] flex flex-col glassy-rainbow-btn" style={{ boxSizing: 'border-box', minHeight: '80vh', minWidth: '90vw' }}>
+            <div className="relative rounded-2xl bg-black px-4 pb-6 w-full max-w-[85vw] max-h-[90vh] flex flex-col" style={{ boxSizing: 'border-box', minHeight: '80vh', minWidth: '85vw', border: '2px solid white' }}>
 
               {/* Event Form Content */}
-              <div className="relative bg-[var(--favourite-blue)] rounded-t-2xl rounded-b-2xl p-4 mb-2 mt-2 -mx-2">
-                <h3 className="text-lg font-bold text-center text-white">
-                  {selectedEvent ? 'Edit Event' : 'Schedule New Event'}
-                </h3>
-              <button
-                  onClick={() => {
-                    setShowEventForm(false);
-                    setSelectedEvent(null);
-                    resetForm();
-                  }}
-                  className="absolute top-2 right-2 w-6 h-6 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors"
-              >
-                ×
-              </button>
-              </div>
+              <ModalHeader 
+                title={selectedEvent ? 'Edit Event' : 'Schedule New Event'}
+                onClose={() => {
+                  setShowEventForm(false);
+                  setSelectedEvent(null);
+                  resetForm();
+                }}
+              />
               
               <div className="overflow-y-auto flex-1 px-2 pt-0 pb-4">
               <form onSubmit={handleSubmit} className="flex flex-col gap-2">
@@ -1756,14 +1998,15 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                     required
                     value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      className="flex-1 px-4 py-3 bg-black border-2 border-[var(--favourite-blue)] rounded-xl text-white focus:outline-none focus:border-blue-500 transition-all"
+                      className="px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all"
+                      style={{ width: 'calc(100% - 60px)' }}
                     />
                     <SpeechToTextButton
                       onResult={handleTitleSTTResult}
                       onStart={handleTitleSTTStart}
                       onError={(error) => alert(error)}
                       size="md"
-                      className="px-4 py-3"
+                      className="px-4 py-3 border border-white border-opacity-30"
                     />
                   </div>
                 </div>
@@ -1774,7 +2017,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      className="flex-1 px-4 py-3 bg-black border-2 border-[var(--favourite-blue)] rounded-xl text-white focus:outline-none focus:border-blue-500 transition-all resize-none"
+                      className="flex-1 px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all resize-none"
                       style={{ fontSize: '0.7rem' }}
                       rows={2}
                       placeholder="Enter event description..."
@@ -1784,7 +2027,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                       onStart={handleDescriptionSTTStart}
                       onError={(error) => alert(error)}
                       size="md"
-                      className="px-4 py-3"
+                      className="px-4 py-3 border border-white border-opacity-30"
                     />
                   </div>
                 </div>
@@ -1814,6 +2057,12 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                       <Select
                         className="w-full"
                         value={timeOptions.find(opt => opt.value === (formData.start ? formData.start.split('T')[1]?.slice(0, 5) : '')) || null}
+                        onMenuOpen={() => {
+                          // Prevent keyboard from opening
+                          if (document.activeElement) {
+                            (document.activeElement as HTMLElement).blur();
+                          }
+                        }}
                         onChange={(option: SingleValue<TimeOption>) => {
                           if (option) {
                             console.log('🕐 Time Select onChange - new time:', option.value);
@@ -1858,48 +2107,58 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                   </div>
                       </div>
                     
-                <div className="mb-1">
-                  <label className="text-white text-sm mb-1 text-left" style={{ marginLeft: '-220px' }}>Duration</label>
-                      <Select
-                    className="w-full"
-                    value={durationOptions.find(opt => opt.value === formData.duration) || null}
-                    onChange={(option: SingleValue<DurationOption>) => {
-                          if (option) {
-                      setFormData(prev => ({ ...prev, duration: option.value }));
-                          }
-                        }}
-                    options={durationOptions}
-                        placeholder=""
-                        isClearable={false}
-                        menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
-                        
-                        components={{
-                          DropdownIndicator: (props) => (
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              height: '100%',
-                              paddingRight: 10,
-                              color: '#fff',
-                              opacity: 0.8,
-                              fontSize: '1.2rem',
-                            }}>
-                              ▼
-                            </div>
-                          )
-                        }}
-                    styles={selectStyles}
-                  />
+                <div className="flex gap-4 mb-1">
+                  <div className="flex-1">
+                    <label className="text-white text-sm mb-1 text-left">Duration</label>
+                    <Select
+                      className="w-full"
+                      value={durationOptions.find(opt => opt.value === formData.duration) || null}
+                      onMenuOpen={() => {
+                        // Prevent keyboard from opening
+                        if (document.activeElement) {
+                          (document.activeElement as HTMLElement).blur();
+                        }
+                      }}
+                      onChange={(option: SingleValue<DurationOption>) => {
+                        if (option) {
+                          setFormData(prev => ({ ...prev, duration: option.value }));
+                        }
+                      }}
+                      options={durationOptions}
+                      placeholder=""
+                      isClearable={false}
+                      menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+                      
+                      components={{
+                        DropdownIndicator: (props) => (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            height: '100%',
+                            paddingRight: 10,
+                            color: '#fff',
+                            opacity: 0.8,
+                            fontSize: '1.2rem',
+                          }}>
+                            ▼
+                          </div>
+                        )
+                      }}
+                      styles={selectStyles}
+                    />
                   </div>
 
-
-
-                <div className="mb-1">
-                  <label className="text-white text-sm mb-1 text-left" style={{ marginLeft: '-210px' }}>Reminder</label>
-                  <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-white text-sm mb-1 text-left">Reminder</label>
                     <Select
                       className="w-full"
                       value={reminderOptions.find(opt => opt.value === formData.reminder_minutes) || null}
+                      onMenuOpen={() => {
+                        // Prevent keyboard from opening
+                        if (document.activeElement) {
+                          (document.activeElement as HTMLElement).blur();
+                        }
+                      }}
                       onChange={(option: SingleValue<ReminderOption>) => {
                         if (option) {
                           setFormData(prev => ({ ...prev, reminder_minutes: option.value }));
@@ -1930,7 +2189,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                         control: (base: any, state: any) => ({
                           ...base,
                           borderRadius: 16,
-                          border: state.isFocused ? '2px solid #2563eb' : '2px solid var(--favourite-blue)',
+                          border: '2px solid white',
                           background: '#111',
                           color: '#fff',
                           boxShadow: 'none',
@@ -1987,6 +2246,12 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                     <Select
                     className="w-full"
                     value={eventTypeOptions.find(opt => opt.value === formData.event_type) || null}
+                    onMenuOpen={() => {
+                      // Prevent keyboard from opening
+                      if (document.activeElement) {
+                        (document.activeElement as HTMLElement).blur();
+                      }
+                    }}
                     onChange={(option: SingleValue<EventTypeOption>) => {
                         if (option) {
                         setFormData(prev => ({ ...prev, event_type: option.value }));
@@ -2025,7 +2290,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                     type="text"
                     value={formData.location}
                     onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                      className="flex-1 px-4 py-3 bg-black border-2 border-[var(--favourite-blue)] rounded-xl text-white focus:outline-none focus:border-blue-500 transition-all"
+                      className="flex-1 px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all"
                     style={{ fontSize: '0.8rem' }}
                   />
                     <SpeechToTextButton
@@ -2033,7 +2298,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                       onStart={handleLocationSTTStart}
                       onError={(error) => alert(error)}
                       size="md"
-                      className="px-4 py-3"
+                      className="px-4 py-3 border border-white border-opacity-30"
                     />
                   </div>
                 </div>
@@ -2045,8 +2310,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                     type="text"
                     value={formData.attendees}
                     onChange={(e) => setFormData(prev => ({ ...prev, attendees: e.target.value }))}
-                    placeholder="john@example.com, jane@example.com"
-                      className="flex-1 px-4 py-3 bg-black border-2 border-[var(--favourite-blue)] rounded-xl text-white focus:outline-none focus:border-blue-500 transition-all"
+                    placeholder=""
+                      className="flex-1 px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all"
                       style={{ fontSize: '0.8rem' }}
                     />
                     <SpeechToTextButton
@@ -2054,7 +2319,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                       onStart={handleAttendeesSTTStart}
                       onError={(error) => alert(error)}
                       size="md"
-                      className="px-4 py-3"
+                      className="px-4 py-3 border border-white border-opacity-30"
                   />
                 </div>
                 </div>
@@ -2066,7 +2331,11 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                 <div className="md:col-span-2 flex gap-4 justify-center mt-4">
                   <button
                     type="submit"
-                    className="px-8 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
+                    className="px-10 py-4 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all"
+                    style={{ 
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      fontSize: '14px'
+                    }}
                   >
                     Save
                   </button>
@@ -2081,10 +2350,10 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
         {selectedEvent && (
           <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9998] p-4">
             <div className="w-full flex items-center justify-center">
-              <div className="glassy-rainbow-btn rounded-2xl bg-black p-2 w-full max-h-[90vh] flex flex-col border-0" style={{ boxSizing: 'border-box' }}>
+              <div className="rounded-2xl bg-black p-2 w-full max-h-[90vh] flex flex-col" style={{ boxSizing: 'border-box', border: '2px solid white' }}>
                 <div className="overflow-y-auto flex-1">
                   {/* Header */}
-                  <div className="relative mb-6 px-0 py-3 rounded-lg" style={{ backgroundColor: 'var(--favourite-blue)' }}>
+                  <div className="relative mb-6 px-0 py-3 rounded-lg" style={{ background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))' }}>
                     <h3 className="text-xl font-bold text-white text-center">{selectedEvent.title}</h3>
                     <button
                       onClick={() => setSelectedEvent(null)}
@@ -2102,7 +2371,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                       <textarea
                         value={selectedEvent.description || ''}
                         onChange={(e) => setSelectedEvent({...selectedEvent, description: e.target.value})}
-                        className="flex-1 bg-black border-2 border-[var(--favourite-blue)] rounded-lg p-3 text-white focus:outline-none focus:border-blue-500 resize-none text-left"
+                        className="flex-1 bg-black border-2 border-white rounded-lg p-3 text-white focus:outline-none focus:border-white resize-none text-left"
                         rows={3}
                         placeholder="Enter description..."
                       />
@@ -2284,7 +2553,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                         type="text"
                         value={selectedEvent.location || ''}
                         onChange={(e) => setSelectedEvent({...selectedEvent, location: e.target.value})}
-                        className="flex-1 px-4 py-3 bg-black border-2 border-[var(--favourite-blue)] rounded-xl text-white focus:outline-none focus:border-blue-500 transition-all text-left"
+                        className="flex-1 px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all text-left"
                         style={{ fontSize: '0.8rem' }}
                         placeholder="Enter location or meeting link..."
                       />
@@ -2305,7 +2574,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                         type="text"
                         value={selectedEvent.attendees ? selectedEvent.attendees.join(', ') : ''}
                         onChange={(e) => setSelectedEvent({...selectedEvent, attendees: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
-                        className="flex-1 px-4 py-3 bg-black border-2 border-[var(--favourite-blue)] rounded-xl text-white focus:outline-none focus:border-blue-500 transition-all text-left"
+                        className="flex-1 px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all text-left"
                         style={{ fontSize: '0.8rem' }}
                         placeholder=""
                       />
@@ -2323,20 +2592,63 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
               
                               <div className="flex justify-center mt-8 gap-4 pt-2">
                 <button
-                  onClick={() => deleteEvent(selectedEvent.id)}
+                  onClick={() => {
+                    setEventToDelete(selectedEvent.id);
+                    setShowDeleteConfirm(true);
+                  }}
                   className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
-                    style={{ background: '#111' }}
+                  style={{ 
+                    background: '#111',
+                    border: '1px solid rgba(255, 255, 255, 0.3)'
+                  }}
                 >
                     Delete
                 </button>
                 <button
                   onClick={() => setSelectedEvent(null)}
                   className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
-                    style={{ background: '#111' }}
+                  style={{ 
+                    background: '#111',
+                    border: '1px solid rgba(255, 255, 255, 0.3)'
+                  }}
                 >
                     Close
                 </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
+            <div className="rounded-2xl bg-black p-6 text-white text-center" style={{ border: '2px solid white', width: '75vw' }}>
+              <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
+              <p className="text-sm mb-6 text-gray-300">
+                Are you sure you want to delete this event? This action cannot be undone.
+              </p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
+                  style={{ 
+                    background: '#dc2626',
+                    border: '1px solid rgba(255, 255, 255, 0.3)'
+                  }}
+                >
+                  Yes, Delete
+                </button>
+                <button
+                  onClick={handleDeleteCancel}
+                  className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
+                  style={{ 
+                    background: '#111',
+                    border: '1px solid rgba(255, 255, 255, 0.3)'
+                  }}
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>
@@ -2359,7 +2671,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
           }
           
           .fc-button {
-            background: linear-gradient(135deg, var(--favourite-blue), #1e40af) !important;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9)) !important;
             border: none !important;
             border-radius: 8px !important;
             color: white !important;
@@ -2617,35 +2929,25 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
         `}</style>
       </div>
 
-      {/* Saved Events Modal */}
+      {/* Upcoming Events Modal */}
       {showSavedEventsModal && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-black bg-opacity-70">
-          <div className="relative rounded-2xl bg-black px-4 py-6 w-full max-w-[90vw] max-h-[95vh] flex flex-col glassy-rainbow-btn" style={{ boxSizing: 'border-box', minHeight: '80vh', minWidth: '350px' }}>
-            {/* X Close Button */}
-            <button
-              onClick={() => setShowSavedEventsModal(false)}
-              className="absolute w-6 h-6 rounded-full text-sm font-bold text-white hover:text-gray-300 flex items-center justify-center"
-              style={{ background: '#111', border: 'none', outline: 'none', top: '11px', right: '9px' }}
-            >
-              ×
-            </button>
+          <div className="relative rounded-2xl bg-black px-4 py-6 w-full flex flex-col" style={{ boxSizing: 'border-box', height: '90vh', width: '85vw', border: '2px solid white' }}>
+
             
             {/* Modal Header */}
-            <h3 className="text-xl font-bold mb-6 text-center p-3 rounded-lg" style={{
-              backgroundColor: 'var(--favourite-blue)',
-              color: 'white',
-              marginTop: '-15px',
-              width: 'calc(100% + 15px)',
-              marginLeft: '-7.5px'
-            }}>
-              Saved Events
-            </h3>
+            <div style={{ marginTop: '-10px' }}>
+              <ModalHeader 
+                title="Upcoming Events"
+                onClose={() => setShowSavedEventsModal(false)}
+              />
+            </div>
 
             {/* Events List */}
             <div className="overflow-y-auto flex-1 px-2 py-4">
               {events.length === 0 ? (
                 <div className="text-center text-white py-8">
-                  <p className="text-lg mb-2">No saved events yet</p>
+                  <p className="text-lg mb-2">No upcoming events yet</p>
                   <p className="text-sm text-gray-400">Create your first event using the "Add New Entry" button</p>
                 </div>
               ) : (
@@ -2653,77 +2955,261 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                   {events.map((event) => (
                     <div
                       key={event.id}
-                      className="bg-gray-900 rounded-xl p-4 border-2 border-gray-700 hover:border-blue-500 transition-all duration-200"
+                      className="bg-gray-900 rounded-xl p-4 border-2 border-gray-700 hover:border-white transition-all duration-200"
                       style={{
                         background: 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)',
                         boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)'
                       }}
                     >
-                      {/* Event Header */}
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1">
-                          <h4 className="text-white font-bold text-lg mb-1">{event.title}</h4>
-                          <div className="flex items-center gap-2 text-sm text-gray-300">
-                            <span className="px-2 py-1 rounded-full text-xs font-medium" style={{
-                              backgroundColor: getEventTypeColor(event.event_type),
-                              color: 'white'
-                            }}>
-                              {eventTypes[event.event_type as keyof typeof eventTypes]?.label || event.event_type}
-                            </span>
-                            <span>•</span>
-                            <span>{new Date(event.start).toLocaleDateString()}</span>
-                            <span>•</span>
-                            <span>{new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {editingEventId === event.id ? (
+                        // Editing Mode
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-white font-bold text-lg">Edit Event</h4>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleSaveEdit}
+                                className="px-4 py-2 text-white font-medium rounded-lg transition-all duration-200 glassy-btn"
+                                style={{
+                                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(22, 163, 74, 0.9))',
+                                  border: '2px solid rgba(255, 255, 255, 0.4)',
+                                  boxShadow: '0 8px 25px rgba(34, 197, 94, 0.4), 0 4px 12px rgba(34, 197, 94, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+                                  backdropFilter: 'blur(10px)',
+                                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                                  filter: 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.3))',
+                                  transform: 'translateZ(5px)'
+                                }}
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                className="px-4 py-2 text-white font-medium rounded-lg transition-all duration-200 glassy-btn"
+                                style={{
+                                  background: 'linear-gradient(135deg, rgba(107, 114, 128, 0.9), rgba(75, 85, 99, 0.9))',
+                                  border: '2px solid rgba(255, 255, 255, 0.4)',
+                                  boxShadow: '0 8px 25px rgba(107, 114, 128, 0.4), 0 4px 12px rgba(107, 114, 128, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+                                  backdropFilter: 'blur(10px)',
+                                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                                  filter: 'drop-shadow(0 0 8px rgba(107, 114, 128, 0.3))',
+                                  transform: 'translateZ(5px)'
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {/* Title */}
+                          <div>
+                            <label className="block text-sm mb-1 text-white text-left">Title</label>
+                            <input
+                              type="text"
+                              value={editingFormData?.title || ''}
+                              onChange={(e) => setEditingFormData(prev => ({ ...prev, title: e.target.value }))}
+                              className="w-full px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all"
+                            />
+                          </div>
+
+                          {/* Description */}
+                          <div>
+                            <label className="block text-sm mb-1 text-white text-left">Description</label>
+                            <textarea
+                              value={editingFormData?.description || ''}
+                              onChange={(e) => setEditingFormData(prev => ({ ...prev, description: e.target.value }))}
+                              className="w-full px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all resize-none"
+                              rows={3}
+                            />
+                          </div>
+
+                          {/* Date and Time */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm mb-1 text-white text-left">Date</label>
+                              <CustomDatePicker
+                                value={editingFormData?.start ? new Date(editingFormData.start) : new Date()}
+                                onChange={(date) => {
+                                  const currentTime = editingFormData?.start ? editingFormData.start.split('T')[1]?.slice(0, 5) : new Date().toTimeString().slice(0, 5);
+                                  const newStart = `${date.toISOString().split('T')[0]}T${currentTime}`;
+                                  setEditingFormData(prev => ({ ...prev, start: newStart }));
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm mb-1 text-white text-left">Time</label>
+                              <Select
+                                className="w-full"
+                                value={timeOptions.find(opt => opt.value === (editingFormData?.start ? editingFormData.start.split('T')[1]?.slice(0, 5) : '')) || null}
+                                onMenuOpen={() => {
+                                  // Prevent keyboard from opening
+                                  if (document.activeElement) {
+                                    (document.activeElement as HTMLElement).blur();
+                                  }
+                                }}
+                                onChange={(option: SingleValue<TimeOption>) => {
+                                  if (option) {
+                                    const currentDate = editingFormData?.start ? editingFormData.start.split('T')[0] : new Date().toISOString().split('T')[0];
+                                    const newStart = `${currentDate}T${option.value}`;
+                                    setEditingFormData(prev => ({ ...prev, start: newStart }));
+                                  }
+                                }}
+                                options={timeOptions}
+                                placeholder=""
+                                isClearable={false}
+                                menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+                                components={{
+                                  DropdownIndicator: (props) => (
+                                    <div style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      height: '100%',
+                                      paddingRight: 10,
+                                      color: '#fff',
+                                      opacity: 0.8,
+                                      fontSize: '1.2rem',
+                                    }}>
+                                      ▼
+                                    </div>
+                                  )
+                                }}
+                                styles={selectStyles}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Location */}
+                          <div>
+                            <label className="block text-sm mb-1 text-white text-left">Location</label>
+                            <input
+                              type="text"
+                              value={editingFormData?.location || ''}
+                              onChange={(e) => setEditingFormData(prev => ({ ...prev, location: e.target.value }))}
+                              className="w-full px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all"
+                            />
+                          </div>
+
+                          {/* Event Type */}
+                          <div>
+                            <label className="block text-sm mb-1 text-white text-left">Event Type</label>
+                            <Select
+                              className="w-full"
+                              value={eventTypeOptions.find(opt => opt.value === editingFormData?.event_type) || null}
+                              onMenuOpen={() => {
+                                // Prevent keyboard from opening
+                                if (document.activeElement) {
+                                  (document.activeElement as HTMLElement).blur();
+                                }
+                              }}
+                              onChange={(option: SingleValue<EventTypeOption>) => {
+                                if (option) {
+                                  setEditingFormData(prev => ({ ...prev, event_type: option.value }));
+                                }
+                              }}
+                              options={eventTypeOptions}
+                              placeholder=""
+                              isClearable={false}
+                              menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+                              components={{
+                                DropdownIndicator: (props) => (
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    height: '100%',
+                                    paddingRight: 10,
+                                    color: '#fff',
+                                    opacity: 0.8,
+                                    fontSize: '1.2rem',
+                                  }}>
+                                    ▼
+                                  </div>
+                                )
+                              }}
+                              styles={selectStyles}
+                            />
                           </div>
                         </div>
-                      </div>
-
-                      {/* Event Details */}
-                      <div className="space-y-2 mb-4">
-                        {event.description && (
-                          <p className="text-gray-300 text-sm">{event.description}</p>
-                        )}
-                        {event.location && (
-                          <div className="flex items-center gap-2 text-sm text-gray-400">
-                            <span>📍</span>
-                            <span>{event.location}</span>
+                      ) : (
+                        // Normal View Mode
+                        <>
+                          {/* Event Header */}
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <h4 className="text-white font-bold text-lg mb-1">{event.title}</h4>
+                              <div className="flex items-center gap-2 text-sm text-gray-300">
+                                <span className="px-2 py-1 rounded-full text-xs font-medium" style={{
+                                  backgroundColor: getEventTypeColor(event.event_type),
+                                  color: 'white'
+                                }}>
+                                  {eventTypes[event.event_type as keyof typeof eventTypes]?.label || event.event_type}
+                                </span>
+                                <span>•</span>
+                                <span>{new Date(event.start).toLocaleDateString()}</span>
+                                <span>•</span>
+                                <span>{new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              </div>
+                            </div>
                           </div>
-                        )}
-                        {event.attendees && event.attendees.length > 0 && (
-                          <div className="flex items-center gap-2 text-sm text-gray-400">
-                            <span>👥</span>
-                            <span>{event.attendees.join(', ')}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-4 text-sm text-gray-400">
-                          <span>⏱️ {event.reminder_minutes} min reminder</span>
-                        </div>
-                      </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setSelectedEvent(event);
-                            setShowEventForm(true);
-                            setShowSavedEventsModal(false);
-                          }}
-                          className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-                        >
-                          Update
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (window.confirm('Are you sure you want to delete this event?')) {
-                              await deleteEvent(event.id);
-                              setShowSavedEventsModal(false);
-                            }
-                          }}
-                          className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                          {/* Event Details */}
+                          <div className="space-y-2 mb-4">
+                            {event.description && (
+                              <p className="text-gray-300 text-sm">{event.description}</p>
+                            )}
+                            {event.location && (
+                              <div className="flex items-center gap-2 text-sm text-gray-400">
+                                <span>📍</span>
+                                <span>{event.location}</span>
+                              </div>
+                            )}
+                            {event.attendees && event.attendees.length > 0 && (
+                              <div className="flex items-center gap-2 text-sm text-gray-400">
+                                <span>👥</span>
+                                <span>{event.attendees.join(', ')}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-4 text-sm text-gray-400">
+                              <span>⏱️ {event.reminder_minutes} min reminder</span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleStartEdit(event)}
+                              className="flex-1 px-4 py-2 text-white font-medium rounded-lg transition-all duration-200 glassy-btn"
+                              style={{
+                                background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(59, 130, 246, 0.9))',
+                                border: '2px solid rgba(255, 255, 255, 0.4)',
+                                boxShadow: '0 8px 25px rgba(37, 99, 235, 0.4), 0 4px 12px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+                                backdropFilter: 'blur(10px)',
+                                textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                                filter: 'drop-shadow(0 0 8px rgba(37, 99, 235, 0.3))',
+                                transform: 'translateZ(5px)'
+                              }}
+                            >
+                              Update
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEventToDelete(event.id);
+                                setShowDeleteConfirm(true);
+                              }}
+                              className="flex-1 px-4 py-2 text-white font-medium rounded-lg transition-all duration-200 glassy-btn"
+                              style={{
+                                background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.9), rgba(239, 68, 68, 0.9))',
+                                border: '2px solid rgba(255, 255, 255, 0.4)',
+                                boxShadow: '0 8px 25px rgba(220, 38, 38, 0.4), 0 4px 12px rgba(220, 38, 38, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+                                backdropFilter: 'blur(10px)',
+                                textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                                filter: 'drop-shadow(0 0 8px rgba(220, 38, 38, 0.3))',
+                                transform: 'translateZ(5px)'
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -2731,6 +3217,15 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Notification */}
+      {notification.show && (
+        <StyledNotification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(prev => ({ ...prev, show: false }))}
+        />
       )}
     </div>
   );

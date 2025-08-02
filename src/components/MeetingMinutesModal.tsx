@@ -342,16 +342,47 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-blue-900 text-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="text-2xl">📄</div>
-            <h1 className="text-2xl font-bold">Meeting Minutes</h1>
+        <div 
+          className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+            border: '2px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(10px)',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+            filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+            transform: 'translateZ(5px)'
+          }}
+        >
+          <div className="flex items-center justify-center gap-3">
+            <div 
+              className="text-2xl"
+              style={{
+                filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 16px rgba(255, 255, 255, 0.4))',
+                textShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.6)',
+                transform: 'translateZ(3px)'
+              }}
+            >
+              📄
+            </div>
+            <h1 
+              className="text-white font-bold text-base text-center"
+              style={{
+                textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+                filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+                transform: 'translateZ(3px)'
+              }}
+            >
+              Meeting Minutes
+            </h1>
           </div>
           <button
             onClick={onClose}
-            className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg transition-colors"
+            className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+            style={{ background: '#000000', fontSize: '15px' }}
+            aria-label="Close modal"
           >
-            Cancel
+            ×
           </button>
         </div>
 
@@ -369,7 +400,7 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
                   id="meetingDate"
                   value={meetingDate}
                   onChange={(e) => setMeetingDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
                 />
               </div>
               <div className="space-y-2">
@@ -382,7 +413,7 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
                   value={meetingTitle}
                   onChange={(e) => setMeetingTitle(e.target.value)}
                   placeholder="Enter meeting title..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white"
                 />
               </div>
             </div>
@@ -395,7 +426,7 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
                 value={meetingAgenda}
                 onChange={(e) => setMeetingAgenda(e.target.value)}
                 placeholder="Enter meeting agenda or topics to be discussed..."
-                className="w-full h-24 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 resize-none focus:outline-none focus:border-blue-500"
+                className="w-full h-24 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 resize-none focus:outline-none focus:border-white"
               />
             </div>
           </div>
@@ -492,7 +523,7 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
                 value={meetingContent + (transcript ? '\n' + transcript : '')}
                 onChange={(e) => setMeetingContent(e.target.value)}
                 placeholder="Meeting content will appear here as you speak..."
-                className="w-full h-48 bg-gray-700 border border-gray-600 rounded-lg p-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:border-blue-500"
+                className="w-full h-48 bg-gray-700 border border-gray-600 rounded-lg p-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:border-white"
               />
               {isListening && (
                 <div className="absolute top-2 right-2">
@@ -514,7 +545,7 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
               value={meetingContent}
               onChange={(e) => setMeetingContent(e.target.value)}
               placeholder="Full meeting transcript will appear here..."
-              className="w-full h-32 bg-gray-700 border border-gray-600 rounded-lg p-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:border-blue-500"
+              className="w-full h-32 bg-gray-700 border border-gray-600 rounded-lg p-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:border-white"
             />
           </div>
 
@@ -610,7 +641,7 @@ export default function MeetingMinutesModal({ isOpen, onClose }: MeetingMinutesM
               value={askMeResponse}
               onChange={(e) => setAskMeResponse(e.target.value)}
               placeholder="AskMe API response will appear here..."
-              className="w-full h-48 bg-gray-700 border border-gray-600 rounded-lg p-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:border-blue-500"
+              className="w-full h-48 bg-gray-700 border border-gray-600 rounded-lg p-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:border-white"
             />
           </div>
         </div>

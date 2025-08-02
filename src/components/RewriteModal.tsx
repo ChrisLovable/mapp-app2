@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { getGPTAnswer } from '../lib/AskMeLogic';
+
 import { apiUsageTracker } from '../lib/ApiUsageTracker';
 
 interface RewriteModalProps {
@@ -115,17 +115,19 @@ export default function RewriteModal({ isOpen, onClose, currentText, onTextChang
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9998] p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9998] p-4" style={{ height: '100vh' }}>
       <div className="w-full flex items-center justify-center">
-        <div className="glassy-rainbow-btn rounded-2xl bg-black p-4 w-full min-h-0 h-auto flex flex-col border-0" style={{ boxSizing: 'border-box' }}>
+        <div className="rounded-2xl bg-black p-4 min-h-0 h-auto flex flex-col" style={{ width: '85vw', boxSizing: 'border-box', border: '2px solid white' }}>
           <div className="overflow-y-auto max-h-[90vh]">
             {/* Header */}
-            <div className="relative mb-6 px-4 py-3 rounded-lg" style={{ backgroundColor: 'var(--favourite-blue)' }}>
-              <h2 className="text-xl font-bold text-white">Rewrite Text</h2>
+            <div className="relative mb-6 px-4 py-3 rounded-lg simple-double-border" style={{ background: 'linear-gradient(135deg, #000000 0%, #666666 100%)', border: '4px double rgba(255, 255, 255, 0.9)' }}>
+              <div className="token-dashboard-header">
+              <h2 className="text-white font-bold text-base text-center">Rewrite Text</h2>
+            </div>
               <button
                 onClick={onClose}
                 className="absolute top-1 right-1 w-6 h-6 rounded-full text-sm font-bold text-white hover:text-gray-300 flex items-center justify-center"
-                style={{ background: '#111', border: 'none', outline: 'none' }}
+                style={{ background: '#000000', border: 'none', outline: 'none', fontSize: '15px' }}
               >
                 ×
               </button>

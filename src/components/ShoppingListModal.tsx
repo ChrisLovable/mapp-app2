@@ -559,16 +559,37 @@ Example: {"description": "milk", "quantity": "1 gallon", "vendor": "Walmart"}`;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
       <div
-        className="glassy-rainbow-btn rounded-2xl bg-black p-2 w-full max-w-[90vw] max-h-[95vh] flex flex-col border-0 overflow-hidden"
-        style={{ boxSizing: 'border-box' }}
+ia        className="rounded-2xl bg-black p-2 w-full max-w-[90vw] max-h-[95vh] flex flex-col overflow-hidden"
+        style={{ boxSizing: 'border-box', border: '2px solid white' }}
       >
         {/* Header */}
-        <div className="w-full bg-blue-600 rounded-t-2xl rounded-b-2xl flex items-center justify-between px-4 py-3 mb-4">
-          <h2 className="text-white font-bold text-lg sm:text-xl mx-auto w-full text-center">AI Shopping List Manager</h2>
+        <div 
+          className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+            border: '2px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(10px)',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+            filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+            transform: 'translateZ(5px)'
+          }}
+        >
+          <h2 
+            className="text-white font-bold text-base text-center"
+            style={{
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+              filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+              transform: 'translateZ(3px)'
+            }}
+          >
+            AI Shopping List Manager
+          </h2>
           <button
             onClick={onClose}
-            className="absolute right-6 top-4 text-white text-xl font-bold bg-transparent rounded-full hover:bg-blue-800 hover:text-gray-200 transition-colors w-8 h-8 flex items-center justify-center"
-            aria-label="Close"
+            className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+            style={{ background: '#000000', fontSize: '15px' }}
+            aria-label="Close modal"
           >
             ×
           </button>
@@ -596,7 +617,7 @@ Example: {"description": "milk", "quantity": "1 gallon", "vendor": "Walmart"}`;
               {parsedItems.length > 0 ? (
                 <div className="space-y-3">
                   {parsedItems.map((item, index) => (
-                    <div key={item.id} className="glassy-rainbow-btn rounded-2xl p-4 border-2 border-[var(--favourite-blue)]">
+                    <div key={item.id} className="rounded-2xl p-4" style={{ border: '2px solid white' }}>
                   <div className="space-y-3">
                           {/* Description */}
                           <div>
@@ -605,7 +626,7 @@ Example: {"description": "milk", "quantity": "1 gallon", "vendor": "Walmart"}`;
                               type="text"
                               value={item.description}
                               onChange={(e) => updateParsedItem(item.id, 'description', e.target.value)}
-                            className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-[var(--favourite-blue)] focus:outline-none focus:border-blue-500"
+                            className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-white focus:outline-none focus:border-white"
                             placeholder="Enter item description..."
                             />
                           </div>
@@ -618,7 +639,7 @@ Example: {"description": "milk", "quantity": "1 gallon", "vendor": "Walmart"}`;
                               type="text"
                               value={item.quantity}
                               onChange={(e) => updateParsedItem(item.id, 'quantity', e.target.value)}
-                              className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-[var(--favourite-blue)] focus:outline-none focus:border-blue-500"
+                              className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-white focus:outline-none focus:border-white"
                               placeholder="1"
                             />
                           </div>
@@ -628,7 +649,7 @@ Example: {"description": "milk", "quantity": "1 gallon", "vendor": "Walmart"}`;
                               type="text"
                               value={item.vendor}
                               onChange={(e) => updateParsedItem(item.id, 'vendor', e.target.value)}
-                              className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-[var(--favourite-blue)] focus:outline-none focus:border-blue-500"
+                              className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-white focus:outline-none focus:border-white"
                               placeholder="Any"
                             />
                           </div>
@@ -670,7 +691,7 @@ Example: {"description": "milk", "quantity": "1 gallon", "vendor": "Walmart"}`;
 
               {/* Debug Info */}
               {debugInfo && (
-                <div className="text-blue-400 text-sm bg-blue-900 bg-opacity-20 p-3 rounded-xl border border-blue-500">
+                <div className="text-blue-400 text-sm bg-blue-900 bg-opacity-20 p-3 rounded-xl border border-white">
                   {debugInfo}
                 </div>
               )}
@@ -730,7 +751,7 @@ Example: {"description": "milk", "quantity": "1 gallon", "vendor": "Walmart"}`;
                       return true;
                     })
                     .map((item) => (
-                    <div key={item.id} className="rounded-2xl p-4 border-2 border-[var(--favourite-blue)] bg-black">
+                    <div key={item.id} className="rounded-2xl p-4 border-2 border-white bg-black">
                       <div className="flex flex-col">
                         {/* Buttons Row */}
                         <div className="flex justify-between mb-3">
@@ -789,7 +810,7 @@ Example: {"description": "milk", "quantity": "1 gallon", "vendor": "Walmart"}`;
                                   type="text"
                                   value={editingValues.description}
                                   onChange={(e) => updateEditingValue('description', e.target.value)}
-                                  className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-[var(--favourite-blue)] focus:outline-none focus:border-blue-500"
+                                  className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-white focus:outline-none focus:border-white"
                                   placeholder="Enter item description..."
                                 />
                               </div>
@@ -802,7 +823,7 @@ Example: {"description": "milk", "quantity": "1 gallon", "vendor": "Walmart"}`;
                                     type="text"
                                     value={editingValues.quantity}
                                     onChange={(e) => updateEditingValue('quantity', e.target.value)}
-                                    className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-[var(--favourite-blue)] focus:outline-none focus:border-blue-500"
+                                    className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-white focus:outline-none focus:border-white"
                                     placeholder="1"
                                   />
                                 </div>
@@ -812,7 +833,7 @@ Example: {"description": "milk", "quantity": "1 gallon", "vendor": "Walmart"}`;
                                     type="text"
                                     value={editingValues.vendor}
                                     onChange={(e) => updateEditingValue('vendor', e.target.value)}
-                                    className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-[var(--favourite-blue)] focus:outline-none focus:border-blue-500"
+                                    className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-white focus:outline-none focus:border-white"
                                     placeholder="Any"
                                   />
                                 </div>

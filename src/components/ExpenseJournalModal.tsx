@@ -119,7 +119,7 @@ const Calendar = ({
   };
 
   return (
-    <div className="absolute top-full right-0 mt-1 bg-white border-2 border-blue-300 rounded-lg shadow-xl z-50 p-4 min-w-[280px]">
+    <div className="absolute top-full right-0 mt-1 bg-white border-2 border-white rounded-lg shadow-xl z-50 p-4 min-w-[280px]">
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={handlePrevMonth}
@@ -414,7 +414,7 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
                 setShowStartCalendar(!showStartCalendar);
                 setShowEndCalendar(false);
               }}
-              className="px-3 py-2 border-2 border-blue-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer bg-white min-w-[120px] text-left hover:bg-blue-50 transition-colors shadow-sm text-black"
+              className="px-3 py-2 border-2 border-white rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white cursor-pointer bg-white min-w-[120px] text-left hover:bg-blue-50 transition-colors shadow-sm text-black"
             >
               {startDate ? formatDate(startDate) : 'Start Date'}
             </button>
@@ -433,7 +433,7 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
                 setShowEndCalendar(!showEndCalendar);
                 setShowStartCalendar(false);
               }}
-              className="px-3 py-2 border-2 border-blue-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer bg-white min-w-[120px] text-left hover:bg-blue-50 transition-colors shadow-sm text-black"
+              className="px-3 py-2 border-2 border-white rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white cursor-pointer bg-white min-w-[120px] text-left hover:bg-blue-50 transition-colors shadow-sm text-black"
             >
               {endDate ? formatDate(endDate) : 'End Date'}
             </button>
@@ -856,28 +856,28 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
           </h3>
           
           <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-blue-300 rounded-lg shadow-lg">
+            <table className="min-w-full bg-white border border-white rounded-lg shadow-lg">
               <thead className="bg-blue-600 text-white">
                 <tr>
-                  <th className="px-2 py-1 text-left text-sm font-semibold w-20 border border-blue-300">Date</th>
-                  <th className="px-2 py-1 text-left text-sm font-semibold w-24 border border-blue-300">Category</th>
-                  <th className="px-2 py-1 text-left text-sm font-semibold w-32 border border-blue-300">Description</th>
-                  <th className="px-2 py-1 text-left text-sm font-semibold w-20 border border-blue-300">Amount</th>
+                  <th className="px-2 py-1 text-left text-sm font-semibold w-20 border border-white">Date</th>
+                  <th className="px-2 py-1 text-left text-sm font-semibold w-24 border border-white">Category</th>
+                  <th className="px-2 py-1 text-left text-sm font-semibold w-32 border border-white">Description</th>
+                  <th className="px-2 py-1 text-left text-sm font-semibold w-20 border border-white">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {pageExpenses.map((expense) => (
                   <tr key={expense.id} className="hover:bg-gray-50">
-                    <td className="px-2 py-1 text-sm font-medium text-black w-20 whitespace-nowrap overflow-hidden border border-blue-300">
+                    <td className="px-2 py-1 text-sm font-medium text-black w-20 whitespace-nowrap overflow-hidden border border-white">
                       {formatExpenseDate(expense.expense_date)}
                     </td>
-                    <td className="px-2 py-1 text-sm text-black font-medium w-24 whitespace-nowrap overflow-hidden border border-blue-300">
+                    <td className="px-2 py-1 text-sm text-black font-medium w-24 whitespace-nowrap overflow-hidden border border-white">
                       {expense.category}
                     </td>
-                    <td className="px-2 py-1 text-sm text-black w-32 whitespace-nowrap overflow-hidden border border-blue-300">
+                    <td className="px-2 py-1 text-sm text-black w-32 whitespace-nowrap overflow-hidden border border-white">
                       {expense.description}
                     </td>
-                    <td className="px-2 py-1 text-sm font-semibold text-green-600 w-20 whitespace-nowrap overflow-hidden border border-blue-300">
+                    <td className="px-2 py-1 text-sm font-semibold text-green-600 w-20 whitespace-nowrap overflow-hidden border border-white">
                       R{expense.amount.toFixed(2)}
                     </td>
                   </tr>

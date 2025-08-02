@@ -65,7 +65,7 @@ export default function ImageModal({ onClose, onImageUpload }: Props) {
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
                 placeholder="https://example.com/image.jpg"
-                className="flex-1 px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:border-blue-500"
+                className="flex-1 px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:border-white"
                 onKeyPress={(e) => e.key === 'Enter' && handleAddUrl()}
               />
               <button
@@ -97,7 +97,7 @@ export default function ImageModal({ onClose, onImageUpload }: Props) {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full px-4 py-3 rounded-lg border-2 border-dashed border-gray-600 text-gray-400 hover:text-white hover:border-blue-500 transition-colors"
+              className="w-full px-4 py-3 rounded-lg border-2 border-dashed border-gray-600 text-gray-400 hover:text-white hover:border-white transition-colors"
             >
               📁 Click to select images or drag and drop
             </button>

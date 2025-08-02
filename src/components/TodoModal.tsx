@@ -921,15 +921,35 @@ Example output format:
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
-      <div className="glassy-rainbow-btn rounded-2xl bg-black p-0 w-full max-w-4xl mx-4 flex flex-col border-0" style={{ boxSizing: 'border-box', maxHeight: '90vh' }}>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4" style={{ height: '100vh' }}>
+      <div className="rounded-2xl bg-black p-0 mx-4 flex flex-col" style={{ width: '85vw', boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white' }}>
         {/* Modal Header */}
-        <div className="relative mb-6 bg-[var(--favourite-blue)] px-4 py-3 rounded-xl mx-2 mt-2" style={{ background: 'var(--favourite-blue)' }}>
-          <h2 className="text-white font-bold text-base text-center">AI To-Do Manager</h2>
+        <div 
+          className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+            border: '2px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(10px)',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+            filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+            transform: 'translateZ(5px)'
+          }}
+        >
+          <h2 
+            className="text-white font-bold text-base text-center"
+            style={{
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+              filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+              transform: 'translateZ(3px)'
+            }}
+          >
+            AI To-Do Manager
+          </h2>
           <button
             onClick={onClose}
             className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
-            style={{ background: '#111' }}
+            style={{ background: '#000000', fontSize: '15px' }}
             aria-label="Close modal"
           >
             ×
@@ -954,7 +974,7 @@ Example output format:
               {parsedTasks.length > 0 ? (
                 <div className="space-y-3">
                   {parsedTasks.map((task, _index) => (
-                    <div key={task.id} className="bg-black border-2 border-[var(--favourite-blue)] rounded-2xl p-4">
+                    <div key={task.id} className="bg-black border-2 border-white rounded-2xl p-4">
                       <div className="space-y-3">
                         {/* Description */}
                         <div>
@@ -962,7 +982,7 @@ Example output format:
                             type="text"
                             value={task.description}
                             onChange={(e) => updateParsedTask(task.id, 'description', e.target.value)}
-                            className="w-full p-3 border-2 border-[var(--favourite-blue)] rounded-2xl text-white bg-black focus:outline-none text-sm"
+                            className="w-full p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
                             placeholder="Task description"
                           />
                         </div>
@@ -973,13 +993,13 @@ Example output format:
                             type="date"
                             value={task.deadline}
                             onChange={(e) => updateParsedTask(task.id, 'deadline', e.target.value)}
-                            className="flex-1 p-3 border-2 border-[var(--favourite-blue)] rounded-2xl text-white bg-black focus:outline-none text-sm"
+                            className="flex-1 p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
                           />
                           <input
                             type="time"
                             value={task.reminder_time}
                             onChange={(e) => updateParsedTask(task.id, 'reminder_time', e.target.value)}
-                            className="flex-1 p-3 border-2 border-[var(--favourite-blue)] rounded-2xl text-white bg-black focus:outline-none text-sm"
+                            className="flex-1 p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
                           />
                         </div>
                         
@@ -1017,7 +1037,7 @@ Example output format:
               ) : todos.length > 0 ? (
                 <div className="space-y-3">
                   {todos.map((todo) => (
-                    <div key={todo.id} className="bg-black border-2 border-[var(--favourite-blue)] rounded-2xl p-4 relative">
+                    <div key={todo.id} className="bg-black border-2 border-white rounded-2xl p-4 relative">
                       <button 
                         onClick={() => handleToggleComplete(todo)}
                         className="absolute top-3 right-3 px-3 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-colors border-0 text-xs"
