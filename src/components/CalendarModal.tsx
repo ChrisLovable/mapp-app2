@@ -773,9 +773,6 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
     setFormData(prev => ({ ...prev, allDay: isAllDay }));
   };
 
-  const [currentDate, setCurrentDate] = useState(new Date());
-
-  
   // Duration options for the React Select
   const durationOptions: DurationOption[] = [
     { value: 15, label: '15 minutes' },
