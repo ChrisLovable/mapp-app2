@@ -1,5 +1,5 @@
 import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay } from 'date-fns';
-import { CalendarEvent, CalendarDay } from '../types/calendar';
+import type { CalendarEvent, CalendarDay } from '../types/calendar';
 
 export const getCalendarDays = (currentDate: Date): CalendarDay[] => {
   const start = startOfMonth(currentDate);
