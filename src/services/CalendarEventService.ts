@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { CalendarEvent } from '../components/calendar/types/calendar.types';
+import type { CalendarEvent } from '../types/calendar';
 
 export class CalendarEventService {
   static async loadEvents(): Promise<CalendarEvent[]> {

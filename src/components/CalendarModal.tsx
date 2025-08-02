@@ -4,7 +4,7 @@ import { format, addMinutes, parseISO } from 'date-fns';
 import CustomDatePicker from './CustomDatePicker';
 import Select from 'react-select';
 import type { SingleValue } from 'react-select';
-import type { CalendarEvent, CalendarModalProps, DurationOption, ReminderOption, EventTypeOption, TimeOption, NotificationState, FormData, EditingFormData } from './calendar/types/calendar.types';
+import type { CalendarEvent, CalendarModalProps, DurationOption, ReminderOption, EventTypeOption, TimeOption, NotificationState, FormData, EditingFormData } from '../types/calendar';
 import { CalendarEventService } from '../services/CalendarEventService';
 import { getCalendarDays, getMonthDays, getWeekDays, getDayHours, getEventTypeColor, getEventsForDate, getEventsByTypeForDate, getEventsForDateAndHour, formatEventTime, formatEventDate, calculateEventDuration } from '../utils/calendarUtils';
 
