@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SpeechToTextButton } from './SpeechToTextButton';
 import { format, addMinutes, parseISO } from 'date-fns';
+import { supabase } from '../lib/supabase';
 import CustomDatePicker from './CustomDatePicker';
 import Select from 'react-select';
 import type { SingleValue } from 'react-select';
-import type { CalendarEvent, CalendarModalProps, DurationOption, ReminderOption, EventTypeOption, TimeOption, NotificationState, FormData, EditingFormData } from './calendar/types/calendar.types';
-import { CalendarEventService } from '../services/CalendarEventService';
-import { getCalendarDays, getMonthDays, getWeekDays, getDayHours, getEventTypeColor, getEventsForDate, getEventsByTypeForDate, getEventsForDateAndHour, formatEventTime, formatEventDate, calculateEventDuration } from '../utils/calendarUtils';
 
 // Reusable Modal Header Component with consistent styling
 const ModalHeader: React.FC<{ title: string; onClose?: () => void }> = ({ title, onClose }) => (
@@ -155,7 +153,36 @@ const StyledNotification: React.FC<{
   );
 };
 
+interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+  event_type: string;
+  location?: string;
+  attendees?: string[];
+  reminder_minutes: number;
+}
 
+interface CalendarModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  inputText?: string;
+}
+
+// Add type definition for duration options
+type DurationOption = { value: number; label: string };
+
+// Add type definition for reminder options
+type ReminderOption = { value: number; label: string };
+
+// Add type definition for event type options
+type EventTypeOption = { value: string; label: string };
+
+// Add type definition for time options
+type TimeOption = { value: string; label: string };
 
 const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputText }) => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -913,8 +940,28 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
   const loadEvents = async () => {
     setIsLoading(true);
     try {
-      const events = await CalendarEventService.loadEvents();
-      setEvents(events);
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .order('start_time', { ascending: true });
+
+      if (error) throw error;
+
+      const formattedEvents = data?.map(event => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        start: event.start_time,
+        end: event.end_time,
+        allDay: event.all_day,
+        event_type: event.event_type,
+        location: event.location,
+        attendees: event.attendees,
+        // priority field removed - not used in form
+        reminder_minutes: event.reminder_minutes
+      })) || [];
+
+      setEvents(formattedEvents);
     } catch (error) {
       console.error('Error loading events:', error);
     } finally {
@@ -925,27 +972,41 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
   // Save event to database
   const saveEvent = async (eventData: any) => {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || '00000000-0000-0000-0000-000000000000';
+
       // Calculate end time based on duration
       const startTime = new Date(eventData.start);
       const endTime = new Date(startTime.getTime() + (eventData.duration * 60 * 1000)); // Convert minutes to milliseconds
 
-      const eventToSave = {
-        title: eventData.title,
-        description: eventData.description,
-        start: eventData.start,
-        end: endTime.toISOString(),
-        allDay: eventData.allDay,
-        event_type: eventData.event_type,
-        location: eventData.location,
-        attendees: eventData.attendees ? eventData.attendees.split(',').map((a: string) => a.trim()) : [],
-        reminder_minutes: eventData.reminder_minutes
-      };
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .insert([{
+          user_id: userId,
+          title: eventData.title,
+          description: eventData.description,
+          start_time: eventData.start,
+          end_time: endTime.toISOString(),
+          all_day: eventData.allDay,
+          event_type: eventData.event_type,
+          location: eventData.location,
+          attendees: eventData.attendees ? eventData.attendees.split(',').map((a: string) => a.trim()) : [],
+          reminder_minutes: eventData.reminder_minutes
+        }])
+        .select()
+        .single();
 
-      await CalendarEventService.saveEvent(eventToSave);
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Event saved successfully:', data);
 
       // Schedule reminder notification
       if (eventData.reminder_minutes > 0) {
-        CalendarEventService.scheduleReminder(eventToSave, eventData.reminder_minutes);
+        scheduleReminder(data, eventData.reminder_minutes);
       }
 
       await loadEvents();
@@ -965,19 +1026,25 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
       const startTime = new Date(updates.start);
       const endTime = new Date(startTime.getTime() + (updates.duration * 60 * 1000)); // Convert minutes to milliseconds
 
-      const eventUpdates = {
-        title: updates.title,
-        description: updates.description,
-        start: updates.start,
-        end: endTime.toISOString(),
-        allDay: updates.allDay,
-        event_type: updates.event_type,
-        location: updates.location,
-        attendees: updates.attendees ? updates.attendees.split(',').map((a: string) => a.trim()) : [],
-        reminder_minutes: updates.reminder_minutes
-      };
+      const { error } = await supabase
+        .from('calendar_events')
+        .update({
+          title: updates.title,
+          description: updates.description,
+          start_time: updates.start,
+          end_time: endTime.toISOString(),
+          all_day: updates.allDay,
+          event_type: updates.event_type,
+          location: updates.location,
+          attendees: updates.attendees ? updates.attendees.split(',').map((a: string) => a.trim()) : [],
+          reminder_minutes: updates.reminder_minutes
+        })
+        .eq('id', eventId);
 
-      await CalendarEventService.updateEvent(eventId, eventUpdates);
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       console.log('Event updated successfully');
       await loadEvents();
@@ -993,7 +1060,12 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
   // Delete event
   const deleteEvent = async (eventId: string) => {
     try {
-      await CalendarEventService.deleteEvent(eventId);
+      const { error } = await supabase
+        .from('calendar_events')
+        .delete()
+        .eq('id', eventId);
+
+      if (error) throw error;
       await loadEvents();
       setSelectedEvent(null);
     } catch (error) {
@@ -1191,15 +1263,101 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
   };
 
   const getMonthDays = () => {
-    return getMonthDays(currentDate);
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    
+    // Get first day of the month
+    const firstDay = new Date(year, month, 1);
+    // Get last day of the month
+    const lastDay = new Date(year, month + 1, 0);
+    
+    // Get the day of week for the first day (0 = Sunday, 1 = Monday, etc.)
+    let firstDayOfWeek = firstDay.getDay();
+    // Convert to Monday-based week (0 = Monday, 1 = Tuesday, ..., 6 = Sunday)
+    firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    
+    // Get the number of days in the month
+    const daysInMonth = lastDay.getDate();
+    
+    // Get the number of days in the previous month
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    const days = [];
+    
+    // Add days from previous month
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const dayNumber = daysInPrevMonth - i;
+      const date = new Date(year, month - 1, dayNumber);
+      days.push({
+        dayNumber,
+        date,
+        isCurrentMonth: false,
+        isToday: false
+      });
+    }
+    
+    // Add days from current month
+    for (let i = 1; i <= daysInMonth; i++) {
+      const date = new Date(year, month, i);
+      const today = new Date();
+      days.push({
+        dayNumber: i,
+        date,
+        isCurrentMonth: true,
+        isToday: date.toDateString() === today.toDateString()
+      });
+    }
+    
+    // Add days from next month to fill the grid
+    const remainingDays = 42 - days.length; // 6 rows * 7 days = 42
+    for (let i = 1; i <= remainingDays; i++) {
+      const date = new Date(year, month + 1, i);
+      days.push({
+        dayNumber: i,
+        date,
+        isCurrentMonth: false,
+        isToday: false
+      });
+    }
+    
+    return days;
   };
 
   const getWeekDays = () => {
-    return getWeekDays(currentDate);
+    const today = new Date(currentDate);
+    const dayOfWeek = today.getDay();
+    // Convert to Monday-based week (0 = Monday, 1 = Tuesday, ..., 6 = Sunday)
+    const mondayBasedDayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - mondayBasedDayOfWeek);
+    
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      days.push({
+        dayNumber: date.getDate(),
+        date,
+        isCurrentMonth: true,
+        isToday: date.toDateString() === new Date().toDateString()
+      });
+    }
+    return days;
   };
 
   const getDayHours = () => {
-    return getDayHours();
+    const hours = [];
+    for (let i = 0; i < 24; i++) {
+      const date = new Date(currentDate);
+      date.setHours(i, 0, 0, 0);
+      hours.push({
+        hour: i,
+        date,
+        isCurrentHour: date.getHours() === new Date().getHours() && 
+                      date.toDateString() === new Date().toDateString()
+      });
+    }
+    return hours;
   };
 
   const handleDayClick = (date: Date) => {
@@ -1215,21 +1373,54 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
 
   // Event rendering functions
   const getEventsForDate = (date: Date) => {
-    return getEventsForDate(events, date);
+    return events.filter(event => {
+      const eventDate = new Date(event.start);
+      return eventDate.toDateString() === date.toDateString();
+    });
   };
 
   // Get events grouped by type for a specific date
   const getEventsByTypeForDate = (date: Date) => {
-    return getEventsByTypeForDate(events, date);
+    const dayEvents = getEventsForDate(date);
+    const grouped = dayEvents.reduce((acc, event) => {
+      const type = event.event_type || 'other';
+      if (!acc[type]) {
+        acc[type] = [];
+      }
+      acc[type].push(event);
+      return acc;
+    }, {} as Record<string, CalendarEvent[]>);
+    return grouped;
   };
 
   // Get color for event type
   const getEventTypeColor = (eventType: string) => {
-    return getEventTypeColor(eventType);
+    switch (eventType) {
+      case 'meeting':
+        return '#3B82F6'; // Blue
+      case 'reminder':
+        return '#F59E0B'; // Yellow
+      case 'task':
+        return '#8B5CF6'; // Purple
+      case 'personal':
+        return '#10B981'; // Green
+      case 'work':
+        return '#EF4444'; // Red
+      case 'health':
+        return '#06B6D4'; // Cyan
+      case 'social':
+        return '#EC4899'; // Pink
+      default:
+        return '#6B7280'; // Gray
+    }
   };
 
   const getEventsForDateAndHour = (date: Date, hour: number) => {
-    return getEventsForDateAndHour(events, date, hour);
+    return events.filter(event => {
+      const eventDate = new Date(event.start);
+      const eventHour = eventDate.getHours();
+      return eventDate.toDateString() === date.toDateString() && eventHour === hour;
+    });
   };
 
   const renderEventBlock = (event: CalendarEvent, isWeekView = false) => {
