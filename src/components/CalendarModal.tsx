@@ -7,6 +7,9 @@ import type { SingleValue } from 'react-select';
 import type { CalendarEvent, CalendarModalProps, DurationOption, ReminderOption, EventTypeOption, TimeOption, NotificationState, FormData, EditingFormData } from '../types/calendar';
 import { CalendarEventService } from '../services/CalendarEventService';
 import { getCalendarDays, getMonthDays, getWeekDays, getDayHours, getEventTypeColor, getEventsForDate, getEventsByTypeForDate, getEventsForDateAndHour, formatEventTime, formatEventDate, calculateEventDuration } from '../utils/calendarUtils';
+import { useCalendarSTT } from '../hooks/useCalendarSTT';
+import { MonthView, WeekView, DayView } from './calendar/CalendarViews';
+import { EventForm } from './calendar/EventForm';
 
 // Reusable Modal Header Component with consistent styling
 const ModalHeader: React.FC<{ title: string; onClose?: () => void }> = ({ title, onClose }) => (
@@ -174,6 +177,36 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
   }>({ show: false, message: '', type: 'info' });
 
   const [currentView, setCurrentView] = useState('month');
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [formData, setFormData] = useState<FormData>({
+    title: '',
+    description: '',
+    start: new Date().toISOString(),
+    end: new Date().toISOString(),
+    allDay: false,
+    event_type: 'meeting',
+    location: '',
+    attendees: [],
+    reminder_minutes: 15,
+    duration: 60
+  });
+
+  // Show notification function
+  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => setNotification({ show: false, message: '', type: 'info' }), 3000);
+  };
+
+  // STT Hook
+  const sttHandlers = useCalendarSTT({
+    formData,
+    setFormData,
+    editingFormData,
+    setEditingFormData,
+    setCurrentDate,
+    setShowEventForm,
+    showNotification
+  });
 
   // Function to parse input text using OpenAI
   const parseInputText = async (text: string) => {
@@ -260,25 +293,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
     }
   }, [selectedEvent]);
 
-  // Handle title speech-to-text result
-  const handleTitleSTTResult = (text: string) => {
-    setFormData(prev => ({ ...prev, title: text }));
-  };
-
-  // Handle attendees speech-to-text result
-  const handleAttendeesSTTResult = (text: string) => {
-    setFormData(prev => ({ ...prev, attendees: text }));
-  };
-
-  // Handle description speech-to-text result
-  const handleDescriptionSTTResult = (text: string) => {
-    setFormData(prev => ({ ...prev, description: text }));
-  };
-
-  // Handle location speech-to-text result
-  const handleLocationSTTResult = (text: string) => {
-    setFormData(prev => ({ ...prev, location: text }));
-  };
+  // STT handlers are now managed by the useCalendarSTT hook
 
   // Handle edit modal STT results
   const handleEditDescriptionSTTResult = (text: string) => {

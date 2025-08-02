@@ -51,6 +51,7 @@ export interface FormData {
   location: string;
   attendees: string[];
   reminder_minutes: number;
+  duration: number;
 }
 
 export interface EditingFormData {
@@ -63,6 +64,7 @@ export interface EditingFormData {
   location: string;
   attendees: string[];
   reminder_minutes: number;
+  duration: number;
 }
 
 // Calendar Day Type
