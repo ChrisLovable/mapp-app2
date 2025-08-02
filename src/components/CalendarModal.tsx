@@ -238,10 +238,13 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
         start: data.date && data.time ? 
           `${data.date}T${data.time}` : 
           new Date().toISOString().slice(0, 16),
+        end: data.date && data.time ? 
+          `${data.date}T${data.time}` : 
+          new Date().toISOString().slice(0, 16),
         allDay: data.allDay || false,
         event_type: data.eventType || 'meeting',
         location: data.location || '',
-        attendees: data.attendees || '',
+        attendees: data.attendees ? data.attendees.split(',').map((a: string) => a.trim()) : [],
         reminder_minutes: 15,
         duration: data.duration || 60
       };
