@@ -298,59 +298,9 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
 
   // STT handlers are now managed by the useCalendarSTT hook
 
-  // Handle edit modal STT results
-  const handleEditDescriptionSTTResult = (text: string) => {
-    if (selectedEvent) {
-      setSelectedEvent({...selectedEvent, description: text});
-    }
-  };
+  // STT handlers are now managed by the useCalendarSTT hook
 
-  const handleEditLocationSTTResult = (text: string) => {
-    if (selectedEvent) {
-      setSelectedEvent({...selectedEvent, location: text});
-    }
-  };
-
-  const handleEditAttendeesSTTResult = (text: string) => {
-    if (selectedEvent) {
-      setSelectedEvent({...selectedEvent, attendees: text.split(',').map(s => s.trim()).filter(s => s)});
-    }
-  };
-
-  // STT handlers that clear fields first before processing speech
-  const handleTitleSTTStart = () => {
-    setFormData(prev => ({ ...prev, title: '' }));
-  };
-
-  const handleAttendeesSTTStart = () => {
-    setFormData(prev => ({ ...prev, attendees: '' }));
-  };
-
-  const handleDescriptionSTTStart = () => {
-    setFormData(prev => ({ ...prev, description: '' }));
-  };
-
-  const handleLocationSTTStart = () => {
-    setFormData(prev => ({ ...prev, location: '' }));
-  };
-
-  const handleEditDescriptionSTTStart = () => {
-    if (selectedEvent) {
-      setSelectedEvent({...selectedEvent, description: ''});
-    }
-  };
-
-  const handleEditLocationSTTStart = () => {
-    if (selectedEvent) {
-      setSelectedEvent({...selectedEvent, location: ''});
-    }
-  };
-
-  const handleEditAttendeesSTTStart = () => {
-    if (selectedEvent) {
-      setSelectedEvent({...selectedEvent, attendees: []});
-    }
-  };
+  // STT start handlers are now managed by the useCalendarSTT hook
 
   // Additional onStart handlers for other fields
   const handleDateSTTStart = () => {
@@ -2369,8 +2319,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                         placeholder="Enter location or meeting link..."
                       />
                       <SpeechToTextButton
-                        onResult={handleEditLocationSTTResult}
-                        onStart={handleEditLocationSTTStart}
+                                              onResult={sttHandlers.handleEditLocationSTTResult}
+                      onStart={sttHandlers.handleEditLocationSTTStart}
                         onError={(error) => alert(error)}
                         size="md"
                         className="px-4 py-3"
@@ -2390,8 +2340,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                         placeholder=""
                       />
                       <SpeechToTextButton
-                        onResult={handleEditAttendeesSTTResult}
-                        onStart={handleEditAttendeesSTTStart}
+                                              onResult={sttHandlers.handleEditAttendeesSTTResult}
+                      onStart={sttHandlers.handleEditAttendeesSTTStart}
                         onError={(error) => alert(error)}
                         size="md"
                         className="px-4 py-3"
