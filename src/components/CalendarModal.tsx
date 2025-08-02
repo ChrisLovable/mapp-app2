@@ -1181,24 +1181,24 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
   // Custom Calendar Helper Functions
   const getCalendarDays = () => {
     if (currentView === 'month') {
-      return getMonthDays();
+      return getLocalMonthDays();
     } else if (currentView === 'week') {
-      return getWeekDays();
+      return getLocalWeekDays();
     } else if (currentView === 'day') {
-      return getDayHours();
+      return getLocalDayHours();
     }
-    return getMonthDays();
+    return getLocalMonthDays();
   };
 
-  const getMonthDays = () => {
+  const getLocalMonthDays = () => {
     return getMonthDays(currentDate);
   };
 
-  const getWeekDays = () => {
+  const getLocalWeekDays = () => {
     return getWeekDays(currentDate);
   };
 
-  const getDayHours = () => {
+  const getLocalDayHours = () => {
     return getDayHours();
   };
 
@@ -1214,21 +1214,21 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
   };
 
   // Event rendering functions
-  const getEventsForDate = (date: Date) => {
+  const getLocalEventsForDate = (date: Date) => {
     return getEventsForDate(events, date);
   };
 
   // Get events grouped by type for a specific date
-  const getEventsByTypeForDate = (date: Date) => {
+  const getLocalEventsByTypeForDate = (date: Date) => {
     return getEventsByTypeForDate(events, date);
   };
 
   // Get color for event type
-  const getEventTypeColor = (eventType: string) => {
+  const getLocalEventTypeColor = (eventType: string) => {
     return getEventTypeColor(eventType);
   };
 
-  const getEventsForDateAndHour = (date: Date, hour: number) => {
+  const getLocalEventsForDateAndHour = (date: Date, hour: number) => {
     return getEventsForDateAndHour(events, date, hour);
   };
 
@@ -1236,7 +1236,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
     const startTime = new Date(event.start);
     const endTime = new Date(event.end);
     const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60); // hours
-    const eventColor = getEventTypeColor(event.event_type);
+    const eventColor = getLocalEventTypeColor(event.event_type);
     
     return (
       <div
@@ -1528,7 +1528,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                       <div key={type} className="flex items-center space-x-1">
                         <div 
                           className="w-3 h-3 rounded"
-                          style={{ backgroundColor: getEventTypeColor(type) }}
+                          style={{ backgroundColor: getLocalEventTypeColor(type) }}
                         />
                         <span className="text-xs text-white">{label}</span>
                       </div>
@@ -1557,8 +1557,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                 }}>
                   <div className="grid grid-cols-7 gap-1">
                     {getCalendarDays().map((day: any, index) => {
-                      const eventsByType = getEventsByTypeForDate(day.date);
-                      const totalEvents = getEventsForDate(day.date).length;
+                                              const eventsByType = getLocalEventsByTypeForDate(day.date);
+                      const totalEvents = getLocalEventsForDate(day.date).length;
                       
                       return (
                       <div
@@ -1582,7 +1582,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                                 key={eventType}
                                 className="flex items-center justify-center rounded px-1 py-0.5 text-xs font-bold text-white shadow-sm"
                                 style={{ 
-                                  backgroundColor: getEventTypeColor(eventType),
+                                  backgroundColor: getLocalEventTypeColor(eventType),
                                   minWidth: '24px'
                                 }}
                               >
@@ -1665,7 +1665,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                       borderBottomRightRadius: day.isToday ? '10px' : '0'
                     }}>
                       {Array.from({ length: 17 }, (_, i) => i + 7).map((hour) => {
-                        const eventsInSlot = getEventsForDateAndHour(day.date, hour);
+                        const eventsInSlot = getLocalEventsForDateAndHour(day.date, hour);
                         return (
                           <div
                             key={hour}
@@ -1763,7 +1763,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                         </div>
                         
                         {/* Events */}
-                        {getEventsForDateAndHour(currentDate, hour).map((event) => (
+                        {getLocalEventsForDateAndHour(currentDate, hour).map((event) => (
                           <div key={event.id} className="w-full">
                             {renderEventBlock(event)}
                           </div>
@@ -2945,8 +2945,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                             <div className="flex-1">
                               <h4 className="text-white font-bold text-lg mb-1">{event.title}</h4>
                               <div className="flex items-center gap-2 text-sm text-gray-300">
-                                <span className="px-2 py-1 rounded-full text-xs font-medium" style={{
-                                  backgroundColor: getEventTypeColor(event.event_type),
+                                <span className="px-2 py-1 rounded-full text-xs font-medium"                                 style={{
+                                  backgroundColor: getLocalEventTypeColor(event.event_type),
                                   color: 'white'
                                 }}>
                                   {eventTypes[event.event_type as keyof typeof eventTypes]?.label || event.event_type}
