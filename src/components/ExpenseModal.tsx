@@ -4,6 +4,19 @@ import { supabase } from '../lib/supabase';
 import ExpenseJournalModal from './ExpenseJournalModal';
 import { useAuth } from '../contexts/AuthContext';
 
+// Temporary placeholder functions for missing dependencies
+const askOpenAIVision = async (prompt: string, base64Image: string): Promise<string> => {
+  // Placeholder implementation
+  console.warn('askOpenAIVision not implemented, using placeholder');
+  return `Extracted text from image: ${prompt}`;
+};
+
+const getGPTAnswer = async (prompt: string): Promise<string> => {
+  // Placeholder implementation
+  console.warn('getGPTAnswer not implemented, using placeholder');
+  return `AI response to: ${prompt}`;
+};
+
 interface Expense {
   id: string;
   expense_date: string;

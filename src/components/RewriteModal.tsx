@@ -2,6 +2,13 @@ import React, { useState, useRef } from 'react';
 
 import { apiUsageTracker } from '../lib/ApiUsageTracker';
 
+// Temporary placeholder function for missing dependency
+const getGPTAnswer = async (prompt: string): Promise<string> => {
+  // Placeholder implementation
+  console.warn('getGPTAnswer not implemented, using placeholder');
+  return `AI response to: ${prompt}`;
+};
+
 interface RewriteModalProps {
   isOpen: boolean;
   onClose: () => void;
