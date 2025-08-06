@@ -290,7 +290,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
         allDay: selectedEvent.allDay,
         event_type: selectedEvent.event_type,
         location: selectedEvent.location || '',
-        attendees: selectedEvent.attendees ? selectedEvent.attendees.join(', ') : '',
+        attendees: selectedEvent.attendees || [],
         reminder_minutes: selectedEvent.reminder_minutes,
         duration: 60 // Default duration, could be calculated from start/end times
       });
@@ -1128,7 +1128,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
       allDay: false,
       event_type: 'meeting',
       location: '',
-      attendees: '',
+      attendees: [],
       reminder_minutes: 15,
       duration: 60
     });
@@ -1927,8 +1927,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                   <div className="flex gap-2">
                   <input
                     type="text"
-                    value={formData.attendees}
-                    onChange={(e) => setFormData(prev => ({ ...prev, attendees: e.target.value }))}
+                    value={Array.isArray(formData.attendees) ? formData.attendees.join(', ') : formData.attendees}
+                    onChange={(e) => setFormData(prev => ({ ...prev, attendees: e.target.value.split(',').map(s => s.trim()).filter(s => s.length > 0) }))}
                     placeholder=""
                       className="flex-1 px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all"
                       style={{ fontSize: '0.8rem' }}

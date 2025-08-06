@@ -24,6 +24,13 @@ const getGPTAnswer = async (prompt: string): Promise<string> => {
   }
 };
 
+// Temporary placeholder function for missing dependency
+const getGPTAnswer = async (prompt: string): Promise<string> => {
+  // Placeholder implementation
+  console.warn('getGPTAnswer not implemented, using placeholder');
+  return `AI response to: ${prompt}`;
+};
+
 interface RewriteModalProps {
   isOpen: boolean;
   onClose: () => void;

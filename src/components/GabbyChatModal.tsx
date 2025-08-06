@@ -17,6 +17,7 @@ interface ChatMessage {
 const GABBY_GREETING_EN = "Hi! This is Gabby. How can I help you today?";
 const GABBY_GREETING_AF = "Hallo! Dit is Gabby. Hoe kan ek jou vandag help?";
 
+<<<<<<< HEAD
 async function speakWithOpenAI(text: string, language: string) {
   try {
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
@@ -57,6 +58,26 @@ async function speakWithOpenAI(text: string, language: string) {
     console.log('OpenAI TTS playing:', text);
   } catch (error) {
     console.error('OpenAI TTS Error:', error);
+=======
+async function speakWithAzureTTS(text: string, language: string) {
+  try {
+    // Use Azure TTS with appropriate voice for the language
+    const voice = language === 'af-ZA' ? 'af-ZA-AdriNeural' : 'en-GB-AbbiNeural';
+    
+    const result = await generateAndPlaySpeech({
+      text: text,
+      language: language,
+      voice: voice
+    });
+
+    if (!result.success) {
+      console.error('Azure TTS error:', result.error);
+    } else {
+      console.log('Azure TTS playing:', text);
+    }
+  } catch (error) {
+    console.error('Azure TTS Error:', error);
+>>>>>>> dab6f8a46b440ac2c470f9ddffd4ee62407afad0
   }
 }
 
@@ -157,7 +178,11 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
     };
     setMessages([welcomeMessage]);
     setChatHistory([{ role: "assistant" as const, content: greeting }]);
+<<<<<<< HEAD
     await speakWithOpenAI(greeting, language);
+=======
+    await speakWithAzureTTS(greeting, language);
+>>>>>>> dab6f8a46b440ac2c470f9ddffd4ee62407afad0
     // Removed automatic focus to prevent keyboard from opening
   };
 
@@ -191,7 +216,11 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
       
       setMessages(prev => [...prev, gabbyResponse]);
       setChatHistory([...updatedHistory, { role: "assistant" as const, content: reply }]);
+<<<<<<< HEAD
       await speakWithOpenAI(reply, language);
+=======
+      await speakWithAzureTTS(reply, language);
+>>>>>>> dab6f8a46b440ac2c470f9ddffd4ee62407afad0
     } catch (error) {
       console.error('Error getting response:', error);
     } finally {
@@ -322,8 +351,14 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
       
       {/* Modal */}
       <div 
+<<<<<<< HEAD
         className="relative w-full max-w-md h-screen rounded-2xl border-0 overflow-hidden"
         style={{
+=======
+        className="relative w-full max-w-md rounded-2xl border-0 overflow-hidden"
+        style={{
+          height: '80vh',
+>>>>>>> dab6f8a46b440ac2c470f9ddffd4ee62407afad0
           background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(30, 58, 138, 0.2))',
           border: '2px solid rgba(255, 255, 255, 0.4)',
           boxShadow: '0 25px 50px rgba(0, 0, 0, 0.8), 0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4)',

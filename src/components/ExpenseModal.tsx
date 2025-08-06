@@ -7,6 +7,19 @@ import { ExpenseAnalytics } from '../services/ExpenseAnalytics';
 import { OpenAIService } from '../services/OpenAIService';
 import { QuestionProcessor } from '../services/QuestionProcessor';
 
+// Temporary placeholder functions for missing dependencies
+const askOpenAIVision = async (prompt: string, base64Image: string): Promise<string> => {
+  // Placeholder implementation
+  console.warn('askOpenAIVision not implemented, using placeholder');
+  return `Extracted text from image: ${prompt}`;
+};
+
+const getGPTAnswer = async (prompt: string): Promise<string> => {
+  // Placeholder implementation
+  console.warn('getGPTAnswer not implemented, using placeholder');
+  return `AI response to: ${prompt}`;
+};
+
 interface Expense {
   id: string;
   expense_date: string;
