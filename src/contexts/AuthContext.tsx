@@ -18,29 +18,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isSupabaseAvailable) {
-      // If Supabase is not available, just set loading to false
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setUser(session?.user ?? null);
       setLoading(false);
-      return;
+    };
+
+    if (isSupabaseAvailable) {
+      getSession();
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      });
+      
+      // Add event listener to refresh session on window focus
+      window.addEventListener('focus', getSession);
+
+      return () => {
+        subscription.unsubscribe();
+        window.removeEventListener('focus', getSession);
+      };
+    } else {
+      setLoading(false);
     }
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {
