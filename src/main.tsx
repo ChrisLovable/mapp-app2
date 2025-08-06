@@ -58,7 +58,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 )
 
 // Aggressively remove all service workers to prevent caching issues
-if ('serviceWorker' in navigator) {
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  const reloadPage = () => window.location.reload();
+
   navigator.serviceWorker.getRegistrations().then(registrations => {
     if (registrations.length) {
       console.log(`Found ${registrations.length} service worker(s). Unregistering...`);
@@ -74,16 +76,16 @@ if ('serviceWorker' in navigator) {
               const deletePromises = cacheNames.map(name => caches.delete(name));
               Promise.all(deletePromises).then(() => {
                 console.log('All caches cleared. Reloading page for a fresh start.');
-                window.location.reload();
+                reloadPage();
               });
             } else {
               console.log('No caches found. Reloading page for a fresh start.');
-              window.location.reload();
+              reloadPage();
             }
           });
         } else {
           console.log('Caches API not supported. Reloading page for a fresh start.');
-          window.location.reload();
+          reloadPage();
         }
       });
     } else {
