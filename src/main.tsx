@@ -57,45 +57,40 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 )
 
-// Aggressively remove all service workers during development
+// Aggressively remove all service workers to prevent caching issues
 if ('serviceWorker' in navigator) {
-  let hasServiceWorkers = false;
-  
-  // Unregister all service workers
-  navigator.serviceWorker.getRegistrations().then(function(registrations) {
-    console.log('Found', registrations.length, 'service worker registrations');
-    hasServiceWorkers = registrations.length > 0;
-    
-    for(let registration of registrations) {
-      registration.unregister().then(function(boolean) {
-        console.log('Service worker unregistered:', boolean);
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    if (registrations.length) {
+      console.log(`Found ${registrations.length} service worker(s). Unregistering...`);
+      const unregisterPromises = registrations.map(reg => reg.unregister());
+      
+      Promise.all(unregisterPromises).then(() => {
+        console.log('All service workers unregistered.');
+        
+        if ('caches' in window) {
+          caches.keys().then(cacheNames => {
+            if (cacheNames.length) {
+              console.log(`Found ${cacheNames.length} cache(s). Deleting...`);
+              const deletePromises = cacheNames.map(name => caches.delete(name));
+              Promise.all(deletePromises).then(() => {
+                console.log('All caches cleared. Reloading page for a fresh start.');
+                window.location.reload();
+              });
+            } else {
+              console.log('No caches found. Reloading page for a fresh start.');
+              window.location.reload();
+            }
+          });
+        } else {
+          console.log('Caches API not supported. Reloading page for a fresh start.');
+          window.location.reload();
+        }
       });
-    }
-
-    // Clear all caches
-    if ('caches' in window) {
-      caches.keys().then(function(cacheNames) {
-        console.log('Found', cacheNames.length, 'caches to clear');
-        return Promise.all(
-          cacheNames.map(function(cacheName) {
-            console.log('Deleting cache:', cacheName);
-            return caches.delete(cacheName);
-          })
-        );
-      }).then(() => {
-        console.log('All caches cleared');
-      });
-    }
-
-    // Force refresh after cleanup if we had service workers
-    if (hasServiceWorkers) {
-      setTimeout(() => {
-        console.log('Service workers removed, reloading page...');
-        window.location.reload();
-      }, 1000);
+    } else {
+      console.log('No service workers found.');
     }
   });
 }
 
-// Register PWA service worker (disabled for development)
-// registerServiceWorker() // Temporarily disabled for development
+// Register PWA service worker
+registerServiceWorker();
