@@ -260,6 +260,7 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
   const [saveSuccess, setSaveSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedQuote, setSelectedQuote] = useState<string>('');
+  const lastTranscriptRef = useRef('');
 
   // Test image loading on component mount
   useEffect(() => {
@@ -281,7 +282,10 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
 
   // Handle STT result
   const handleSTTResult = (text: string) => {
-    setPrompt(text);
+    // Only append the new part of the transcript
+    const newPart = text.replace(lastTranscriptRef.current, '');
+    setPrompt(prev => prev + newPart);
+    lastTranscriptRef.current = text;
   };
 
   const generateImage = async () => {

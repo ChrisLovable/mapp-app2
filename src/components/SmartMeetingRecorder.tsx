@@ -39,6 +39,7 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
 
   // Refs for speech recognition
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const lastTranscriptRef = useRef('');
   
   // Ref to track current state values for onend handler
   const stateRef = useRef({
@@ -84,7 +85,10 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
           console.log('Result:', transcript, 'isFinal:', result.isFinal, 'confidence:', confidence);
           
           if (result.isFinal) {
-            finalTranscript += transcript + ' ';
+            // Only append the new part of the transcript
+            const newPart = transcript.replace(lastTranscriptRef.current, '');
+            finalTranscript += newPart + ' ';
+            lastTranscriptRef.current = transcript;
             maxConfidence = Math.max(maxConfidence, confidence);
           } else {
             currentInterimTranscript += transcript;
@@ -124,6 +128,7 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
       setError(null);
       setInterimTranscript('');
       setConfidence(0);
+      lastTranscriptRef.current = '';
       
       // Clear previous content
       setTranscript('');
