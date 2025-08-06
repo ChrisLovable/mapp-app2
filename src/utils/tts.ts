@@ -59,7 +59,7 @@ class TTSService {
 
   // Lazy fetch TTS audio only when explicitly requested
   async generateSpeech(options: TTSOptions): Promise<TTSResponse> {
-    const { text, language } = options;
+    const { text, language, voice } = options;
 
     if (!text?.trim()) {
       return { success: false, error: 'No text provided' };
@@ -82,7 +82,8 @@ class TTSService {
         },
         body: JSON.stringify({
           text: text.trim(),
-          language
+          language,
+          voice
         }),
         signal: AbortSignal.timeout(15000) // 15 second timeout
       });

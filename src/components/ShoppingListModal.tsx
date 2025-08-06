@@ -559,8 +559,13 @@ Example: {"description": "milk", "quantity": "1 gallon", "vendor": "Walmart"}`;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
       <div
-ia        className="rounded-2xl bg-black p-2 w-full max-w-[90vw] max-h-[95vh] flex flex-col overflow-hidden"
-        style={{ boxSizing: 'border-box', border: '2px solid white' }}
+        className="rounded-2xl bg-black p-2 flex flex-col overflow-hidden"
+        style={{ 
+          boxSizing: 'border-box', 
+          border: '2px solid white',
+          width: '85vw',
+          height: '90vh'
+        }}
       >
         {/* Header */}
         <div 
@@ -600,11 +605,10 @@ ia        className="rounded-2xl bg-black p-2 w-full max-w-[90vw] max-h-[95vh] f
           {/* Top Panel - New Items */}
           <div className="flex flex-col mb-4">
             <div className="mb-3">
-              <h3 className="text-lg font-bold text-white text-center mb-3">New Items</h3>
-              <div className="flex justify-center">
+              <div className="flex justify-start">
               <button
                 onClick={addEmptyItem}
-                  className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
+                  className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border border-gray-400 text-sm"
                   style={{ background: '#111' }}
               >
                   Add New Item
@@ -659,14 +663,14 @@ ia        className="rounded-2xl bg-black p-2 w-full max-w-[90vw] max-h-[95vh] f
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => removeParsedItem(item.id)}
-                            className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
+                            className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border border-gray-400 text-sm"
                             style={{ background: '#dc2626' }}
                           >
                             Remove
                           </button>
                             <button
                               onClick={() => confirmItem(item)}
-                            className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
+                            className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border border-gray-400 text-sm"
                             style={{ background: '#111' }}
                             >
                               Confirm
@@ -676,11 +680,7 @@ ia        className="rounded-2xl bg-black p-2 w-full max-w-[90vw] max-h-[95vh] f
                       </div>
                     ))}
                   </div>
-              ) : (
-                <div className="text-center text-gray-400 py-8">
-                  <p>No new items to add. Use the "Add New Item" button or enter text below.</p>
-                </div>
-              )}
+              ) : null}
 
               {/* Error Message */}
               {error && (
@@ -701,32 +701,26 @@ ia        className="rounded-2xl bg-black p-2 w-full max-w-[90vw] max-h-[95vh] f
           {/* Bottom Panel - Saved Items */}
           <div className="flex flex-col flex-1">
                             <div className="mb-3">
-                  <h3 className="text-lg font-bold text-white mb-2">Saved Items</h3>
+                  <h3 className="text-lg font-bold text-white mb-2 text-left">Saved Items</h3>
                   <div className="flex gap-2 w-full">
                     <button
                       onClick={() => setFilter('all')}
-                      className={`flex-1 px-4 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border-0 text-sm ${
-                        filter === 'all' ? 'border-2 border-white' : ''
-                      }`}
-                      style={{ background: '#111' }}
+                      className={`flex-1 px-4 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border border-gray-400 text-sm`}
+                      style={{ background: filter === 'all' ? '#10b981' : '#111' }}
                     >
                       All
                     </button>
                     <button
                       onClick={() => setFilter('active')}
-                      className={`flex-1 px-4 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border-0 text-sm ${
-                        filter === 'active' ? 'border-2 border-white' : ''
-                      }`}
-                      style={{ background: '#111' }}
+                      className={`flex-1 px-4 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border border-gray-400 text-sm`}
+                      style={{ background: filter === 'active' ? '#10b981' : '#111' }}
                     >
                       Active
                     </button>
                     <button
                       onClick={() => setFilter('completed')}
-                      className={`flex-1 px-4 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border-0 text-sm ${
-                        filter === 'completed' ? 'border-2 border-white' : ''
-                      }`}
-                      style={{ background: '#111' }}
+                      className={`flex-1 px-4 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border border-gray-400 text-sm`}
+                      style={{ background: filter === 'completed' ? '#10b981' : '#111' }}
                     >
                       Completed
                     </button>
@@ -758,7 +752,7 @@ ia        className="rounded-2xl bg-black p-2 w-full max-w-[90vw] max-h-[95vh] f
                           {!item.completed && (
                       <button 
                         onClick={() => handleToggleComplete(item)}
-                              className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border-0 text-xs"
+                              className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border border-gray-400 text-xs"
                               style={{ background: '#10b981' }}
                             >
                               Done
@@ -768,14 +762,14 @@ ia        className="rounded-2xl bg-black p-2 w-full max-w-[90vw] max-h-[95vh] f
                             <>
                               <button
                                 onClick={saveEditing}
-                                className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border-0 text-xs"
+                                className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border border-gray-400 text-xs"
                                 style={{ background: '#2563eb' }}
                               >
                                 Save
                               </button>
                               <button
                                 onClick={cancelEditing}
-                                className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border-0 text-xs"
+                                className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border border-gray-400 text-xs"
                                 style={{ background: '#111' }}
                               >
                                 Cancel
@@ -784,7 +778,7 @@ ia        className="rounded-2xl bg-black p-2 w-full max-w-[90vw] max-h-[95vh] f
                           ) : (
                             <button
                               onClick={() => startEditing(item)}
-                              className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border-0 text-xs"
+                              className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border border-gray-400 text-xs"
                               style={{ background: '#111' }}
                             >
                               Edit
@@ -792,7 +786,7 @@ ia        className="rounded-2xl bg-black p-2 w-full max-w-[90vw] max-h-[95vh] f
                           )}
                           <button
                             onClick={() => handleDeleteShoppingItem(item.id)}
-                            className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border-0 text-xs"
+                            className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-lg transition-all border border-gray-400 text-xs"
                             style={{ background: '#dc2626' }}
                           >
                             Delete

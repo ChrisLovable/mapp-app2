@@ -88,7 +88,7 @@ app.get('/api/azure-voices', async (req, res) => {
 
 // Azure TTS endpoint for text-to-speech
 app.post('/api/azure-tts', async (req, res) => {
-  const { text, language } = req.body;
+  const { text, language, voice } = req.body;
   
   if (!text || !language) {
     return res.status(400).json({ error: 'Text and language are required' });
@@ -119,11 +119,38 @@ app.post('/api/azure-tts', async (req, res) => {
     }
 
     const voices = await voicesResponse.json();
-    const voice = voices.find((v) => v.Locale === language);
     
-    if (!voice) {
+    // Select voice based on language and preference
+    let selectedVoice;
+    if (voice) {
+      // Use specified voice if provided
+      selectedVoice = voices.find((v) => v.ShortName === voice);
+    } else {
+      // Default voice selection based on language
+      if (language === 'en-US') {
+        // Try specific voices first, then fallback to any available English voice
+        selectedVoice = voices.find((v) => v.ShortName === 'en-US-PhoebeNeural') ||
+                      voices.find((v) => v.ShortName === 'en-US-JennyNeural') ||
+                      voices.find((v) => v.ShortName === 'en-US-AriaNeural') ||
+                      voices.find((v) => v.Locale === 'en-US' && v.Gender === 'Female');
+      } else if (language === 'af-ZA') {
+        selectedVoice = voices.find((v) => v.ShortName === 'af-ZA-AdriNeural');
+        if (!selectedVoice) {
+          // Fallback to any Afrikaans voice
+          selectedVoice = voices.find((v) => v.Locale === 'af-ZA' && v.Gender === 'Female');
+        }
+      } else {
+        // Fallback to any available voice for the language
+        selectedVoice = voices.find((v) => v.Locale === language);
+      }
+    }
+    
+    if (!selectedVoice) {
+      console.error(`Available voices for ${language}:`, voices.filter(v => v.Locale === language).map(v => v.ShortName));
       throw new Error(`No voice found for language: ${language}`);
     }
+
+    console.log(`Using voice: ${selectedVoice.ShortName} for language: ${language}`);
 
     // Generate speech using Azure TTS
     const ttsResponse = await fetch(endpoint, {
@@ -133,7 +160,7 @@ app.post('/api/azure-tts', async (req, res) => {
         'Content-Type': 'application/ssml+xml',
         'X-Microsoft-OutputFormat': 'audio-16khz-128kbitrate-mono-mp3',
       },
-      body: `<speak version='1.0' xml:lang='${language}'><voice xml:lang='${language}' xml:gender='Female' name='${voice.ShortName}'>${text}</voice></speak>`
+      body: `<speak version='1.0' xml:lang='${language}'><voice xml:lang='${language}' xml:gender='Female' name='${selectedVoice.ShortName}'>${text}</voice></speak>`
     });
 
     if (!ttsResponse.ok) {

@@ -18,6 +18,7 @@ import AdminDashboard from '../components/AdminDashboard';
 import CalendarModal from '../components/CalendarModal';
 import DiaryModal from '../components/CreateDiaryEntryModal';
 import RealtimeConfirmationModal from '../components/RealtimeConfirmationModal';
+import GabbyChatModal from '../components/GabbyChatModal';
 
 import { useAuth } from '../contexts/AuthContext';
 import { AskMeLogic } from '../lib/AskMeLogic';
@@ -159,7 +160,7 @@ interface HomeProps {
 export default function Home({ onShowAuth }: HomeProps) {
   const { user, loading } = useAuth();
   const [message, setMessage] = useState('');
-  const [language, _setLanguage] = useState('en-GB');
+  const [language, setLanguage] = useState('en-US');
   const [_languages, setLanguages] = useState<LanguageOption[]>([]);
   const [isDiaryModalOpen, setIsDiaryModalOpen] = useState(false);
 
@@ -177,11 +178,12 @@ export default function Home({ onShowAuth }: HomeProps) {
   const [_isMindGamesModalOpen, _setIsMindGamesModalOpen] = useState(false);
   const [isImageGeneratorModalOpen, setIsImageGeneratorModalOpen] = useState(false);
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
+  const [isGabbyChatModalOpen, setIsGabbyChatModalOpen] = useState(false);
   const [_isTokenDashboardOpen, _setIsTokenDashboardOpen] = useState(false);
   const [_excelFile, _setExcelFile] = useState<any | null>(null); // Changed type to any
 
   const [_selectedModel, _setSelectedModel] = useState<string>('openai/gpt-4o');
-  const [clearKey, _setClearKey] = useState<number>(0);
+
   const [notification, setNotification] = useState<{
     message: string;
     type: 'success' | 'error' | 'info';
@@ -327,6 +329,10 @@ export default function Home({ onShowAuth }: HomeProps) {
     setIsSmartMeetingRecorderOpen(true);
   };
 
+  const handleGabbyChatClick = () => {
+    setIsGabbyChatModalOpen(true);
+  };
+
   // Image choice modal handlers
   const handleShowImageChoice = () => {
     setShowImageChoice(true);
@@ -352,6 +358,11 @@ export default function Home({ onShowAuth }: HomeProps) {
     if (cameraInput) {
       cameraInput.click();
     }
+  };
+
+  // Language change handler
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage);
   };
 
   // Initialize languages on component mount
@@ -384,79 +395,90 @@ export default function Home({ onShowAuth }: HomeProps) {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-900 to-black text-white relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-3/4 right-1/4 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style={{ animationDelay: '4s' }}></div>
-      </div>
-
-      {/* Main container */}
-      <div className="relative z-10 flex flex-col h-full">
-        {/* Header */}
-        <Header 
-          onDashboardClick={() => {}}
-          onAdminDashboardClick={() => setIsAdminDashboardOpen(true)}
-        />
-
-        {/* Main content area */}
-        <div className="flex-1 flex flex-col mt-16">
-          {/* Message input section */}
-          <div className="flex-shrink-0 px-4 py-2">
-            <div className="max-w-2xl mx-auto">
-              <MessageBox 
-                value={message} 
-                onChange={(e) => setMessage(e.target.value)}
-                uploadedImage={uploadedImage}
-                setUploadedImage={setUploadedImage}
-                onShowImageChoice={handleShowImageChoice}
-                onGalleryUpload={handleGalleryUpload}
-                onCameraCapture={handleCameraCapture}
-              />
-              <CommandButtons 
-                message={message} 
-                setMessage={setMessage} 
-                clearKey={clearKey}
-              />
-            </div>
-          </div>
-          
-          {/* Grid section */}
-          <div className="flex-1 min-h-0 pb-24 -mt-3">
-            <AppGrid 
-              onAskAIClick={handleAskAI}
-              onTranslateClick={handleTranslateClick}
-              onRewriteClick={handleRewriteClick}
-              onDiaryClick={() => setIsDiaryModalOpen(true)}
-              onCalendarClick={() => setIsCalendarModalOpen(true)}
-              onExpenseClick={handleExpenseClick}
-              onTodoClick={handleTodoClick}
-              onShoppingClick={handleShoppingListClick}
-              onImageToTextClick={handleImageToTextClick}
-              onPdfReaderClick={handlePdfReaderClick}
-              onMeetingMinutesClick={() => {}}
-              onSmartMeetingRecorderClick={handleSmartMeetingRecorderClick}
-              onImageGeneratorClick={() => setIsImageGeneratorModalOpen(true)}
-              onExpenseJournalClick={() => {}}
-              onTokenDashboardClick={() => {}}
-              onAdminDashboardClick={() => setIsAdminDashboardOpen(true)}
+    <div className="min-h-screen bg-black relative">
+      {/* Gabby Chat Button - Floating */}
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40">
+        <button
+          onClick={handleGabbyChatClick}
+          className="relative w-16 h-16 rounded-full transition-all duration-300 hover:scale-110 shadow-2xl"
+          style={{
+            background: 'transparent',
+            border: '2px solid #808080',
+            boxShadow: 'none',
+            filter: 'none',
+            transform: 'none'
+          }}
+        >
+          {/* Gabby Image Overlay */}
+          <div className="absolute inset-0 rounded-full overflow-hidden">
+            <img 
+              src="/Gabby.jpg"
+              alt="Gabby Chat" 
+              className="w-full h-full object-cover"
             />
           </div>
-        </div>
+        </button>
+      </div>
 
-        {/* Modals */}
+
+
+
+
+      {/* Main Content */}
+      <div className="pt-20 pb-8 px-4">
+        <Header onDashboardClick={() => {}} onAdminDashboardClick={() => setIsAdminDashboardOpen(true)} />
+        
+        <div className="max-w-4xl mx-auto">
+          <MessageBox 
+            value={message} 
+            onChange={(e) => setMessage(e.target.value)}
+            uploadedImage={uploadedImage}
+            setUploadedImage={setUploadedImage}
+            onShowImageChoice={handleShowImageChoice}
+            onGalleryUpload={handleGalleryUpload}
+            onCameraCapture={handleCameraCapture}
+            language={language}
+            onLanguageChange={handleLanguageChange}
+          />
+          <CommandButtons 
+            message={message} 
+            setMessage={setMessage} 
+          />
+          
+          <AppGrid 
+            onAskAIClick={handleAskAI}
+            onTranslateClick={handleTranslateClick}
+            onRewriteClick={handleRewriteClick}
+            onDiaryClick={() => setIsDiaryModalOpen(true)}
+            onCalendarClick={() => setIsCalendarModalOpen(true)}
+            onExpenseClick={handleExpenseClick}
+            onTodoClick={handleTodoClick}
+            onShoppingClick={handleShoppingListClick}
+            onImageToTextClick={handleImageToTextClick}
+            onPdfReaderClick={handlePdfReaderClick}
+            onMeetingMinutesClick={() => {}}
+            onSmartMeetingRecorderClick={handleSmartMeetingRecorderClick}
+            onImageGeneratorClick={() => setIsImageGeneratorModalOpen(true)}
+            onExpenseJournalClick={() => {}}
+            onTokenDashboardClick={() => {}}
+            onAdminDashboardClick={() => setIsAdminDashboardOpen(true)}
+          />
+        </div>
+      </div>
+
+      {/* Modals */}
+      <>
         <TranslateModal 
           isOpen={isTranslateModalOpen} 
           onClose={() => setIsTranslateModalOpen(false)}
-          currentLanguage={language}
+          currentText={message}
         />
         
         <RewriteModal 
           isOpen={isRewriteModalOpen} 
           onClose={() => setIsRewriteModalOpen(false)}
           currentText={message}
-          onTextUpdate={setMessage}
+          onTextChange={setMessage}
         />
         
         <ImageToTextModal 
@@ -500,6 +522,13 @@ export default function Home({ onShowAuth }: HomeProps) {
         <DiaryModal 
           isOpen={isDiaryModalOpen} 
           onClose={() => setIsDiaryModalOpen(false)}
+          currentText={message}
+        />
+        
+        <GabbyChatModal 
+          isOpen={isGabbyChatModalOpen} 
+          onClose={() => setIsGabbyChatModalOpen(false)}
+          language={language}
         />
         
         <ImageGeneratorModal
@@ -507,10 +536,10 @@ export default function Home({ onShowAuth }: HomeProps) {
           onClose={() => setIsImageGeneratorModalOpen(false)}
         />
         
-              <AdminDashboard
-        isOpen={isAdminDashboardOpen}
-        onClose={() => setIsAdminDashboardOpen(false)}
-      />
+        <AdminDashboard
+          isOpen={isAdminDashboardOpen}
+          onClose={() => setIsAdminDashboardOpen(false)}
+        />
 
         {/* TokenDashboard - Hidden but data tracking remains active
         <TokenDashboard
@@ -595,8 +624,9 @@ export default function Home({ onShowAuth }: HomeProps) {
           onGalleryUpload={handleGalleryUpload}
           onCameraCapture={handleCameraCapture}
         />
+      </>
 
       </div>
-    </div>
+
   );
 }

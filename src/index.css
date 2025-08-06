@@ -1189,3 +1189,26 @@ body .force-black-button,
     transform: translate(-50%, -50%) translateY(0) scale(1);
   }
 }
+
+/* Gabby Modal Specific Styles - Override any conflicting styles */
+.gabby-modal-title {
+  font-size: 1rem !important;
+  line-height: 1.5rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-height: 1.5rem !important;
+}
+
+.gabby-modal-subtitle {
+  font-size: 0.75rem !important;
+  line-height: 1rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-height: 1rem !important;
+}

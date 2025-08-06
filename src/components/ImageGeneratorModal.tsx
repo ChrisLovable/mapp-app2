@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FaMicrophone, FaMicrophoneSlash, FaDownload, FaSave, FaUpload, FaImage, FaTimes, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import { SpeechToTextButton } from './SpeechToTextButton';
-import { replicateImageService } from '../lib/ReplicateImageService';
-import type { ReplicateImageOptions } from '../lib/ReplicateImageService';
+import { openAIImageService } from '../lib/OpenAIImageService';
+import type { ImageGenerationOptions } from '../lib/OpenAIImageService';
 
 interface ImageGeneratorModalProps {
   isOpen: boolean;
@@ -212,6 +212,34 @@ const styleCategories = [
       'Lego Friends',
       'Lego Creator'
     ]
+  },
+  {
+    id: 'barbie',
+    name: 'Barbie',
+    description: 'Barbie doll and fashion styles',
+    subcategories: [
+      'Barbie Doll',
+      'Barbie Fashion',
+      'Barbie Dream House',
+      'Barbie Movie Style',
+      'Barbie Pink Aesthetic',
+      'Barbie Glamour',
+      'Barbie Fantasy'
+    ]
+  },
+  {
+    id: 'avatar',
+    name: 'Avatar',
+    description: 'Avatar - the movie style',
+    subcategories: [
+      'Avatar Movie',
+      'Pandora World',
+      'Na\'vi Style',
+      'Sci-Fi Fantasy',
+      'Alien Landscape',
+      'Bioluminescent',
+      'Futuristic Nature'
+    ]
   }
 ];
 
@@ -223,11 +251,33 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
   const [selectedSubstyle, setSelectedSubstyle] = useState<string>('');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isThoughtForDayGenerating, setIsThoughtForDayGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>('');
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const [showTipsModal, setShowTipsModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedQuote, setSelectedQuote] = useState<string>('');
+
+  // Test image loading on component mount
+  useEffect(() => {
+    console.log('🔍 Testing Gabby image accessibility...');
+    const testImages = [
+      '/gabby_cartoon.jpg',
+      '/gabby_anime.jpg',
+      '/gabby_photo.jpg',
+      '/Gabby.jpg'
+    ];
+    
+    testImages.forEach(src => {
+      const img = new Image();
+      img.onload = () => console.log('✅ Image loaded successfully:', src);
+      img.onerror = () => console.error('❌ Failed to load image:', src);
+      img.src = src;
+    });
+  }, []);
 
   // Handle STT result
   const handleSTTResult = (text: string) => {
@@ -235,82 +285,39 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
   };
 
   const generateImage = async () => {
-    if (!prompt.trim() && selectedStyle === 'none') {
-      setError('Please enter a prompt for image generation.');
-      return;
-    }
+    if (!prompt.trim()) return;
 
     setIsGenerating(true);
-    setError(null);
-    setProgress('Initializing OpenAI DALL-E 3...');
+    setIsThoughtForDayGenerating(prompt.includes('Thought for the Day'));
+    setError('');
+    setProgress('');
+    setGeneratedImage(null);
 
     try {
-      // Prepare the prompt
-      let finalPrompt = prompt.trim();
+      const finalPrompt = selectedStyle !== 'none' 
+        ? `${prompt} in ${getSelectedStyleText()} style`
+        : prompt;
 
-      // If reference image is provided, create a transformation prompt
-      if (referenceImage && selectedStyle !== 'none') {
-        finalPrompt = `Take the reference image and convert it to ${getSelectedStyleText()} style. ${finalPrompt}`;
-      } else if (referenceImage && selectedStyle === 'none') {
-        finalPrompt = `Transform the reference image. ${finalPrompt}`;
-      } else if (!referenceImage && selectedStyle !== 'none') {
-        finalPrompt = `Create an image in ${getSelectedStyleText()} style. ${finalPrompt}`;
-      }
-
-      if (!finalPrompt) {
-        throw new Error('Please enter a prompt or select a style for image generation.');
-      }
-
-      if (referenceImage) {
-        setProgress('Transforming reference image with Replicate...');
-      } else {
-        setProgress('Generating image with Replicate...');
-      }
-
-      // Generate image using Replicate
-      const options: ReplicateImageOptions = {
+      const options: ImageGenerationOptions = {
         prompt: finalPrompt,
-        referenceImage: referenceImage || undefined,
-        styleInfo: getSelectedStyleText(),
-        strength: 0.7, // How much to follow the reference image
-        guidance_scale: 7.5 // How closely to follow the prompt
+        size: '1024x1024',
+        quality: 'standard',
+        style: 'vivid'
       };
 
-      console.log('=== IMAGE GENERATOR MODAL DEBUG ===');
-      console.log('Final Prompt:', finalPrompt);
-      console.log('Selected Style:', selectedStyle);
-      console.log('Style Text:', getSelectedStyleText());
-      console.log('Reference Image Present:', !!referenceImage);
-      console.log('Options being sent to service:', JSON.stringify(options, null, 2));
-      console.log('===================================');
-
-      const result = await replicateImageService.generateImage(options);
-
-      if (!result.success) {
+      const result = await openAIImageService.generateImage(options);
+      
+      if (result.success && result.imageUrl) {
+        setGeneratedImage(result.imageUrl);
+      } else {
         throw new Error(result.error || 'Failed to generate image');
       }
-
-          setProgress('Generation complete!');
-      setGeneratedImage(result.imageUrl!);
-      
-      // Log the type of operation performed
-      if (referenceImage) {
-        console.log('Image transformation completed using reference image');
-      } else {
-        console.log('New image generation completed');
-      }
-      
-      console.log('Image generated successfully:', result.imageUrl);
-      if (result.usage) {
-        console.log('API usage:', result.usage);
-      }
-
     } catch (err) {
       console.error('Generation error:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate image');
     } finally {
       setIsGenerating(false);
-      setProgress('');
+      setIsThoughtForDayGenerating(false);
     }
   };
 
@@ -318,17 +325,15 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
     if (!generatedImage) return;
 
     try {
-      const response = await fetch(generatedImage);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
+      // Simple direct download approach to preserve image quality
       const a = document.createElement('a');
-      a.href = url;
+      a.href = generatedImage;
       a.download = `ai-generated-image-${Date.now()}.png`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Download error:', err);
       setError('Failed to download image');
@@ -341,7 +346,15 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
     try {
       // For mobile devices, we can use the Web Share API if available
       if (navigator.share) {
-        const response = await fetch(generatedImage);
+        // Try to fetch the image with proper headers
+        const response = await fetch(generatedImage, {
+          mode: 'cors',
+          headers: {
+            'Accept': 'image/*'
+          }
+        });
+        
+        if (response.ok) {
         const blob = await response.blob();
         const file = new File([blob], `ai-image-${Date.now()}.png`, { type: 'image/png' });
         
@@ -350,6 +363,10 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
           text: `Generated from prompt: ${prompt}`,
           files: [file]
         });
+        } else {
+          // Fallback to direct download
+          downloadImage();
+        }
       } else {
         // Fallback: trigger download
         downloadImage();
@@ -358,6 +375,52 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
       console.error('Save to gallery error:', err);
       // Fallback to download
       downloadImage();
+    }
+  };
+
+  const saveToPhoneGallery = async () => {
+    if (!generatedImage) return;
+
+    setIsSaving(true);
+    try {
+      // For mobile devices, try to use the Web Share API first
+      if (navigator.share && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        // Try to fetch the image with proper headers
+        const response = await fetch(generatedImage, {
+          mode: 'cors',
+          headers: {
+            'Accept': 'image/*'
+          }
+        });
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          const file = new File([blob], `gabby-ai-image-${Date.now()}.png`, { type: 'image/png' });
+          
+          await navigator.share({
+            title: 'Gabby AI Generated Image',
+            text: `AI generated image: ${prompt}`,
+            files: [file]
+          });
+          
+          // Show success message
+          setSaveSuccess(true);
+          setTimeout(() => setSaveSuccess(false), 3000);
+        } else {
+          // Fallback to regular download
+          downloadImage();
+        }
+      } else {
+        // For desktop or when Web Share API is not available
+        downloadImage();
+      }
+      
+    } catch (err) {
+      console.error('Save to phone gallery error:', err);
+      // Fallback to regular download
+      downloadImage();
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -407,6 +470,11 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
 
   const showEnlargedImage = (imageSrc: string) => {
     setEnlargedImage(imageSrc);
+    
+    // Auto-close after 2 seconds
+    setTimeout(() => {
+      setEnlargedImage(null);
+    }, 2000);
   };
 
   const closeEnlargedImage = () => {
@@ -438,14 +506,132 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
   };
 
   const getSelectedStyleText = () => {
-    if (selectedStyle === 'none') return '';
     const category = styleCategories.find(cat => cat.id === selectedStyle);
     if (!category) return '';
     
-    if (selectedSubstyle) {
+    if (selectedSubstyle && selectedSubstyle !== 'All') {
       return `${category.name} - ${selectedSubstyle}`;
     }
     return category.name;
+  };
+
+  const generateThoughtForTheDay = () => {
+    const backgrounds = [
+      'sunrise over mountains',
+      'glowing forest',
+      'peaceful beach at dawn',
+      'golden meadow',
+      'cozy sunlit home',
+      'vibrant city morning',
+      'tranquil lake',
+      'radiant light streaming through clouds',
+      'wildflowers',
+      'gentle rain with sun rays',
+      'majestic landscape'
+    ];
+
+    const quotes = [
+      'Let your kindness be the sunshine that warms another\'s day.',
+      'Grace is found in the quiet moments of faith.',
+      'Lift others with your words and actions.',
+      'Even the smallest light can break the deepest darkness.',
+      'Start your day with hope and spread it generously.',
+      'You are loved, chosen, and created with purpose.',
+      'Find beauty in the ordinary and gratitude in every breath.',
+      'Live with an open heart and watch the world change.',
+      'Your presence is a gift to this world.',
+      'Choose joy, spread love, and trust the journey.',
+      'In every moment, there is beauty waiting to be discovered.',
+      'You have the power to make someone\'s day brighter.',
+      'Faith is the bridge between dreams and reality.',
+      'Kindness is the language that everyone understands.',
+      'Your potential is greater than any obstacle you face.'
+    ];
+
+    const randomBackground = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+
+    return `Create a beautiful "Thought for the Day" inspirational image with the following quote prominently displayed: "${randomQuote}"
+
+Background: ${randomBackground}
+
+Style requirements:
+- High-resolution, vibrant, emotionally uplifting design
+- The quote should be clearly visible and readable in elegant typography
+- Use white text with subtle shadow or outline for readability
+- Instagram story/post size format (vertical or square, e.g. 1080x1350 or 1084x1080)
+- Professional quality suitable for social media sharing
+- The quote should be the focal point, centered and well-positioned
+- Beautiful, inspiring background that complements the message
+
+The image should be designed to inspire and uplift, with the quote prominently displayed against a beautiful background.`;
+  };
+
+  const addTextOverlay = (imageUrl: string, quote: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        // Set canvas size to match image
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        // Draw the background image
+        ctx?.drawImage(img, 0, 0);
+        
+        if (ctx) {
+          // Set up text styling
+          ctx.font = 'bold 48px Arial, sans-serif';
+          ctx.fillStyle = 'white';
+          ctx.strokeStyle = 'black';
+          ctx.lineWidth = 3;
+          ctx.textAlign = 'center';
+          
+          // Calculate text position (center of image)
+          const x = canvas.width / 2;
+          const y = canvas.height / 2;
+          
+          // Split quote into lines (max 40 characters per line)
+          const words = quote.split(' ');
+          const lines: string[] = [];
+          let currentLine = '';
+          
+          words.forEach(word => {
+            if ((currentLine + word).length <= 40) {
+              currentLine += (currentLine ? ' ' : '') + word;
+            } else {
+              lines.push(currentLine);
+              currentLine = word;
+            }
+          });
+          if (currentLine) lines.push(currentLine);
+          
+          // Draw text with shadow effect
+          lines.forEach((line, index) => {
+            const lineY = y - (lines.length - 1) * 30 + index * 60;
+            
+            // Draw stroke (outline)
+            ctx.strokeText(line, x, lineY);
+            // Draw fill
+            ctx.fillText(line, x, lineY);
+          });
+        }
+        
+        // Convert to data URL
+        const dataUrl = canvas.toDataURL('image/png');
+        resolve(dataUrl);
+      };
+      
+      img.onerror = () => {
+        reject(new Error('Failed to load image for text overlay'));
+      };
+      
+      img.src = imageUrl;
+    });
   };
 
   if (!isOpen) return null;
@@ -462,14 +648,29 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
           className="hidden"
         />
         {/* Page Title */}
-                          <div className="mb-6 rounded-xl p-4 shadow-lg w-[calc(100%+40px)] -ml-5 relative simple-double-border" style={{ background: 'linear-gradient(135deg, #000000 0%, #666666 100%)', border: '4px double rgba(255, 255, 255, 0.9)' }}>
-           <h1 className="text-xl font-bold text-white text-center">AI Image Generator</h1>
+        <div className="sticky top-0 z-10 mb-6 py-3 rounded-xl mx-2 mt-2 glassy-btn" style={{
+          background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.9) 0%, rgba(0, 0, 0, 0.95) 100%)',
+          border: '2px solid rgba(255, 255, 255, 0.7)',
+          boxShadow: '0 4px 24px 0 rgba(30, 58, 138, 0.3), 0 1.5px 0 0 #fff',
+          backdropFilter: 'blur(12px)',
+          filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3))'
+        }}>
+          <h1 className="text-white font-bold text-lg text-center" style={{
+            textShadow: '0 1px 4px rgba(30, 58, 138, 0.8)',
+            margin: '0',
+            padding: '0'
+          }}>AI Image Generator</h1>
           <button
             onClick={onClose}
-             className="absolute -top-2 -right-2 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold z-30"
-             style={{ background: '#000000' }}
+            className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+            style={{
+              background: '#000000',
+              fontSize: '15px',
+              border: '1px solid #666666'
+            }}
+            aria-label="Close modal"
           >
-             <FaTimes size={12} />
+            <FaTimes size={12} />
           </button>
         </div>
 
@@ -515,11 +716,13 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
                 onResult={handleSTTResult}
                 onError={(error) => alert(error)}
                 size="md"
-                className="px-4 py-3"
+                className="px-4 py-3 border border-gray-500"
+                interimResults={true}
+                continuous={true}
               />
             <button
                  onClick={() => setPrompt('')}
-                 className="px-4 py-3 glassy-btn neon-grid-btn text-white rounded-lg transition-all border-0"
+                 className="px-4 py-3 glassy-btn neon-grid-btn text-white rounded-lg transition-all border border-gray-500"
                  style={{ height: '40px' }}
                  title="Clear text"
                >
@@ -536,33 +739,36 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
                e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
              }}
              onKeyPress={handleKeyPress}
-             placeholder=""
+             placeholder="Speak or type your image description here..."
              className="w-full p-4 bg-black border border-white rounded-xl text-white resize-none focus:outline-none focus:ring-2 focus:ring-[var(--favourite-blue)] focus:ring-opacity-50"
              style={{ minHeight: '60px', maxHeight: '200px', overflowY: 'auto' }}
            />
+           <div className="mt-2 text-xs text-gray-400 text-left">
+             💡 Tip: Click the microphone button and speak to create your image description in real-time!
+           </div>
         </div>
 
-        {/* Your Image Placeholder */}
-        <div className="mb-6">
-          <label className="block text-white mb-3 text-sm text-left">Your image:</label>
-          <div className={`transition-all duration-500 ease-in-out ${
-            generatedImage ? 'w-full' : 'w-24 h-24 mx-auto'
-          }`}>
-            {generatedImage ? (
-              <div className="bg-black border border-white rounded-xl p-4">
+        {/* Generated Image Display */}
+        {generatedImage && (
+          <div className="mt-6 relative">
                 <img
                   src={generatedImage}
-                  alt="AI Generated"
-                  className="w-full h-auto rounded-lg shadow-lg"
-                />
-              </div>
-            ) : (
-                             <div className="w-24 h-24 border-2 border-dashed border-white rounded-xl flex flex-col items-start justify-center text-white bg-black bg-opacity-50 p-2">
-                 <span className="text-xs opacity-70 text-left">Generated image will appear here</span>
+              alt="Generated AI Image" 
+              className="w-full rounded-xl shadow-2xl"
+            />
+            
+            {/* Save to Gallery Button - Bottom Right */}
+            <button
+              onClick={saveToGallery}
+              className="absolute bottom-4 right-4 px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm flex items-center justify-center gap-2 hover:scale-105 shadow-lg backdrop-blur-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Save to Gallery
+            </button>
                </div>
             )}
-          </div>
-        </div>
 
         {/* Style Selector Section */}
         <div className="mb-6">
@@ -570,30 +776,31 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
             <label className="block text-white text-sm text-left">Choose Image Style:</label>
                                         <button
                  onClick={() => setShowTipsModal(true)}
-                 className="px-3 py-1 glassy-btn neon-grid-btn text-white rounded-lg transition-all border-0 text-xs"
-                 style={{ height: '40px' }}
+                 className="px-4 py-2 glassy-btn neon-grid-btn text-white rounded-lg transition-all border border-gray-500 text-sm"
+                 style={{ height: '50px' }}
                  title="View prompt tips"
                >
                  Prompt tips
                </button>
           </div>
                      <div className="grid grid-cols-4 gap-0">
-            {styleCategories.map((category) => (
+            {styleCategories.map((category) => {
+              return (
               <button
                 key={category.id}
                 onClick={() => handleStyleChange(category.id)}
                                                   className={`w-16 h-16 rounded-lg flex flex-col items-center justify-center transition-all ${
                    selectedStyle === category.id
-                     ? 'bg-gradient-to-r from-red-500/20 via-yellow-500/20 via-green-500/20 via-blue-500/20 to-purple-500/20'
+                      ? 'bg-gradient-to-r from-black to-blue-600'
                      : ''
                  }`}
               >
-                                  {category.id === 'anime' ? (
+                  {category.id === 'photorealistic' ? (
                     <img 
-                      src="/gabby_anime.jpg" 
-                      alt="Anime Style" 
+                      src="/gabby_photo.jpg" 
+                      alt="Photorealistic Style" 
                       className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
-                      onClick={() => showEnlargedImage("/gabby_anime.jpg")}
+                      onClick={() => showEnlargedImage("/gabby_photo.jpg")}
                     />
                                   ) : category.id === 'nature' ? (
                     <img 
@@ -601,27 +808,6 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
                       alt="Nature Style" 
                       className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
                       onClick={() => showEnlargedImage("/gabby_nature.jpg")}
-                    />
-                ) : category.id === 'picasso' ? (
-                  <img 
-                    src="/gabby_picasso.jpg" 
-                    alt="Picasso Style" 
-                    className="w-8 h-8 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
-                    onClick={() => showEnlargedImage("/gabby_picasso.jpg")}
-                  />
-                                  ) : category.id === 'surreal' ? (
-                    <img 
-                      src="/gabby_surreal.jpg" 
-                      alt="Surreal Style" 
-                      className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
-                      onClick={() => showEnlargedImage("/gabby_surreal.jpg")}
-                    />
-                                  ) : category.id === 'fantasy' ? (
-                    <img 
-                      src="/gabby_fantasy.jpg" 
-                      alt="Fantasy Style" 
-                      className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
-                      onClick={() => showEnlargedImage("/gabby_fantasy.jpg")}
                     />
                                                    ) : category.id === 'photorealistic' ? (
                     <img 
@@ -636,6 +822,13 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
                       alt="Cartoon Style" 
                       className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
                       onClick={() => showEnlargedImage("/gabby_cartoon.jpg")}
+                    />
+                  ) : category.id === 'anime' ? (
+                    <img 
+                      src="/gabby_anime.jpg" 
+                      alt="Anime Style" 
+                      className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
+                      onClick={() => showEnlargedImage("/gabby_anime.jpg")}
                     />
                                                    ) : category.id === 'filmnoir' ? (
                     <img 
@@ -658,6 +851,20 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
                       className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
                       onClick={() => showEnlargedImage("/gabby_3dcartoon.jpg")}
                     />
+                  ) : category.id === 'fantasy' ? (
+                    <img 
+                      src="/gabby_fantasy.jpg" 
+                      alt="Fantasy Style" 
+                      className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
+                      onClick={() => showEnlargedImage("/gabby_fantasy.jpg")}
+                    />
+                  ) : category.id === 'surreal' ? (
+                    <img 
+                      src="/gabby_surreal.jpg" 
+                      alt="Surreal Style" 
+                      className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
+                      onClick={() => showEnlargedImage("/gabby_surreal.jpg")}
+                    />
                                                    ) : category.id === 'popculture' ? (
                     <img 
                       src="/gabby_pop.jpg" 
@@ -678,6 +885,13 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
                       alt="Vintage Style" 
                       className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
                       onClick={() => showEnlargedImage("/gabby_vintage.jpg")}
+                    />
+                  ) : category.id === 'nature' ? (
+                    <img 
+                      src="/gabby_nature.jpg" 
+                      alt="Nature Style" 
+                      className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
+                      onClick={() => showEnlargedImage("/gabby_nature.jpg")}
                     />
                                   ) : category.id === 'cute' ? (
                     <img 
@@ -700,17 +914,116 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
                       className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
                       onClick={() => showEnlargedImage("/gabby_lego.jpg")}
                     />
+                  ) : category.id === 'barbie' ? (
+                    <img 
+                      src="/gabby_barbie.jpg" 
+                      alt="Barbie Style" 
+                      className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
+                      onClick={() => showEnlargedImage("/gabby_barbie.jpg")}
+                    />
+                  ) : category.id === 'avatar' ? (
+                    <img 
+                      src="/gabby_avatar.jpg" 
+                      alt="Avatar Style" 
+                      className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
+                      onClick={() => showEnlargedImage("/gabby_avatar.jpg")}
+                    />
+                  ) : category.id === 'none' ? (
+                    <img 
+                      src="/Gabby.jpg" 
+                      alt="No Style" 
+                      className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
+                      onClick={() => showEnlargedImage("/Gabby.jpg")}
+                    />
                                   ) : (
-                    <div 
-                      className="w-12 h-12 bg-gray-700 rounded border border-gray-600 cursor-pointer hover:opacity-80"
-                      onClick={() => showEnlargedImage(`/placeholder-${category.id}.jpg`)}
-                    ></div>
+                    <img 
+                      src="/gabby_cartoon.jpg" 
+                      alt="Default Style" 
+                      className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
+                      onClick={() => showEnlargedImage("/gabby_cartoon.jpg")}
+                    />
                   )}
                                  <span className="text-[10px] text-white mt-0.5 font-medium truncate w-full text-center">
                    {category.id === 'none' ? 'None' : category.name.split(' ')[0]}
                  </span>
               </button>
-            ))}
+              )})}
+          </div>
+
+          {/* Thought for the Day Button - Positioned to the right of Avatar */}
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={async () => {
+                const quotes = [
+                  'Let your kindness be the sunshine that warms another\'s day.',
+                  'Grace is found in the quiet moments of faith.',
+                  'Lift others with your words and actions.',
+                  'Even the smallest light can break the deepest darkness.',
+                  'Start your day with hope and spread it generously.',
+                  'You are loved, chosen, and created with purpose.',
+                  'Find beauty in the ordinary and gratitude in every breath.',
+                  'Live with an open heart and watch the world change.',
+                  'Your presence is a gift to this world.',
+                  'Choose joy, spread love, and trust the journey.',
+                  'In every moment, there is beauty waiting to be discovered.',
+                  'You have the power to make someone\'s day brighter.',
+                  'Faith is the bridge between dreams and reality.',
+                  'Kindness is the language that everyone understands.',
+                  'Your potential is greater than any obstacle you face.'
+                ];
+                const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+                setSelectedQuote(randomQuote);
+                
+                setIsGenerating(true);
+                setIsThoughtForDayGenerating(true);
+                setError('');
+                setProgress('');
+                setGeneratedImage(null);
+
+                try {
+                  // Generate prompt with the selected quote
+                  const thoughtPrompt = `Create a beautiful "Thought for the Day" inspirational image with the following quote prominently displayed: "${randomQuote}"
+
+Background: ${['sunrise over mountains', 'glowing forest', 'peaceful beach at dawn', 'golden meadow', 'cozy sunlit home', 'vibrant city morning', 'tranquil lake', 'radiant light streaming through clouds', 'wildflowers', 'gentle rain with sun rays', 'majestic landscape'][Math.floor(Math.random() * 11)]}
+
+Style requirements:
+- High-resolution, vibrant, emotionally uplifting design
+- The quote should be clearly visible and readable in elegant typography
+- Use white text with subtle shadow or outline for readability
+- Instagram story/post size format (vertical or square, e.g. 1080x1350 or 1084x1080)
+- Professional quality suitable for social media sharing
+- The quote should be the focal point, centered and well-positioned
+- Beautiful, inspiring background that complements the message
+
+The image should be designed to inspire and uplift, with the quote prominently displayed against a beautiful background.`;
+
+                  const options: ImageGenerationOptions = {
+                    prompt: thoughtPrompt,
+                    size: '1024x1024',
+                    quality: 'standard',
+                    style: 'vivid'
+                  };
+
+                  const result = await openAIImageService.generateImage(options);
+                  
+                  if (result.success && result.imageUrl) {
+                    setGeneratedImage(result.imageUrl);
+                  } else {
+                    throw new Error(result.error || 'Failed to generate image');
+                  }
+                } catch (err) {
+                  console.error('Generation error:', err);
+                  setError(err instanceof Error ? err.message : 'Failed to generate image');
+                } finally {
+                  setIsGenerating(false);
+                  setIsThoughtForDayGenerating(false);
+                }
+              }}
+              className="px-3 py-2 glassy-btn neon-grid-btn text-black font-bold rounded-xl transition-all border-0 text-xs flex items-center justify-center gap-1 hover:scale-105 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 shadow-lg backdrop-blur-sm border border-yellow-300/50"
+            >
+              <span className="text-xs">✨</span>
+              <span>Thought for the Day</span>
+            </button>
           </div>
           
           {/* Selected Style Display */}
@@ -733,12 +1046,12 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
         <button
           onClick={generateImage}
            disabled={isGenerating || (selectedStyle === 'none' && !prompt.trim())}
-          className="w-full px-6 py-4 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+          className="w-full px-6 py-4 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border border-gray-500 text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
         >
           {isGenerating ? (
             <div className="flex items-center justify-center gap-3">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-              <span>{progress || 'Generating...'}</span>
+              <span>{isThoughtForDayGenerating ? 'Generating your inspiration for today!' : (progress || 'Generating...')}</span>
             </div>
           ) : (
              'Generate Image'
@@ -755,22 +1068,35 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
           </div>
         )}
 
+        {/* Success Notification */}
+        {saveSuccess && (
+          <div className="mb-4 p-4 bg-green-900 border border-green-500 rounded-xl text-green-200 font-medium">
+            <div className="flex items-center gap-2">
+              <span className="text-green-400">✅</span>
+              <span>Image saved to phone gallery successfully!</span>
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons */}
         {generatedImage && (
           <div className="flex gap-3 mb-6">
               <button
-                onClick={downloadImage}
-                className="flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm flex items-center justify-center gap-2 hover:scale-105"
+                onClick={saveToPhoneGallery}
+                disabled={isSaving}
+                className="flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm flex items-center justify-center gap-2 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <FaDownload size={16} />
-                Download
-              </button>
-              <button
-                onClick={saveToGallery}
-                className="flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm flex items-center justify-center gap-2 hover:scale-105"
-              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
                 <FaSave size={16} />
-                Save to Gallery
+                    Save to Phone Gallery
+                  </>
+                )}
               </button>
             </div>
         )}
@@ -780,12 +1106,6 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
       {enlargedImage && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60]">
           <div className="relative">
-            <button
-              onClick={closeEnlargedImage}
-              className="absolute -top-4 -right-4 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold z-10 border-0"
-            >
-              <FaTimes size={12} />
-            </button>
             <img
               src={enlargedImage}
               alt="Enlarged Style Preview"
@@ -798,35 +1118,68 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
       {/* Tips Modal */}
       {showTipsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60]">
-          <div className="bg-[#111] rounded-2xl p-6 w-[90vw] max-w-md max-h-[80vh] overflow-y-auto border-2 border-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white">💡 Prompt Tips</h2>
+          <div 
+            className="rounded-2xl border-0 p-6 min-w-[300px] max-w-[90vw]"
+            style={{
+              background: 'rgba(0, 0, 0, 0.9)',
+              border: '2px solid rgba(255, 255, 255, 0.4)',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <div 
+              className="relative mb-6 px-4 py-3 rounded-xl glassy-btn"
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+                backdropFilter: 'blur(10px)',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+                transform: 'translateZ(5px)',
+                width: 'calc(100% - 20px)',
+                margin: '0 auto 24px auto'
+              }}
+            >
+              <h2 
+                className="text-white font-bold text-base text-center"
+                style={{
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+                  filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+                  transform: 'translateZ(3px)'
+                }}
+              >
+                💡 Prompt Tips
+              </h2>
+              
               <button
                 onClick={() => setShowTipsModal(false)}
-                className="text-white hover:text-gray-300 transition-colors"
+                className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+                style={{ background: '#000000', fontSize: '15px' }}
+                aria-label="Close modal"
               >
-                <FaTimes size={20} />
+                ×
               </button>
             </div>
             
-            <div className="text-sm text-gray-300 space-y-4">
+            <div className="space-y-4 px-4">
               <div>
-                <h3 className="font-bold text-white mb-2">General Tips:</h3>
-                <ul className="list-disc list-inside space-y-2">
+                <h3 className="font-bold text-white mb-3">🎨 General Tips:</h3>
+                <ul className="list-disc list-inside space-y-2 text-gray-300">
             <li>Choose a style category that matches your vision</li>
             <li>Be specific about colors, composition, and lighting</li>
             <li>Use the microphone for hands-free prompt creation</li>
-                                     <li>Upload a reference image to transform it with your selected style and description</li>
+                  <li>Upload a reference image to transform it with your selected style</li>
             <li>Reference images work best with similar subjects or artistic styles</li>
             <li>Combine style selection with detailed descriptions for best results</li>
-                   <li>PyxlPro generates high-quality 1024x1024 images with true image-to-image transformation</li>
-                   <li>PyxlPro can actually transform your reference image while applying the selected style</li>
+                  <li>OpenAI DALL-E 3 generates high-quality 1024x1024 images</li>
+                  <li>Experiment with different styles to see various artistic interpretations</li>
           </ul>
               </div>
               
-          <div className="p-4 bg-blue-900 border border-white rounded-xl">
-                 <p className="font-bold text-blue-200 text-base mb-1">🎨 PyxlPro Image Generation</p>
-                 <p className="text-blue-100 text-sm">Using PyxlPro for true image-to-image transformation. Make sure your VITE_PYXLPRO_API_KEY is set in your .env file.</p>
+              <div className="p-4 bg-blue-900 bg-opacity-20 border border-blue-500 rounded-xl">
+                <p className="font-bold text-blue-200 text-base mb-2">🚀 AI Image Generation</p>
+                <p className="text-blue-100 text-sm">Using OpenAI DALL-E 3 for high-quality image generation. Make sure your VITE_OPENAI_API_KEY is set in your .env file.</p>
                </div>
             </div>
           </div>

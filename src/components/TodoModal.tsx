@@ -51,6 +51,7 @@ export default function TodoModal({ isOpen, onClose, initialInput }: TodoModalPr
   const [showCompleted, setShowCompleted] = useState(true);
   const [error, setError] = useState('');
   const [debugInfo, setDebugInfo] = useState<string>('');
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ show: boolean; todoId: string | null }>({ show: false, todoId: null });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Reset state when modal opens/closes
@@ -61,8 +62,10 @@ export default function TodoModal({ isOpen, onClose, initialInput }: TodoModalPr
       setEditingTodo(null);
       setError('');
       setDebugInfo('');
+      document.body.style.overflow = 'unset';
     } else {
       fetchTodos();
+      document.body.style.overflow = 'hidden';
     }
   }, [isOpen]);
 
@@ -483,6 +486,26 @@ Example output format:
       console.error('Error updating todo:', error);
       setError(`Failed to update todo: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  };
+
+  const handleDeleteClick = (todoId: string) => {
+    setDeleteConfirmModal({ show: true, todoId });
+  };
+
+  const confirmDelete = async () => {
+    console.log('Confirm delete clicked, todo ID:', deleteConfirmModal.todoId);
+    if (deleteConfirmModal.todoId) {
+      try {
+        await handleDeleteTodo(deleteConfirmModal.todoId);
+        setDeleteConfirmModal({ show: false, todoId: null });
+      } catch (error) {
+        console.error('Error in confirmDelete:', error);
+      }
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmModal({ show: false, todoId: null });
   };
 
   const handleDeleteTodo = async (id: string) => {
@@ -920,12 +943,12 @@ Example output format:
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4" style={{ height: '100vh' }}>
-      <div className="rounded-2xl bg-black p-0 mx-4 flex flex-col" style={{ width: '85vw', boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white' }}>
+    return (
+    <div className="fixed inset-0 bg-black bg-opacity-75 z-[9999] flex items-center justify-center p-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="rounded-2xl bg-black p-0 w-full max-w-4xl" style={{ border: '2px solid white', maxHeight: '90vh' }}>
         {/* Modal Header */}
         <div 
-          className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+          className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn flex-shrink-0" 
           style={{ 
             background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
             border: '2px solid rgba(255, 255, 255, 0.4)',
@@ -948,7 +971,7 @@ Example output format:
           </h2>
           <button
             onClick={onClose}
-            className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+            className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors border border-white"
             style={{ background: '#000000', fontSize: '15px' }}
             aria-label="Close modal"
           >
@@ -956,15 +979,18 @@ Example output format:
           </button>
         </div>
 
-        <div className="flex-1 px-4 pb-2 overflow-y-auto">
+        <div className="flex-1 px-4 pb-2 overflow-y-auto" style={{ 
+          maxHeight: 'calc(90vh - 120px)',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain'
+        }}>
           <div className="space-y-6">
             {/* Top Panel - New Tasks */}
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-bold text-sm">New Tasks</h3>
+              <div className="flex items-center justify-end mb-4">
                 <button
                   onClick={addEmptyTask}
-                  className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0"
+                  className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
                   style={{ background: '#111' }}
                 >
                   Add New
@@ -1007,7 +1033,7 @@ Example output format:
                         <div className="flex justify-end">
                           <button
                             onClick={() => confirmTask(task)}
-                            className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0"
+                            className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
                             style={{ background: '#111' }}
                           >
                             Confirm
@@ -1039,11 +1065,11 @@ Example output format:
                   {todos.map((todo) => (
                     <div key={todo.id} className="bg-black border-2 border-white rounded-2xl p-4 relative">
                       <button 
-                        onClick={() => handleToggleComplete(todo)}
-                        className="absolute top-3 right-3 px-3 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-colors border-0 text-xs"
-                        style={{ background: '#111' }}
+                        onClick={() => handleDeleteClick(todo.id)}
+                        className="absolute top-3 right-3 px-3 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-colors border border-white text-xs"
+                        style={{ background: '#dc2626' }}
                       >
-                        Complete
+                        Delete
                       </button>
                       <div className="flex items-start justify-between pr-20">
                         <div className="flex-1">
@@ -1055,7 +1081,7 @@ Example output format:
                             </span>
                           </div>
                           
-                          <div className="flex items-center gap-3 text-xs text-[var(--favourite-blue)] mb-1">
+                          <div className="flex items-center gap-3 text-xs text-white mb-1">
                             {todo.due_date && (
                               <span>
                                 {(() => {
@@ -1066,7 +1092,7 @@ Example output format:
                             )}
                             
                             {todo.notes && (
-                              <span className="text-[var(--favourite-blue)]">
+                              <span className="text-white">
                                 {todo.notes}
                               </span>
                             )}
@@ -1085,6 +1111,66 @@ Example output format:
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmModal.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[10000] p-4">
+          <div className="rounded-2xl bg-black p-0 w-full max-w-md mx-4 flex flex-col" style={{ boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white' }}>
+            <div 
+              className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+                backdropFilter: 'blur(10px)',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+                transform: 'translateZ(5px)'
+              }}
+            >
+              <h2 
+                className="text-white font-bold text-base text-center"
+                style={{
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+                  filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+                  transform: 'translateZ(3px)'
+                }}
+              >
+                Confirm Deletion
+              </h2>
+              <div className="absolute top-2 right-2 flex items-center gap-2">
+                <button
+                  onClick={cancelDelete}
+                  className="w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors border border-white"
+                  style={{ background: '#111' }}
+                  aria-label="Close modal"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 px-4 pb-2 overflow-y-auto">
+              <p className="text-white text-center py-8">Are you sure you want to delete this task?</p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={confirmDelete}
+                  className="px-6 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
+                  style={{ background: '#dc2626' }}
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={cancelDelete}
+                  className="px-6 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
+                  style={{ background: '#111' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

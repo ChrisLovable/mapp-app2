@@ -8,6 +8,7 @@ interface SpeechToTextButtonProps {
   language?: string;
   continuous?: boolean;
   interimResults?: boolean;
+  isListening?: boolean;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   variant?: 'default' | 'primary' | 'secondary';

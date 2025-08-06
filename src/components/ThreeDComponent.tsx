@@ -9,6 +9,7 @@ interface ThreeDComponentProps {
   borderRadius?: string;
   width?: string;
   height?: string;
+  depth?: string;
   onClick?: () => void;
 }
 

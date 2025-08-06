@@ -317,8 +317,25 @@ Please provide a clear, accurate answer based only on the information in the ext
     };
 
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setQuestion(transcript);
+      // Handle incremental results properly
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      // Process all results incrementally
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results.item(i);
+        const transcript = result.item(0).transcript;
+        
+        if (result.isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interimTranscript = transcript; // Only keep the latest interim
+        }
+      }
+
+      // Combine final and latest interim results
+      const combinedTranscript = (finalTranscript + interimTranscript).trim();
+      setQuestion(combinedTranscript);
     };
 
     recognition.onerror = (event) => {

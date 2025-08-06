@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 
+import { useAuth } from '../contexts/AuthContext';
+
 // Temporary Overlay Component for UI Positioning
 const TempOverlay: React.FC<{ 
   isVisible: boolean;
@@ -30,7 +32,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '165px',
+            top: '155px',
             left: '50%',
             transform: 'translateX(-50%)',
             width: '250px',
@@ -46,7 +48,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '270px',
+            top: '250px',
             left: 'calc(50% - 110px)',
             width: '70px',
             height: '49px',
@@ -61,7 +63,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '270px',
+            top: '250px',
             left: 'calc(50% - 35px)',
             width: '70px',
             height: '49px',
@@ -76,7 +78,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '270px',
+            top: '250px',
             left: 'calc(50% + 40px)',
             width: '70px',
             height: '49px',
@@ -91,7 +93,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '328px',
+            top: '308px',
             left: 'calc(50% - 110px)',
             width: '70px',
             height: '49px',
@@ -106,7 +108,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '328px',
+            top: '308px',
             left: 'calc(50% - 35px)',
             width: '70px',
             height: '49px',
@@ -121,7 +123,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '328px',
+            top: '308px',
             left: 'calc(50% + 40px)',
             width: '70px',
             height: '49px',
@@ -136,7 +138,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '386px',
+            top: '366px',
             left: 'calc(50% - 110px)',
             width: '70px',
             height: '49px',
@@ -151,7 +153,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '386px',
+            top: '366px',
             left: 'calc(50% - 35px)',
             width: '70px',
             height: '49px',
@@ -166,7 +168,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '386px',
+            top: '366px',
             left: 'calc(50% + 40px)',
             width: '70px',
             height: '49px',
@@ -181,7 +183,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '444px',
+            top: '424px',
             left: 'calc(50% - 110px)',
             width: '70px',
             height: '49px',
@@ -196,7 +198,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '444px',
+            top: '424px',
             left: 'calc(50% - 35px)',
             width: '70px',
             height: '49px',
@@ -211,7 +213,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '444px',
+            top: '424px',
             left: 'calc(50% + 40px)',
             width: '70px',
             height: '49px',
@@ -226,7 +228,7 @@ const TempOverlay: React.FC<{
         <div 
           className="absolute cursor-pointer pointer-events-auto"
           style={{
-            top: '217px',
+            top: '207px',
             left: '50%',
             transform: 'translateX(-50%)',
             width: '250px',
@@ -353,7 +355,7 @@ const UIModal: React.FC<{
 
   return (
     <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      className="fixed inset-0 z-[9999] flex items-start justify-center pt-4"
       style={{
         background: 'rgba(0, 0, 0, 0.8)',
         backdropFilter: 'blur(10px)'
@@ -361,20 +363,22 @@ const UIModal: React.FC<{
       onClick={onClose}
     >
       <div 
-        className="relative max-h-[90vh] overflow-auto"
+        className="relative overflow-auto"
         onClick={(e) => e.stopPropagation()}
         style={{
           animation: 'fadeInUp 0.3s ease-out',
-          width: '85vw'
+          width: '85vw',
+          height: '90vh'
         }}
       >
         <div 
-          className="rounded-2xl border-0 p-6"
+          className="rounded-2xl border-0 p-6 h-full"
           style={{
             background: 'rgba(0, 0, 0, 0.9)',
             border: '2px solid rgba(255, 255, 255, 0.8)',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-            transition: 'all 0.3s ease'
+            transition: 'all 0.3s ease',
+            height: '100%'
           }}
         >
           <div 
@@ -504,7 +508,7 @@ const UIModal: React.FC<{
             <div 
               className="absolute cursor-pointer pointer-events-auto"
               style={{
-                top: '225px',
+                top: '205px',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 width: '80px',
@@ -541,10 +545,12 @@ const UIModal: React.FC<{
                 <img 
                   src="/userinterface.jpg" 
                   alt="User Interface Guide"
-                  className="max-w-full h-auto rounded-lg"
+                  className="max-w-full rounded-lg"
                   style={{
                     boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5), 0 5px 15px rgba(0, 0, 0, 0.3)',
-                    border: '2px solid rgba(255, 255, 255, 0.2)'
+                    border: '2px solid rgba(255, 255, 255, 0.2)',
+                    height: 'calc(90vh - 200px)',
+                    objectFit: 'contain'
                   }}
                 />
                 {/* Overlay on the image */}
@@ -573,12 +579,38 @@ const menuOptions = [
   { label: 'Instructions', icon: '📚', action: 'instructions' },
   { label: 'Dashboard', icon: '📊', action: 'admin' },
   { label: 'Personalization', icon: '🎨', action: 'personalization' },
-  { label: 'User Preferences', icon: '⚙️', action: 'preferences' }
+  { label: 'User Preferences', icon: '⚙️', action: 'preferences' },
+  { label: 'Log Out', icon: '🚪', action: 'logout' }
 ];
 
+const ConfirmationModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  children: React.ReactNode;
+}> = ({ isOpen, onClose, onConfirm, title, children }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ background: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(10px)' }}>
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm" style={{ animation: 'fadeInUp 0.3s ease-out' }}>
+        <h2 className="text-white text-xl mb-4">{title}</h2>
+        <div className="text-gray-300 mb-6">{children}</div>
+        <div className="flex justify-end gap-4">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white transition-colors">Cancel</button>
+          <button onClick={onConfirm} className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors">Confirm</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Header({ onDashboardClick, onAdminDashboardClick }: HeaderProps) {
+  const { signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [showUIModal, setShowUIModal] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
   const [notification, setNotification] = useState<{
     message: string;
@@ -586,6 +618,16 @@ export default function Header({ onDashboardClick, onAdminDashboardClick }: Head
   } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
+    await signOut();
+    setShowLogoutConfirm(false);
+    showNotification('You have been logged out.', 'info');
+  };
+  
   const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000); // Auto-close after 3 seconds
@@ -604,6 +646,8 @@ export default function Header({ onDashboardClick, onAdminDashboardClick }: Head
       showNotification('This feature coming soon!', 'info');
     } else if (action === 'instructions') {
       setShowUIModal(true);
+    } else if (action === 'logout') {
+      handleLogout();
     }
     // Add other actions as needed
   };
@@ -630,24 +674,25 @@ export default function Header({ onDashboardClick, onAdminDashboardClick }: Head
   return (
     <div className="relative flex items-center justify-center">
       {/* Hamburger Menu */}
-                  <div className="absolute top-0 flex items-center h-full" ref={menuRef} style={{ width: '80vw', left: '30px', top: '-10px' }}>
+                  <div className="absolute top-0 flex items-center h-full" ref={menuRef} style={{ width: '80vw', left: '30px', top: '-50px' }}>
         <button
-          className="glassy-btn neon-grid-btn p-2 rounded-lg border-0 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400 mt-16 active:scale-95 relative overflow-visible"
+          className="glassy-btn neon-grid-btn p-2 rounded-lg border-0 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400 mt-4 active:scale-95 relative overflow-visible"
           style={{ 
-            border: '1px solid rgba(255, 255, 255, 0.2)', 
+            border: '2px solid rgba(255, 255, 255, 0.4)', 
             position: 'relative', 
             zIndex: 2,
-            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6))',
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.8))',
             backdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-            filter: 'drop-shadow(0 0 2px rgba(0, 255, 247, 0.3)) drop-shadow(0 0 4px rgba(0, 255, 247, 0.2))'
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+            filter: 'drop-shadow(0 0 10px rgba(30, 58, 138, 0.5))',
+            transform: 'translateZ(10px)'
           }}
           onClick={() => setOpen((v) => !v)}
           aria-label="Open menu"
         >
-          <span className="block w-4 h-0.5 mb-1 rounded" style={{ background: 'white', filter: 'drop-shadow(0 0 1px rgba(255, 255, 255, 0.6))' }}></span>
-          <span className="block w-4 h-0.5 mb-1 rounded" style={{ background: 'white', filter: 'drop-shadow(0 0 1px rgba(255, 255, 255, 0.6))' }}></span>
-          <span className="block w-4 h-0.5 rounded" style={{ background: 'white', filter: 'drop-shadow(0 0 1px rgba(255, 255, 255, 0.6))' }}></span>
+          <span className="block w-5 h-0.5 mb-1 rounded" style={{ background: 'white', filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.8))' }}></span>
+          <span className="block w-5 h-0.5 mb-1 rounded" style={{ background: 'white', filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.8))' }}></span>
+          <span className="block w-5 h-0.5 rounded" style={{ background: 'white', filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.8))' }}></span>
         </button>
         {/* Dropdown */}
         {open && (
@@ -713,6 +758,16 @@ export default function Header({ onDashboardClick, onAdminDashboardClick }: Head
           isOpen={showUIModal} 
           onClose={() => setShowUIModal(false)} 
         />
+
+      <ConfirmationModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={confirmLogout}
+        title="Confirm Log Out"
+      >
+        Are you sure you want to log out?
+      </ConfirmationModal>
+
 
 
     </div>

@@ -1,6 +1,28 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 import { apiUsageTracker } from '../lib/ApiUsageTracker';
+import { OpenAIService } from '../services/OpenAIService';
+
+// Initialize OpenAI service
+const openAIService = new OpenAIService();
+
+// Helper function to get GPT answer
+const getGPTAnswer = async (prompt: string): Promise<string> => {
+  console.log('=== GETGPTANSWER CALLED ===');
+  console.log('Prompt:', prompt);
+  try {
+    const response = await openAIService.getResponse(prompt, {
+      model: 'gpt-4o-mini',
+      maxTokens: 1000,
+      temperature: 0.7
+    });
+    console.log('OpenAI response received:', response);
+    return response.content;
+  } catch (error) {
+    console.error('Error getting GPT answer:', error);
+    throw error;
+  }
+};
 
 interface RewriteModalProps {
   isOpen: boolean;
@@ -19,12 +41,24 @@ const REWRITE_OPTIONS = [
 ];
 
 export default function RewriteModal({ isOpen, onClose, currentText, onTextChange }: RewriteModalProps) {
-  const [selectedOption, setSelectedOption] = useState<string>('');
+  const [selectedOption, setSelectedOption] = useState<string>('business');
   const [rewrittenText, setRewrittenText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [selectAllActive, setSelectAllActive] = useState(false);
+  const [localText, setLocalText] = useState(currentText);
   const rewrittenTextareaRef = useRef(null);
+
+  // Auto-dismiss success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   const handleOptionSelect = (optionId: string) => {
     console.log('Selecting option:', optionId);
@@ -32,12 +66,15 @@ export default function RewriteModal({ isOpen, onClose, currentText, onTextChang
   };
 
   const handleRewrite = async () => {
-    console.log('Rewrite button clicked');
-    console.log('Current text:', currentText);
+    const textToRewrite = onTextChange ? currentText : localText;
+    console.log('=== REWRITE BUTTON CLICKED ===');
+    console.log('Current text:', textToRewrite);
     console.log('Selected option:', selectedOption);
+    console.log('Text length:', textToRewrite.length);
+    console.log('Is loading:', isLoading);
     
-    if (!currentText.trim()) {
-      setError('Please enter text to rewrite');
+    if (!textToRewrite.trim()) {
+      setError('Please enter some text in the "Text to rewrite" field before clicking Rewrite Text');
       return;
     }
 
@@ -48,18 +85,19 @@ export default function RewriteModal({ isOpen, onClose, currentText, onTextChang
 
     setIsLoading(true);
     setError('');
+    setSuccessMessage('');
     setRewrittenText('');
 
     try {
       let prompt = '';
       if (selectedOption === 'grammar') {
-        prompt = `Correct only the grammar and punctuation of the following text. Do not change the wording, style, or meaning. Return only the corrected text, nothing else.\n\n"${currentText}"`;
+        prompt = `Rewrite the following text in correct, proper English. Fix all grammar, spelling, and punctuation errors. Make it sound natural and well-written while maintaining the original meaning. Return only the corrected text, nothing else.\n\n"${textToRewrite}"`;
       } else {
         const optionLabel = REWRITE_OPTIONS.find(opt => opt.id === selectedOption)?.label;
 
         console.log('Option label:', optionLabel);
         
-        prompt = `Rewrite the following text in a ${optionLabel} style. Maintain the original meaning and key information while adapting the tone and structure as requested:\n\n"${currentText}"\n\nPlease provide only the rewritten text without any additional explanations or formatting.`;
+        prompt = `Rewrite the following text in a ${optionLabel} style. Maintain the original meaning and key information while adapting the tone and structure as requested:\n\n"${textToRewrite}"\n\nPlease provide only the rewritten text without any additional explanations or formatting.`;
       }
 
       console.log('Sending prompt to OpenAI:', prompt);
@@ -68,6 +106,10 @@ export default function RewriteModal({ isOpen, onClose, currentText, onTextChang
       console.log('OpenAI response:', response);
       
       setRewrittenText(response);
+      
+      // Set success message based on selected option
+      const optionLabel = REWRITE_OPTIONS.find(opt => opt.id === selectedOption)?.label;
+      setSuccessMessage(`Your text is now rewritten in ${optionLabel} style.`);
       
       // Track successful rewrite usage
       apiUsageTracker.trackOpenAIUsage(
@@ -117,53 +159,77 @@ export default function RewriteModal({ isOpen, onClose, currentText, onTextChang
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9998] p-4" style={{ height: '100vh' }}>
       <div className="w-full flex items-center justify-center">
-        <div className="rounded-2xl bg-black p-4 min-h-0 h-auto flex flex-col" style={{ width: '85vw', boxSizing: 'border-box', border: '2px solid white' }}>
-          <div className="overflow-y-auto max-h-[90vh]">
+                <div className="rounded-2xl bg-black p-4 min-h-0 flex flex-col" style={{ width: '85vw', height: '85vh', boxSizing: 'border-box', border: '2px solid white', padding: '20px' }}>
+          <div className="overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(85vh - 80px)' }}>
             {/* Header */}
-            <div className="relative mb-6 px-4 py-3 rounded-lg simple-double-border" style={{ background: 'linear-gradient(135deg, #000000 0%, #666666 100%)', border: '4px double rgba(255, 255, 255, 0.9)' }}>
-              <div className="token-dashboard-header">
-              <h2 className="text-white font-bold text-base text-center">Rewrite Text</h2>
-            </div>
+            <div 
+              className="sticky top-0 z-10 mb-6 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+                backdropFilter: 'blur(10px)',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+                transform: 'translateZ(5px)',
+                paddingLeft: '20px',
+                paddingRight: '20px'
+              }}
+            >
+              <h2 
+                className="text-white font-bold text-lg text-center"
+                style={{
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+                  filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+                  transform: 'translateZ(3px)'
+                }}
+              >
+                Rewrite Text
+              </h2>
               <button
                 onClick={onClose}
-                className="absolute top-1 right-1 w-6 h-6 rounded-full text-sm font-bold text-white hover:text-gray-300 flex items-center justify-center"
-                style={{ background: '#000000', border: 'none', outline: 'none', fontSize: '15px' }}
+                className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+                style={{ background: '#000000', fontSize: '15px', border: '1px solid #666666' }}
+                aria-label="Close modal"
               >
                 ×
               </button>
             </div>
 
             <div className="space-y-6">
-              <div className="w-full px-4">
+              <div className="w-full px-4 flex flex-col items-center">
                 {/* Input Text Display */}
-                <div className="space-y-2 mb-4">
-                  <label className="text-white font-medium text-[10px] mb-1 text-left mt-[-28px]" style={{ fontSize: '0.85rem' }}>Text to rewrite:</label>
-                  <div className="p-3 rounded-2xl animated-rainbow-border min-h-[80px] max-h-[200px]">
+                <div className="space-y-2 mb-2" style={{ width: '75vw' }}>
+                  <div className="p-3 rounded-2xl min-h-[80px] max-h-[200px]">
                     <textarea
-                      value={currentText}
+                      value={onTextChange ? currentText : localText}
                       onChange={(e) => {
+                        console.log('Input text changed:', e.target.value);
                         if (onTextChange) {
                           onTextChange(e.target.value);
+                        } else {
+                          setLocalText(e.target.value);
                         }
                       }}
-                      className="w-full h-full bg-transparent border-0 outline-none resize-y text-sm text-white"
+                      className="w-full h-full bg-black text-white text-sm rounded-xl border-2 border-white resize-none outline-none px-3 py-2"
                       placeholder="Enter or edit the text you want to rewrite..."
-                      style={{ minHeight: '60px', maxHeight: '60px' }}
+                      style={{ minHeight: '100px', maxHeight: '120px' }}
                     />
                   </div>
                 </div>
 
                 {/* Rewrite Options */}
-                <div className="space-y-4 mb-4">
-                  <label className="text-white font-medium text-[10px] mb-1 text-left" style={{ fontSize: '0.85rem' }}>Select rewrite style:</label>
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-4 mb-2" style={{ width: '75vw' }}>
+                  <div className="grid grid-cols-2 gap-2 mx-auto" style={{ width: '65vw' }}>
                     {REWRITE_OPTIONS.map((option) => (
                       <label
                         key={option.id}
-                        className={`flex items-center px-3 py-1 bg-[var(--favourite-blue)] text-white rounded-full cursor-pointer transition-all block`}
+                        className={`flex items-center px-3 py-1 text-white rounded-full cursor-pointer transition-all block`}
                         style={{
-                          color: selectedOption === option.id ? 'var(--favourite-green)' : 'white',
-                          boxShadow: selectedOption === option.id ? '0 0 12px 4px var(--favourite-blue), 0 0 16px 6px var(--favourite-blue)' : undefined
+                          background: selectedOption === option.id 
+                            ? 'linear-gradient(135deg, #10b981 0%, #000000 100%)' 
+                            : 'linear-gradient(135deg, #000000 0%, #2563eb 100%)',
+                          color: selectedOption === option.id ? 'white' : 'white'
                         }}
                       >
                         <input
@@ -181,11 +247,11 @@ export default function RewriteModal({ isOpen, onClose, currentText, onTextChang
                     <div className="p-2">
                       <button
                         onClick={handleRewrite}
-                        disabled={isLoading || !currentText.trim() || !selectedOption}
+                        disabled={isLoading || !(onTextChange ? currentText : localText).trim() || !selectedOption}
                         className="glassy-btn neon-grid-btn px-6 py-3 rounded-2xl text-white font-bold transition-colors text-sm border-0"
                         style={{
                           background: '#111',
-                          boxShadow: '0 0 6px 1.5px #00fff7, 0 0 8px 2px #00fff766, 0 3px 6px rgba(30, 64, 175, 0.3), 0 0 5px rgba(255, 255, 255, 0.1)',
+                          border: '1px solid #666666',
                           fontSize: '0.9rem',
                           minWidth: '120px'
                         }}
@@ -197,50 +263,52 @@ export default function RewriteModal({ isOpen, onClose, currentText, onTextChang
                 </div>
 
                 {/* Rewritten Text Output - always visible */}
-                <div className="space-y-2 mt-4">
-                  <label className="text-white font-medium text-[10px] mb-1 text-left" style={{ fontSize: '0.85rem' }}>Rewritten text:</label>
-                  <div className="p-3 rounded-2xl animated-rainbow-border">
+                <div className="space-y-2 mt-1" style={{ width: '75vw' }}>
+                  <div className="p-3 rounded-2xl">
                     <textarea
                       id="rewritten-textarea"
                       ref={rewrittenTextareaRef}
                       value={rewrittenText}
                       onChange={(e) => setRewrittenText(e.target.value)}
-                      className={`w-full h-full bg-transparent border-0 outline-none resize-y text-sm text-white font-bold${selectAllActive ? ' custom-selection' : ''}`}
+                      className={`w-full h-full bg-black text-white text-sm rounded-xl border-2 border-white resize-none outline-none font-bold px-3 py-2${selectAllActive ? ' custom-selection' : ''}`}
                       placeholder="Rewritten text will appear here..."
-                      style={{ minHeight: '60px', maxHeight: '60px' }}
+                      style={{ minHeight: '120px', maxHeight: '150px' }}
                       onBlur={() => setSelectAllActive(false)}
+                      readOnly
                     />
                   </div>
-                  <div className="flex justify-end gap-2 mt-2">
+                  <div className="flex justify-end gap-2" style={{ marginTop: '-10px' }}>
                     <div className="p-2">
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
                           const textarea = document.querySelector('#rewritten-textarea') as HTMLTextAreaElement;
                           if (textarea) {
                             textarea.select();
                             setSelectAllActive(true);
                           }
                         }}
-                        className="glassy-btn neon-grid-btn px-6 py-3 rounded-2xl text-white font-bold transition-colors text-sm border-0 focus:neon-glow"
+                        className="glassy-btn neon-grid-btn px-6 py-3 rounded-2xl text-white font-bold transition-colors text-sm border-0"
                         style={{
                           background: '#111',
-                          boxShadow: '0 0 6px 1.5px #00fff7, 0 0 8px 2px #00fff766, 0 3px 6px rgba(30, 64, 175, 0.3), 0 0 5px rgba(255, 255, 255, 0.1)',
+                          border: '1px solid #666666',
                           fontSize: '0.9rem',
                           minWidth: '120px'
                         }}
-                        onFocus={e => e.currentTarget.style.boxShadow = '0 0 16px 4px #00fff7, 0 0 24px 8px #00fff766, 0 3px 12px rgba(30, 64, 175, 0.5), 0 0 10px rgba(255, 255, 255, 0.2)'}
-                        onBlur={e => e.currentTarget.style.boxShadow = '0 0 6px 1.5px #00fff7, 0 0 8px 2px #00fff766, 0 3px 6px rgba(30, 64, 175, 0.3), 0 0 5px rgba(255, 255, 255, 0.1)'}
                       >
                         Select All
                       </button>
                     </div>
                     <div className="p-2">
                       <button
-                        onClick={copyToClipboard}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          copyToClipboard();
+                        }}
                         className="glassy-btn neon-grid-btn px-6 py-3 rounded-2xl text-white font-bold transition-colors text-sm border-0"
                         style={{
                           background: '#111',
-                          boxShadow: '0 0 6px 1.5px #00fff7, 0 0 8px 2px #00fff766, 0 3px 6px rgba(30, 64, 175, 0.3), 0 0 5px rgba(255, 255, 255, 0.1)',
+                          border: '1px solid #666666',
                           fontSize: '0.9rem',
                           minWidth: '120px'
                         }}
@@ -256,6 +324,63 @@ export default function RewriteModal({ isOpen, onClose, currentText, onTextChang
                   <div className="p-3 rounded-2xl animated-rainbow-border bg-red-100 text-black border-0 mb-4" style={{ backgroundColor: '#fee2e2' }}>
                     <h3 className="text-red-800 font-semibold text-sm mb-1">Error</h3>
                     <p className="text-red-700 text-xs">{error}</p>
+                  </div>
+                )}
+
+                {/* Success Message */}
+                {successMessage && (
+                  <div 
+                    className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[10000]"
+                    style={{ animation: 'fadeInUp 0.3s ease-out' }}
+                  >
+                    <div 
+                      className="glassy-btn neon-grid-btn rounded-2xl border-0 p-6 min-w-[300px] max-w-[90vw] ring-2 ring-green-400 ring-opacity-60"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(34, 197, 94, 0.2))',
+                        backdropFilter: 'blur(20px)',
+                        border: '2px solid rgba(255, 255, 255, 0.4)',
+                        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.8), 0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4)',
+                        filter: 'drop-shadow(0 0 10px rgba(34, 197, 94, 0.5))',
+                        transform: 'translateZ(30px) perspective(1000px)',
+                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div 
+                          className="text-3xl"
+                          style={{
+                            filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 16px rgba(255, 255, 255, 0.4))',
+                            textShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.6)',
+                            transform: 'translateZ(10px)'
+                          }}
+                        >
+                          ✅
+                        </div>
+                        <div className="flex-1">
+                          <p 
+                            className="text-white font-bold text-lg"
+                            style={{
+                              textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+                              filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+                              transform: 'translateZ(5px)'
+                            }}
+                          >
+                            {successMessage}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setSuccessMessage('')}
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:text-gray-300 transition-colors force-black-button"
+                          style={{
+                            border: '1px solid rgba(255, 255, 255, 0.4)',
+                            background: 'rgba(0, 0, 0, 0.6)',
+                            backdropFilter: 'blur(10px)'
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

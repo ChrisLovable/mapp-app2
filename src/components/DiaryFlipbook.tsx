@@ -3,6 +3,115 @@ import { supabase } from '../lib/supabase';
 import HTMLFlipBook from 'react-pageflip';
 import CustomDatePicker from './CustomDatePicker';
 
+// Calendar component for date filtering
+const Calendar = ({ 
+  selectedDate, 
+  onDateSelect, 
+  isOpen, 
+  onClose, 
+  minDate, 
+  maxDate 
+}: {
+  selectedDate: Date | null;
+  onDateSelect: (date: Date) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  minDate?: Date;
+  maxDate?: Date;
+}) => {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const handlePrevMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+  };
+
+  const handleDateClick = (day: number) => {
+    const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    onDateSelect(selectedDate);
+    onClose();
+  };
+
+  const renderCalendarDays = () => {
+    const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+    const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+    const days = [];
+
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      days.push(<div key={`empty-${i}`} className="w-10 h-10"></div>);
+    }
+
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+      const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
+      const isDisabled = (minDate && date < minDate) || (maxDate && date > maxDate);
+
+      days.push(
+        <button
+          key={day}
+          onClick={() => !isDisabled && handleDateClick(day)}
+          className={`w-10 h-10 flex items-center justify-center text-sm font-medium rounded-lg transition-colors ${
+            isSelected
+              ? 'bg-blue-600 text-white'
+              : isDisabled
+              ? 'text-gray-400 cursor-not-allowed'
+              : 'hover:bg-blue-100 cursor-pointer'
+          }`}
+          disabled={isDisabled}
+        >
+          {day}
+        </button>
+      );
+    }
+
+    return days;
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]" onClick={onClose}>
+      <div className="bg-white border-2 border-white rounded-lg shadow-xl p-4 min-w-[280px] max-w-[320px]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={handlePrevMonth}
+            className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-blue-600 font-semibold"
+          >
+            ←
+          </button>
+          <h3 className="text-base font-bold text-gray-800">
+            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+          </h3>
+          <button
+            onClick={handleNextMonth}
+            className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-blue-600 font-semibold"
+          >
+            →
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-7 gap-1 mb-3">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            <div key={day} className="w-10 h-10 flex items-center justify-center text-sm font-bold text-blue-600">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        <div className="grid grid-cols-7 gap-1">
+          {renderCalendarDays()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Structured Entry Object
 type DiaryEntry = {
   date: string;
@@ -58,6 +167,11 @@ export default function DiaryFlipbook({ isOpen, onClose }: DiaryFlipbookProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [chapterIndexMap, setChapterIndexMap] = useState<{ [chapter: string]: number }>({});
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [showStartCalendar, setShowStartCalendar] = useState(false);
+  const [showEndCalendar, setShowEndCalendar] = useState(false);
+  const [filteredEntries, setFilteredEntries] = useState<DiaryEntry[]>([]);
   // Remove all date range filtering, date pickers, and related state/effects/UI
   // Remove: startDate, endDate, filteredEntries, isUsingTestData, CustomDatePicker, filterEntriesByDateRange, and all related UI
   // Only show all entries as pages, no filtering
@@ -67,17 +181,42 @@ export default function DiaryFlipbook({ isOpen, onClose }: DiaryFlipbookProps) {
     console.log('selectedImage changed:', selectedImage);
   }, [selectedImage]);
 
+  // Filter entries based on date range
+  useEffect(() => {
+    let filtered = entries;
+    
+    // Filter by date range
+    if (startDate || endDate) {
+      filtered = entries.filter(entry => {
+        const entryDate = new Date(entry.date);
+        const start = startDate ? new Date(startDate.setHours(0, 0, 0, 0)) : null;
+        const end = endDate ? new Date(endDate.setHours(23, 59, 59, 999)) : null;
+        
+        if (start && end) {
+          return entryDate >= start && entryDate <= end;
+        } else if (start) {
+          return entryDate >= start;
+        } else if (end) {
+          return entryDate <= end;
+        }
+        return true;
+      });
+    }
+    
+    setFilteredEntries(filtered);
+  }, [entries, startDate, endDate]);
+
   // Build chapter index map based on filtered entries
   useEffect(() => {
     const map: { [chapter: string]: number } = {};
-    entries.forEach((entry, index) => {
+    filteredEntries.forEach((entry, index) => {
       if (entry.chapter && !map[entry.chapter]) {
         map[entry.chapter] = index + 2; // +2 to account for Cover + TOC pages
       }
     });
     setChapterIndexMap(map);
     console.log('Chapter index map (filtered):', map);
-  }, [entries]);
+  }, [filteredEntries]);
 
   // Initialize filteredEntries when entries are first loaded
   useEffect(() => {
@@ -315,6 +454,13 @@ export default function DiaryFlipbook({ isOpen, onClose }: DiaryFlipbookProps) {
     }
   };
 
+  const clearFilters = () => {
+    setStartDate(null);
+    setEndDate(null);
+    setShowStartCalendar(false);
+    setShowEndCalendar(false);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -368,20 +514,21 @@ export default function DiaryFlipbook({ isOpen, onClose }: DiaryFlipbookProps) {
         </div> */}
 
         {/* Navigation Buttons */}
-        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 flex gap-4 z-10 pb-2">
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4 z-10">
           <button
             onClick={handlePreviousPage}
-            className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg shadow-md transition-colors flex items-center justify-center w-24"
+            className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-colors border border-white text-xs"
+            style={{ background: '#111', minWidth: '100px' }}
           >
-            Previous
+            ← Previous
           </button>
           <button
             onClick={handleNextPage}
-            className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg shadow-md transition-colors flex items-center justify-center w-24"
+            className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-colors border border-white text-xs"
+            style={{ background: '#111', minWidth: '100px' }}
           >
-            Next
+            Next →
           </button>
-
         </div>
 
         {/* Flipbook Content */}
@@ -398,55 +545,7 @@ export default function DiaryFlipbook({ isOpen, onClose }: DiaryFlipbookProps) {
                 maxWidth={500}
                 minHeight={400}
                 maxHeight={700}
-                showCover={false}
-                flippingTime={1000}
-                usePortrait={true}
-                startPage={0}
-                drawShadow={true}
-                maxShadowOpacity={0.5}
-                useMouseEvents={true}
-                className="flipbook w-full h-full"
-                style={{ touchAction: 'none' }}
-                mobileScrollSupport={false}
-                onFlip={() => {
-                  handlePageTurn();
-                }}
-                onChangeState={() => {
-                  // State changed
-                }}
-                ref={flipbookRef}
-                startZIndex={1}
-                autoSize={false}
-                clickEventForward={true}
-                swipeDistance={30}
-                showPageCorners={false}
-                disableFlipByClick={false}
-              >
-                <div className="flip-page bg-amber-50 shadow-lg rounded-3xl border border-gray-300 w-full h-full overflow-hidden">
-                  {/* Page Content */}
-                  <div className="page-content overflow-y-auto h-full">
-                    <h2 className="text-center font-semibold text-lg text-blue-800 mb-4">
-                      No Diary Entries Found
-                    </h2>
-                    <div className="text-center text-gray-600 mt-8">
-                      <p className="text-lg mb-4">Your diary is empty</p>
-                      <p className="text-sm">Create your first diary entry to get started!</p>
-                    </div>
-                  </div>
-                </div>
-              </HTMLFlipBook>
-            </div>
-          ) : (
-            <div className="w-full h-full">
-              <HTMLFlipBook
-                width={Math.min(window.innerWidth * 0.9, 500)}
-                height={Math.min(window.innerHeight * 0.85, 700)}
-                size="fixed"
-                minWidth={280}
-                maxWidth={500}
-                minHeight={400}
-                maxHeight={700}
-                showCover={false}
+                showCover={true}
                 flippingTime={1000}
                 usePortrait={true}
                 startPage={0}
@@ -473,7 +572,84 @@ export default function DiaryFlipbook({ isOpen, onClose }: DiaryFlipbookProps) {
                 {/* Cover Page */}
                 <div className="flip-page w-full h-full overflow-hidden bg-black shadow-lg rounded-3xl border border-gray-300 relative">
                   <img
-                    src="/diarycover1.jpg"
+                    src="/gabby_cute.jpg"
+                    alt="Diary Cover"
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Gold Script Title */}
+                  <div className="absolute inset-0 flex items-start justify-center pt-20">
+                    <h1 
+                      className="text-6xl md:text-7xl font-bold text-center"
+                      style={{
+                        color: '#FFD700',
+                        textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(255,215,0,0.5)',
+                        fontFamily: 'cursive, serif',
+                        letterSpacing: '2px',
+                        transform: 'rotate(-2deg)',
+                        background: 'linear-gradient(45deg, #FFD700, #FFA500, #FFD700)',
+                        backgroundClip: 'text',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        filter: 'drop-shadow(0 0 8px rgba(255,215,0,0.6))'
+                      }}
+                    >
+                      My Diary
+                    </h1>
+                  </div>
+                </div>
+                
+                <div className="flip-page bg-amber-50 shadow-lg rounded-3xl border border-gray-300 w-full h-full overflow-hidden">
+                  {/* Page Content */}
+                  <div className="page-content overflow-y-auto h-full">
+                    <h2 className="text-center font-semibold text-lg text-blue-800 mb-4">
+                      No Diary Entries Found
+                    </h2>
+                    <div className="text-center text-gray-600 mt-8">
+                      <p className="text-lg mb-4">Your diary is empty</p>
+                      <p className="text-sm">Create your first diary entry to get started!</p>
+                    </div>
+                  </div>
+                </div>
+              </HTMLFlipBook>
+            </div>
+          ) : (
+            <div className="w-full h-full">
+              <HTMLFlipBook
+                width={Math.min(window.innerWidth * 0.9, 500)}
+                height={Math.min(window.innerHeight * 0.85, 700)}
+                size="fixed"
+                minWidth={280}
+                maxWidth={500}
+                minHeight={400}
+                maxHeight={700}
+                showCover={true}
+                flippingTime={1000}
+                usePortrait={true}
+                startPage={0}
+                drawShadow={true}
+                maxShadowOpacity={0.5}
+                useMouseEvents={true}
+                className="flipbook w-full h-full"
+                style={{ touchAction: 'none' }}
+                mobileScrollSupport={false}
+                onFlip={() => {
+                  handlePageTurn();
+                }}
+                onChangeState={() => {
+                  // State changed
+                }}
+                ref={flipbookRef}
+                startZIndex={1}
+                autoSize={false}
+                clickEventForward={true}
+                swipeDistance={30}
+                showPageCorners={false}
+                disableFlipByClick={false}
+              >
+                {/* Cover Page */}
+                <div className="flip-page w-full h-full overflow-hidden bg-black shadow-lg rounded-3xl border border-gray-300 relative">
+                  <img
+                    src="/gabby_cute.jpg"
                     alt="Diary Cover"
                     className="w-full h-full object-cover"
                   />
@@ -500,8 +676,72 @@ export default function DiaryFlipbook({ isOpen, onClose }: DiaryFlipbookProps) {
                 </div>
 
                 {/* Table of Contents Page */}
-                <div className="flip-page bg-white shadow-lg rounded-3xl border border-gray-300 w-full h-full overflow-hidden p-6 flex flex-col">
-                  <h2 className="text-2xl font-semibold text-blue-800 text-center mb-4">📖 Table of Contents</h2>
+                <div className="flip-page bg-gradient-to-br from-amber-50 to-yellow-100 shadow-lg rounded-3xl border border-gray-300 w-full h-full overflow-y-auto p-6 flex flex-col">
+                  <h2 className="text-2xl font-semibold text-amber-800 text-center mb-4">📖 Table of Contents</h2>
+                  
+                  {/* Date Range Filter */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium text-black">From:</span>
+                        <div className="relative">
+                          <button
+                            onClick={() => {
+                              setShowStartCalendar(!showStartCalendar);
+                              setShowEndCalendar(false);
+                            }}
+                            className="px-3 py-2 glassy-btn neon-grid-btn border-2 border-white rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer min-w-[120px] text-left transition-colors shadow-sm text-white"
+                            style={{ background: '#111' }}
+                          >
+                            {startDate ? startDate.toLocaleDateString() : 'Start Date'}
+                          </button>
+                          <Calendar
+                            selectedDate={startDate}
+                            onDateSelect={setStartDate}
+                            isOpen={showStartCalendar}
+                            onClose={() => setShowStartCalendar(false)}
+                            maxDate={endDate || new Date()}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium text-black">To:</span>
+                        <div className="relative">
+                          <button
+                            onClick={() => {
+                              setShowEndCalendar(!showEndCalendar);
+                              setShowStartCalendar(false);
+                            }}
+                            className="px-3 py-2 glassy-btn neon-grid-btn border-2 border-white rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer min-w-[120px] text-left transition-colors shadow-sm text-white"
+                            style={{ background: '#111' }}
+                          >
+                            {endDate ? endDate.toLocaleDateString() : 'End Date'}
+                          </button>
+                          <Calendar
+                            selectedDate={endDate}
+                            onDateSelect={setEndDate}
+                            isOpen={showEndCalendar}
+                            onClose={() => setShowEndCalendar(false)}
+                            minDate={startDate || undefined}
+                            maxDate={new Date()}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Clear Filters Button */}
+                  {(startDate || endDate) && (
+                    <div className="mb-4 flex justify-center">
+                      <button
+                        onClick={clearFilters}
+                        className="px-4 py-2 glassy-btn neon-grid-btn text-white rounded-xl text-sm font-medium transition-colors border border-white"
+                        style={{ background: '#dc2626' }}
+                      >
+                        Clear All Filters
+                      </button>
+                    </div>
+                  )}
                   
                   <div className="flex-1 overflow-y-auto">
                     {Object.keys(chapterIndexMap).length > 0 ? (
@@ -533,7 +773,7 @@ export default function DiaryFlipbook({ isOpen, onClose }: DiaryFlipbookProps) {
                 </div>
 
                 {/* Diary Pages */}
-                {entries.map((page: DiaryEntry, index: number) => (
+                {filteredEntries.map((page: DiaryEntry, index: number) => (
                   <div key={page.id || index} className="flip-page bg-amber-50 shadow-lg rounded-3xl border border-gray-300 w-full h-full overflow-hidden">
                     {/* Page Content */}
                     <div className="page-content overflow-y-auto h-full pt-2 pb-6 px-6">

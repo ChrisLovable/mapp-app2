@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabase';
 
 import ExpenseJournalModal from './ExpenseJournalModal';
 import { useAuth } from '../contexts/AuthContext';
+import { ExpenseAnalytics } from '../services/ExpenseAnalytics';
+import { OpenAIService } from '../services/OpenAIService';
+import { QuestionProcessor } from '../services/QuestionProcessor';
 
 interface Expense {
   id: string;
@@ -13,6 +16,9 @@ interface Expense {
   description: string;
   category: string;
   receipt_image?: string;
+  receipt_image_id?: string;
+  user_id?: string;
+  created_at?: string;
 }
 
 interface ParsedExpense {
@@ -23,6 +29,7 @@ interface ParsedExpense {
   description: string;
   category: string;
   _currentImageData?: string;
+  receipt_image_id?: string | null;
 }
 
 interface ExpenseModalProps {
@@ -55,21 +62,138 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, currentLan
   const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
   const [expenseCache, setExpenseCache] = useState<Expense[]>([]);
   const [cacheTimestamp, setCacheTimestamp] = useState<number>(0);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ show: boolean; expenseId: string | null }>({ show: false, expenseId: null });
+
+  // Initialize services
+  const analytics = new ExpenseAnalytics(supabase);
+  const openAI = new OpenAIService();
+  const questionProcessor = new QuestionProcessor(analytics, openAI);
+
+  // Add helper to save image and get its id
+  async function saveReceiptImageToDB(userId: string, base64: string) {
+    const { data, error } = await supabase
+      .from('receipt_images')
+      .insert([{ user_id: userId, image_data: base64 }])
+      .select('id')
+      .single();
+    if (error) throw error;
+    return data.id;
+  }
+
+  // OpenAI Vision function for extracting text from images
+  const askOpenAIVision = async (prompt: string, base64Image: string): Promise<string> => {
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('OpenAI API key not found. Please check your .env file.');
+    }
+
+    // Remove data:image/jpeg;base64, prefix if present
+    const base64Data = base64Image.split(',')[1] || base64Image;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an OCR (Optical Character Recognition) specialist. Extract all text from the provided image, including any tables, numbers, dates, and structured data. Preserve the formatting and structure as much as possible. If you cannot read any text clearly, indicate that with [unreadable]. IMPORTANT: Respond with ONLY the extracted text. Do not add any introductory phrases like "Certainly, here is..." or "Here is the extracted text:". Just provide the raw extracted text directly.'
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${base64Data}`
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.1
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`OpenAI API error (${response.status}): ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    const extractedText = data.choices?.[0]?.message?.content?.trim();
+
+    if (!extractedText) {
+      throw new Error('No response received from OpenAI Vision API');
+    }
+
+    return extractedText;
+  };
+
+
 
   // Cache management functions
   const saveExpenseCache = (expenses: Expense[]) => {
     setExpenseCache(expenses);
     setCacheTimestamp(Date.now());
-    localStorage.setItem('expenseCache', JSON.stringify(expenses));
-    localStorage.setItem('expenseCacheTimestamp', Date.now().toString());
+    
+    // Create a cache-safe version without image data to avoid localStorage quota issues
+    const cacheSafeExpenses = expenses.map(expense => ({
+      id: expense.id,
+      expense_date: expense.expense_date,
+      vendor: expense.vendor,
+      amount: expense.amount,
+      quantity: expense.quantity,
+      description: expense.description,
+      category: expense.category,
+      user_id: expense.user_id,
+      created_at: expense.created_at,
+      receipt_image_id: expense.receipt_image_id,
+      // Exclude receipt_image to prevent localStorage quota issues
+    }));
+    
+    try {
+      localStorage.setItem('expenseCache', JSON.stringify(cacheSafeExpenses));
+      localStorage.setItem('expenseCacheTimestamp', Date.now().toString());
+    } catch (error) {
+      console.warn('Failed to save expense cache to localStorage:', error);
+      // Clear old cache and try again with smaller data
+      try {
+        localStorage.removeItem('expenseCache');
+        localStorage.removeItem('expenseCacheTimestamp');
+        // Try with just the most recent expenses
+        const recentExpenses = cacheSafeExpenses.slice(0, 10);
+        localStorage.setItem('expenseCache', JSON.stringify(recentExpenses));
+        localStorage.setItem('expenseCacheTimestamp', Date.now().toString());
+      } catch (retryError) {
+        console.error('Failed to save even reduced cache:', retryError);
+      }
+    }
   };
 
   const loadExpenseCache = () => {
     const cache = localStorage.getItem('expenseCache');
     const ts = localStorage.getItem('expenseCacheTimestamp');
     if (cache) {
-      const parsedCache = JSON.parse(cache);
-      setExpenseCache(parsedCache);
+      try {
+        const parsedCache = JSON.parse(cache);
+        setExpenseCache(parsedCache);
+      } catch (error) {
+        console.warn('Failed to parse expense cache:', error);
+        // Clear corrupted cache
+        localStorage.removeItem('expenseCache');
+        localStorage.removeItem('expenseCacheTimestamp');
+      }
     }
     if (ts) setCacheTimestamp(Number(ts));
   };
@@ -89,63 +213,110 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, currentLan
     }
   }, [isOpen]);
 
+  // Debug expenses state changes
+  useEffect(() => {
+    console.log('Expenses state changed:', expenses);
+    console.log('Expenses count:', expenses.length);
+  }, [expenses]);
+
   // Update fetchExpenses to use cache
   const fetchExpenses = async (forceRefresh: boolean = false) => {
-    loadExpenseCache();
-    // If cache is recent (<10min) and not forcing refresh, use it
-    if (!forceRefresh && Date.now() - cacheTimestamp < 10 * 60 * 1000 && expenseCache.length > 0) {
-      setExpenses(expenseCache);
-      return;
+    try {
+      console.log('=== FETCH EXPENSES START ===');
+      console.log('Force refresh:', forceRefresh);
+      console.log('User:', user);
+      
+      loadExpenseCache();
+      // If cache is recent (<10min) and not forcing refresh, use it
+      if (!forceRefresh && Date.now() - cacheTimestamp < 10 * 60 * 1000 && expenseCache.length > 0) {
+        console.log('Using cached data, cache length:', expenseCache.length);
+        setExpenses(expenseCache);
+        return;
+      }
+    } catch (error) {
+      console.warn('Cache loading failed, proceeding with fresh data:', error);
     }
     try {
       setIsLoading(true);
       setIsCacheLoading(true);
+      console.log('User object in fetchExpenses:', user);
+      console.log('User ID in fetchExpenses:', user?.id);
+      console.log('Is user authenticated?', !!user);
       if (!user) {
         console.log('No authenticated user found, using dummy user ID for testing');
         // Fallback to dummy user ID if no user is logged in
         const dummyUserId = '00000000-0000-0000-0000-000000000000';
+        console.log('Fetching expenses for dummy user:', dummyUserId);
         const { data, error } = await supabase
           .from('expense_tracker')
-          .select('*')
+          .select('id, expense_date, vendor, amount, quantity, description, category, receipt_image_id, user_id, created_at')
           .eq('user_id', dummyUserId)
-          .order('expense_date', { ascending: false });
+          .order('expense_date', { ascending: false })
+          .limit(50);
         if (error) {
+          console.error('Database error for dummy user:', error);
           // If database fails, try to use cache if available
           if (expenseCache.length > 0) {
+            console.log('Using cache due to database error');
             setExpenses(expenseCache);
           }
           return;
         }
+        console.log('Database data for dummy user:', data);
         setExpenses(data || []);
         if (data) {
           saveExpenseCache(data);
         }
       } else {
+        console.log('Fetching expenses for authenticated user:', user.id);
         const { data, error } = await supabase
           .from('expense_tracker')
-          .select('*')
+          .select('id, expense_date, vendor, amount, quantity, description, category, receipt_image_id, user_id, created_at')
           .eq('user_id', user.id)
-          .order('expense_date', { ascending: false });
+          .order('expense_date', { ascending: false })
+          .limit(50);
         if (error) {
+          console.error('Database error for authenticated user:', error);
           // If database fails, try to use cache if available
           if (expenseCache.length > 0) {
+            console.log('Using cache due to database error');
             setExpenses(expenseCache);
           }
           return;
         }
+        console.log('Database data for authenticated user:', data);
+        console.log('Expenses with receipt_image_id:', data?.filter(e => e.receipt_image_id)?.length || 0);
+        console.log('Expenses without receipt_image_id:', data?.filter(e => !e.receipt_image_id)?.length || 0);
+        console.log('All expense IDs:', data?.map(e => ({ id: e.id, receipt_image_id: e.receipt_image_id })) || []);
+        
+        // Check all expenses without user filter to see if there are more
+        const { data: allData, error: allError } = await supabase
+          .from('expense_tracker')
+          .select('id, user_id, receipt_image_id')
+          .order('created_at', { ascending: false })
+          .limit(20);
+        
+        if (!allError) {
+          console.log('All expenses in database:', allData);
+          console.log('Expenses for this user:', allData?.filter(e => e.user_id === user.id)?.length || 0);
+        }
+        
         setExpenses(data || []);
         if (data) {
           saveExpenseCache(data);
         }
       }
     } catch (error) {
+      console.error('Error in fetchExpenses:', error);
       // If database fails, try to use cache if available
       if (expenseCache.length > 0) {
+        console.log('Using cache due to error');
         setExpenses(expenseCache);
       }
     } finally {
       setIsLoading(false);
       setIsCacheLoading(false);
+      console.log('=== FETCH EXPENSES COMPLETE ===');
     }
   };
 
@@ -322,12 +493,15 @@ Return ONLY the JSON array:`;
           }
           
           if (Array.isArray(parsedData)) {
-            // Store the current image data with each parsed expense
-            const expensesWithImage = parsedData.map(expense => ({
+            let imageId = null;
+            if (user && base64) {
+              imageId = await saveReceiptImageToDB(user.id, base64);
+            }
+            const expensesWithImageRef = parsedData.map(expense => ({
               ...expense,
-              _currentImageData: base64 // Add the current image data to each expense
+              receipt_image_id: imageId
             }));
-            setNewExpenses(expensesWithImage);
+            setNewExpenses(expensesWithImageRef);
             setShowImageUpload(false); // Automatically switch to parsed entries view
             setImagePreview(base64); // Store the image preview for reference
             setProcessingSuccess(true); // Mark processing as successful
@@ -347,7 +521,7 @@ Return ONLY the JSON array:`;
             quantity: 1,
             description: 'Failed to parse expense data. Please edit manually.',
             category: 'Other',
-            _currentImageData: base64
+            receipt_image_id: null // No image for fallback
           }];
           
           setNewExpenses(fallbackExpense);
@@ -373,7 +547,8 @@ Return ONLY the JSON array:`;
       amount: 0,
       quantity: 1,
       description: '',
-      category: ''
+      category: '',
+      receipt_image_id: null // No image for manual entry
     }]);
     // Clear image data for manual entries
     setImagePreview(null);
@@ -386,7 +561,8 @@ Return ONLY the JSON array:`;
       amount: 0,
       quantity: 1,
       description: '',
-      category: ''
+      category: '',
+      receipt_image_id: null // No image for new expense
     }]);
   };
 
@@ -417,7 +593,7 @@ Return ONLY the JSON array:`;
             quantity: expense.quantity,
             description: expense.description,
             category: expense.category,
-            receipt_image: expense._currentImageData || imagePreview
+            receipt_image_id: expense.receipt_image_id
           }])
           .select()
           .single();
@@ -446,7 +622,7 @@ Return ONLY the JSON array:`;
             quantity: expense.quantity,
             description: expense.description,
             category: expense.category,
-            receipt_image: expense._currentImageData || imagePreview
+            receipt_image_id: expense.receipt_image_id
           }])
           .select()
           .single();
@@ -489,7 +665,7 @@ Return ONLY the JSON array:`;
           quantity: expense.quantity,
           description: expense.description,
           category: expense.category,
-          receipt_image: expense._currentImageData || imagePreview // Use the specific image data for each expense
+          receipt_image_id: expense.receipt_image_id
         }));
 
         const { error } = await supabase
@@ -513,7 +689,7 @@ Return ONLY the JSON array:`;
           quantity: expense.quantity,
           description: expense.description,
           category: expense.category,
-          receipt_image: expense._currentImageData || imagePreview // Use the specific image data for each expense
+          receipt_image_id: expense.receipt_image_id
         }));
 
         const { error } = await supabase
@@ -536,38 +712,69 @@ Return ONLY the JSON array:`;
     }
   };
 
+  const handleDeleteClick = (expenseId: string) => {
+    console.log('Delete button clicked, expense ID:', expenseId);
+    setDeleteConfirmModal({ show: true, expenseId });
+  };
+
+  const confirmDelete = async () => {
+    console.log('Confirm delete clicked, expense ID:', deleteConfirmModal.expenseId);
+    if (deleteConfirmModal.expenseId) {
+      console.log('Starting deletion process...');
+      await deleteExpense(deleteConfirmModal.expenseId);
+      console.log('Deletion process completed');
+    } else {
+      console.log('No expense ID found for deletion');
+    }
+    setDeleteConfirmModal({ show: false, expenseId: null });
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmModal({ show: false, expenseId: null });
+  };
+
   const deleteExpense = async (id: string) => {
     try {
-      if (!user) {
-        console.log('No authenticated user found, using dummy user ID for testing');
-        // Fallback to dummy user ID if no user is logged in
-        const dummyUserId = '00000000-0000-0000-0000-000000000000';
-        const { error } = await supabase
-          .from('expense_tracker')
-          .delete()
-          .eq('id', id)
-          .eq('user_id', dummyUserId);
+      console.log('=== DELETE EXPENSE START ===');
+      console.log('Expense ID to delete:', id);
+      
+      // Check if user exists
+      console.log('User object:', user);
+      
+      let userId = user?.id;
+      if (!userId) {
+        console.log('No authenticated user, using dummy user ID');
+        userId = '00000000-0000-0000-0000-000000000000';
+      }
+      
+      console.log('Using user ID for deletion:', userId);
+      
+      // Delete the expense
+      const { data, error } = await supabase
+        .from('expense_tracker')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId);
 
-        if (error) {
-          console.error('Error deleting expense:', error);
-          return;
-        }
-      } else {
-        const { error } = await supabase
-          .from('expense_tracker')
-          .delete()
-          .eq('id', id)
-          .eq('user_id', user.id);
-
-        if (error) {
-          console.error('Error deleting expense:', error);
-          return;
-        }
+      if (error) {
+        console.error('Database error during deletion:', error);
+        return;
       }
 
-      fetchExpenses();
+      console.log('Database deletion successful, data:', data);
+      
+      // Immediately remove from local state
+      console.log('Updating local state...');
+      setExpenses(prevExpenses => {
+        const filtered = prevExpenses.filter(expense => expense.id !== id);
+        console.log('Previous expenses count:', prevExpenses.length);
+        console.log('Filtered expenses count:', filtered.length);
+        return filtered;
+      });
+      
+      console.log('=== DELETE EXPENSE COMPLETE ===');
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in deleteExpense:', error);
     }
   };
 
@@ -578,261 +785,7 @@ Return ONLY the JSON array:`;
     }).format(amount);
   };
 
-  const analyzeExpenses = (expenses: any[]) => {
-    if (!expenses || expenses.length === 0) {
-      return {
-        totalExpenses: 0,
-        totalEntries: 0,
-        message: "No expense data available"
-      };
-    }
 
-    // Calculate totals
-    const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
-    const totalEntries = expenses.length;
-    const totalQuantity = expenses.reduce((sum, expense) => sum + (expense.quantity || 1), 0);
-
-    // Group by category
-    const categoryTotals: { [key: string]: number } = {};
-    const categoryCounts: { [key: string]: number } = {};
-    const categoryQuantities: { [key: string]: number } = {};
-    
-    expenses.forEach(expense => {
-      const category = expense.category || 'Uncategorized';
-      categoryTotals[category] = (categoryTotals[category] || 0) + (expense.amount || 0);
-      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-      categoryQuantities[category] = (categoryQuantities[category] || 0) + (expense.quantity || 1);
-    });
-
-    // Group by vendor
-    const vendorTotals: { [key: string]: number } = {};
-    const vendorCounts: { [key: string]: number } = {};
-    const vendorQuantities: { [key: string]: number } = {};
-    
-    expenses.forEach(expense => {
-      const vendor = expense.vendor || 'Unknown Vendor';
-      vendorTotals[vendor] = (vendorTotals[vendor] || 0) + (expense.amount || 0);
-      vendorCounts[vendor] = (vendorCounts[vendor] || 0) + 1;
-      vendorQuantities[vendor] = (vendorQuantities[vendor] || 0) + (expense.quantity || 1);
-    });
-
-    // Date analysis
-    const dates = expenses.map(e => e.expense_date).filter(Boolean);
-    const earliestDate = dates.length > 0 ? Math.min(...dates.map(d => new Date(d).getTime())) : null;
-    const latestDate = dates.length > 0 ? Math.max(...dates.map(d => new Date(d).getTime())) : null;
-
-    // Monthly breakdown
-    const monthlyTotals: { [key: string]: number } = {};
-    const monthlyQuantities: { [key: string]: number } = {};
-    expenses.forEach(expense => {
-      if (expense.expense_date) {
-        const monthKey = expense.expense_date.substring(0, 7); // YYYY-MM format
-        monthlyTotals[monthKey] = (monthlyTotals[monthKey] || 0) + (expense.amount || 0);
-        monthlyQuantities[monthKey] = (monthlyQuantities[monthKey] || 0) + (expense.quantity || 1);
-      }
-    });
-
-    // Recent expenses (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const recentExpenses = expenses.filter(expense => 
-      expense.expense_date && new Date(expense.expense_date) >= thirtyDaysAgo
-    );
-    const recentTotal = recentExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
-    const recentQuantity = recentExpenses.reduce((sum, expense) => sum + (expense.quantity || 1), 0);
-
-    // Top categories by amount
-    const topCategories = Object.entries(categoryTotals)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 5)
-      .map(([category, total]) => ({ 
-        category, 
-        total, 
-        count: categoryCounts[category],
-        quantity: categoryQuantities[category]
-      }));
-
-    // Top vendors by amount
-    const topVendors = Object.entries(vendorTotals)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 5)
-      .map(([vendor, total]) => ({ 
-        vendor, 
-        total, 
-        count: vendorCounts[vendor],
-        quantity: vendorQuantities[vendor]
-      }));
-
-    // Quantity analysis
-    const quantityStats = {
-      total: totalQuantity,
-      average: totalEntries > 0 ? totalQuantity / totalEntries : 0,
-      max: Math.max(...expenses.map(e => e.quantity || 1)),
-      min: Math.min(...expenses.map(e => e.quantity || 1))
-    };
-
-    // Get recent expenses (last 10 for context, but limit data)
-    const recentExpenseList = expenses
-      .sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime())
-      .slice(0, 10)
-      .map(expense => ({
-        date: expense.expense_date,
-        vendor: expense.vendor,
-        amount: expense.amount,
-        quantity: expense.quantity || 1,
-        category: expense.category,
-        description: expense.description?.substring(0, 50) // Limit description length
-      }));
-
-    return {
-      summary: {
-        totalExpenses,
-        totalEntries,
-        totalQuantity,
-        averagePerEntry: totalEntries > 0 ? totalExpenses / totalEntries : 0,
-        dateRange: {
-          earliest: earliestDate ? new Date(earliestDate).toISOString().split('T')[0] : null,
-          latest: latestDate ? new Date(latestDate).toISOString().split('T')[0] : null
-        },
-        recent30Days: {
-          total: recentTotal,
-          count: recentExpenses.length,
-          quantity: recentQuantity
-        }
-      },
-      categories: {
-        totals: categoryTotals,
-        counts: categoryCounts,
-        quantities: categoryQuantities,
-        topCategories
-      },
-      vendors: {
-        totals: vendorTotals,
-        counts: vendorCounts,
-        quantities: vendorQuantities,
-        topVendors
-      },
-      monthly: {
-        totals: monthlyTotals,
-        quantities: monthlyQuantities
-      },
-      quantity: quantityStats,
-      recentExpenses: recentExpenseList // Only include recent expenses instead of all
-    };
-  };
-
-  // Enhanced question classification function
-  const classifyQuestion = (question: string) => {
-    const lowerQuestion = question.toLowerCase();
-    
-    // Vendor-related keywords
-    const vendorKeywords = ['at', 'from', 'spent at', 'bought at', 'purchased at', 'shopped at', 'store', 'shop', 'vendor', 'merchant'];
-    const hasVendorKeywords = vendorKeywords.some(keyword => lowerQuestion.includes(keyword));
-    
-    // Category-related keywords
-    const categoryKeywords = ['category', 'food', 'transportation', 'shopping', 'entertainment', 'health', 'utilities', 'other', 'spent on', 'bought', 'purchased'];
-    const hasCategoryKeywords = categoryKeywords.some(keyword => lowerQuestion.includes(keyword));
-    
-    // Description-related keywords
-    const descriptionKeywords = ['what did i buy', 'what did i purchase', 'items', 'products', 'description', 'contains', 'includes', 'bought', 'purchased'];
-    const hasDescriptionKeywords = descriptionKeywords.some(keyword => lowerQuestion.includes(keyword));
-    
-    // Date-related keywords
-    const dateKeywords = ['when', 'date', 'today', 'yesterday', 'this week', 'this month', 'last week', 'last month', 'recent', 'latest'];
-    const hasDateKeywords = dateKeywords.some(keyword => lowerQuestion.includes(keyword));
-    
-    // Amount-related keywords (including "Number of" as reference to amount field)
-    const amountKeywords = ['how much', 'total', 'amount', 'cost', 'price', 'spent', 'spending', 'budget', 'expensive', 'cheap', 'number of', 'number of transactions', 'number of purchases', 'number of expenses'];
-    const hasAmountKeywords = amountKeywords.some(keyword => lowerQuestion.includes(keyword));
-    
-    // Quantity-related keywords
-    const quantityKeywords = ['how many', 'quantity', 'count', 'pieces', 'items', 'units', 'bought', 'purchased', 'total items'];
-    const hasQuantityKeywords = quantityKeywords.some(keyword => lowerQuestion.includes(keyword));
-    
-    // Determine primary question type
-    if (hasVendorKeywords) return 'vendor';
-    if (hasCategoryKeywords) return 'category';
-    if (hasDescriptionKeywords) return 'description';
-    if (hasDateKeywords) return 'date';
-    if (hasAmountKeywords) return 'amount';
-    if (hasQuantityKeywords) return 'quantity';
-    
-    return 'general';
-  };
-
-  // Smart data filtering based on question type
-  const getRelevantData = (questionType: string, expenseAnalysis: any) => {
-    const maxExpenses = 20; // Limit for GPT-4 token efficiency
-    
-    switch (questionType) {
-      case 'vendor':
-        return {
-          summary: expenseAnalysis.summary,
-          vendors: expenseAnalysis.vendors,
-          recentExpenses: expenseAnalysis.recentExpenses?.slice(0, maxExpenses) || []
-        };
-      
-      case 'category':
-        return {
-          summary: expenseAnalysis.summary,
-          categories: expenseAnalysis.categories,
-          recentExpenses: expenseAnalysis.recentExpenses?.slice(0, maxExpenses) || []
-        };
-      
-      case 'description':
-        // For description questions, provide more detailed expense data
-        const detailedExpenses = expenseCache
-          .sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime())
-          .slice(0, maxExpenses)
-          .map(expense => ({
-            date: expense.expense_date,
-            vendor: expense.vendor,
-            amount: expense.amount,
-            quantity: expense.quantity || 1,
-            category: expense.category,
-            description: expense.description
-          }));
-        return {
-          summary: expenseAnalysis.summary,
-          detailedExpenses
-        };
-      
-      case 'date':
-        return {
-          summary: expenseAnalysis.summary,
-          recentExpenses: expenseAnalysis.recentExpenses?.slice(0, maxExpenses) || [],
-          monthlyBreakdown: expenseAnalysis.monthly
-        };
-      
-      case 'amount':
-        return {
-          summary: expenseAnalysis.summary,
-          categories: expenseAnalysis.categories,
-          vendors: expenseAnalysis.vendors,
-          recentExpenses: expenseAnalysis.recentExpenses?.slice(0, 10) || [],
-          totalEntries: expenseAnalysis.summary.totalEntries,
-          totalQuantity: expenseAnalysis.summary.totalQuantity
-        };
-      
-      case 'quantity':
-        return {
-          summary: expenseAnalysis.summary,
-          quantity: expenseAnalysis.quantity,
-          categories: expenseAnalysis.categories,
-          vendors: expenseAnalysis.vendors,
-          recentExpenses: expenseAnalysis.recentExpenses?.slice(0, maxExpenses) || []
-        };
-      
-      default:
-        return {
-          summary: expenseAnalysis.summary,
-          quantity: expenseAnalysis.quantity,
-          categories: expenseAnalysis.categories?.topCategories || [],
-          vendors: expenseAnalysis.vendors?.topVendors || [],
-          recentExpenses: expenseAnalysis.recentExpenses?.slice(0, 10) || []
-        };
-    }
-  };
 
   const handleQuickQuestion = async () => {
     if (!quickQuestion.trim()) return;
@@ -841,72 +794,19 @@ Return ONLY the JSON array:`;
     setQuickAnswer('');
 
     try {
-      // Use local cache only
-      if (!expenseCache || expenseCache.length === 0) {
-        setQuickAnswer('No expense data found in cache. Please add some expenses first.');
-        return;
-      }
+      // Get user ID (fallback to dummy for now)
+      const userId = user?.id || '00000000-0000-0000-0000-000000000000';
       
-      const expenseAnalysis = analyzeExpenses(expenseCache);
-      const questionType = classifyQuestion(quickQuestion);
-      const relevantData = getRelevantData(questionType, expenseAnalysis);
+      // Use the new question processor service
+      const result = await questionProcessor.processQuestion({
+        userId,
+        question: quickQuestion,
+        dataLimit: 50 // Limit for quick questions
+      });
       
-      // Create targeted prompt based on question type
-      let contextPrompt = `You are a personal finance assistant. Question type: ${questionType.toUpperCase()}\n\n`;
-      
-      // Add summary data
-      contextPrompt += `SUMMARY: Total $${relevantData.summary?.totalExpenses?.toFixed(2) || '0.00'} (${relevantData.summary?.totalEntries || 0} entries, ${relevantData.summary?.totalQuantity || 0} total items)\n`;
-      
-      // Add relevant data based on question type
-      if (questionType === 'vendor' && relevantData.vendors?.topVendors) {
-        contextPrompt += `VENDORS: ${relevantData.vendors.topVendors.map((v: any) => `${v.vendor}: $${v.total.toFixed(2)} (${v.quantity} items)`).join(', ')}\n`;
-      }
-      
-      if (questionType === 'category' && relevantData.categories?.topCategories) {
-        contextPrompt += `CATEGORIES: ${relevantData.categories.topCategories.map((c: any) => `${c.category}: $${c.total.toFixed(2)} (${c.quantity} items)`).join(', ')}\n`;
-      }
-      
-      if (questionType === 'quantity' && relevantData.quantity) {
-        contextPrompt += `QUANTITY STATS: Total ${relevantData.quantity.total} items, Average ${relevantData.quantity.average.toFixed(1)} per entry, Range ${relevantData.quantity.min}-${relevantData.quantity.max}\n`;
-      }
-      
-      if (questionType === 'amount') {
-        // Special handling for "Number of" questions - clarify what the data represents
-        if (quickQuestion.toLowerCase().includes('number of')) {
-          contextPrompt += `NOTE: "Number of" refers to the count of expense entries/transactions, not monetary amounts.\n`;
-          contextPrompt += `TRANSACTION COUNTS: Total ${relevantData.summary?.totalEntries || 0} expense entries\n`;
-          if (relevantData.categories?.topCategories) {
-            contextPrompt += `CATEGORY COUNTS: ${relevantData.categories.topCategories.map((c: any) => `${c.category}: ${c.count} entries`).join(', ')}\n`;
-          }
-          if (relevantData.vendors?.topVendors) {
-            contextPrompt += `VENDOR COUNTS: ${relevantData.vendors.topVendors.map((v: any) => `${v.vendor}: ${v.count} entries`).join(', ')}\n`;
-          }
-        } else {
-          // Regular amount questions
-          if (relevantData.categories?.topCategories) {
-            contextPrompt += `CATEGORIES: ${relevantData.categories.topCategories.map((c: any) => `${c.category}: $${c.total.toFixed(2)} (${c.quantity} items)`).join(', ')}\n`;
-          }
-          if (relevantData.vendors?.topVendors) {
-            contextPrompt += `VENDORS: ${relevantData.vendors.topVendors.map((v: any) => `${v.vendor}: $${v.total.toFixed(2)} (${v.quantity} items)`).join(', ')}\n`;
-          }
-        }
-      }
-      
-      if (questionType === 'description' && relevantData.detailedExpenses) {
-        contextPrompt += `DETAILED EXPENSES:\n${relevantData.detailedExpenses.map((e: any) => 
-          `${e.date} | ${e.vendor} | $${e.amount} | ${e.quantity} items | ${e.category} | ${e.description || 'No description'}`
-        ).join('\n')}\n`;
-      } else if (relevantData.recentExpenses) {
-        contextPrompt += `RECENT EXPENSES:\n${relevantData.recentExpenses.map((e: any) => 
-          `${e.date} | ${e.vendor} | $${e.amount} | ${e.quantity} items | ${e.category}`
-        ).join('\n')}\n`;
-      }
-      
-      contextPrompt += `\nUSER QUESTION: "${quickQuestion}"\n\nProvide a specific, helpful answer based on this data. Be precise with amounts, dates, and details.`;
-      
-      const response = await getGPTAnswer(contextPrompt);
-      setQuickAnswer(response);
+      setQuickAnswer(result.response);
     } catch (error) {
+      console.error('Error processing quick question:', error);
       setQuickAnswer(`Error: ${error instanceof Error ? error.message : 'Failed to get answer'}`);
     } finally {
       setIsAskingQuestion(false);
@@ -941,8 +841,25 @@ Return ONLY the JSON array:`;
     };
 
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setQuickQuestion(transcript);
+      // Handle incremental results properly
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      // Process all results incrementally
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results.item(i);
+        const transcript = result.item(0).transcript;
+        
+        if (result.isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interimTranscript = transcript; // Only keep the latest interim
+        }
+      }
+
+      // Combine final and latest interim results
+      const combinedTranscript = (finalTranscript + interimTranscript).trim();
+      setQuickQuestion(combinedTranscript);
     };
 
     recognition.onerror = (event) => {
@@ -957,6 +874,8 @@ Return ONLY the JSON array:`;
     speechRecognitionRef.current = recognition;
     recognition.start();
   };
+
+
 
   if (!isOpen) return null;
 
@@ -984,12 +903,12 @@ Return ONLY the JSON array:`;
               transform: 'translateZ(3px)'
             }}
           >
-            AI Expense Tracker
+            Expense entries
           </h2>
           <div className="absolute top-2 right-2 flex items-center gap-2">
             <button
               onClick={onClose}
-              className="w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+              className="w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors border border-white"
               style={{ background: '#000000', fontSize: '15px' }}
               aria-label="Close modal"
             >
@@ -1023,7 +942,7 @@ Return ONLY the JSON array:`;
                         setTimeout(() => fileInputRef.current?.removeAttribute('capture'), 1000);
                       }
                     }}
-                    className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0 mb-2"
+                    className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white mb-2"
                     style={{ background: '#111' }}
                   >
                     📷 Open Camera
@@ -1054,17 +973,17 @@ Return ONLY the JSON array:`;
                   ) : (
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0"
+                      className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
                       style={{ background: '#111' }}
                     >
-                      📷 Select Image
+                      🖼️ Select Image
                     </button>
                   )}
                   
                   <div className="mt-6">
                     <button
                       onClick={handleManualEntry}
-                      className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0"
+                      className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
                       style={{ background: '#111' }}
                     >
                       ✏️ Enter Manually
@@ -1078,7 +997,7 @@ Return ONLY the JSON array:`;
                         setShowQuickQuestion(true);
                       }}
                       disabled={isCacheLoading}
-                      className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0"
+                      className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
                       style={{ background: '#111' }}
                     >
                       {isCacheLoading ? '🔄 Loading...' : '❓ Quick Question'}
@@ -1087,7 +1006,7 @@ Return ONLY the JSON array:`;
                   {/* Move Journal button here */}
                   <div className="mt-2 flex justify-center">
                     <button
-                      className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0"
+                      className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
                       style={{ background: '#111' }}
                       onClick={() => {
                         setShowExpenseJournal(true);
@@ -1142,7 +1061,7 @@ Return ONLY the JSON array:`;
                               setNewExpenses([]);
                               setImagePreview(null);
                             }}
-                            className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0 text-xs"
+                            className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
                             style={{ background: '#111' }}
                           >
                             📷 Upload Another
@@ -1150,24 +1069,12 @@ Return ONLY the JSON array:`;
                         )}
                         <button
                           onClick={addNewExpense}
-                          className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0"
+                          className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white mx-auto block"
                           style={{ background: '#111' }}
                         >
-                          Add New
+                          Add new expense manually
                         </button>
                       </div>
-                      <button
-                        onClick={async () => {
-                          // Always force a fresh fetch to ensure cache is populated
-                          await fetchExpenses(true);
-                          setShowQuickQuestion(true);
-                        }}
-                        disabled={isCacheLoading}
-                        className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0 text-xs"
-                        style={{ background: '#111' }}
-                      >
-                        {isCacheLoading ? '🔄 Loading...' : '❓ Quick Question'}
-                      </button>
                     </div>
                   </div>
                                       {newExpenses.length > 0 ? (
@@ -1186,7 +1093,7 @@ Return ONLY the JSON array:`;
                                 <input
                                   type="number"
                                   step="0.01"
-                                  value={expense.amount === 0 ? '' : expense.amount}
+                                  value={expense.amount === 0 ? '' : expense.amount.toFixed(2)}
                                   onChange={(e) => updateNewExpense(index, 'amount', parseFloat(e.target.value) || 0)}
                                   className="w-24 p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
                                   placeholder="Amount"
@@ -1198,7 +1105,7 @@ Return ONLY the JSON array:`;
                                 <input
                                   type="number"
                                   min="1"
-                                  value={expense.quantity === 1 ? '' : expense.quantity}
+                                  value={expense.quantity}
                                   onChange={(e) => updateNewExpense(index, 'quantity', parseInt(e.target.value) || 1)}
                                   className="w-20 p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
                                   placeholder="Qty"
@@ -1207,7 +1114,8 @@ Return ONLY the JSON array:`;
                                   type="text"
                                   value={expense.vendor}
                                   onChange={(e) => updateNewExpense(index, 'vendor', e.target.value)}
-                                  className="flex-1 p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
+                                  className="p-3 border-2 border-white rounded-2xl text-white bg-black focus:outline-none text-sm"
+                                  style={{ width: 'calc(100% - 20px)' }}
                                   placeholder="Vendor"
                                 />
                               </div>
@@ -1235,12 +1143,19 @@ Return ONLY the JSON array:`;
                               </div>
                               
                               {/* Confirm Button */}
-                              <div className="flex justify-end">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => removeNewExpense(index)}
+                                  className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
+                                  style={{ background: '#6b7280' }}
+                                >
+                                  Cancel
+                                </button>
                                 <button
                                   onClick={() => saveIndividualExpense(expense, index)}
                                   disabled={isLoading}
-                                  className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0"
-                                  style={{ background: '#111' }}
+                                  className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
+                                  style={{ background: '#16a34a' }}
                                 >
                                   {isLoading ? 'Saving...' : 'Confirm'}
                                 </button>
@@ -1256,7 +1171,12 @@ Return ONLY the JSON array:`;
 
                 {/* Saved Expenses Section */}
                 <div>
-                  <h3 className="text-white font-bold text-sm mb-4">Saved Expenses</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-bold text-white">Saved Expenses</h3>
+                      <span className="text-sm text-white">(50 most recent)</span>
+                    </div>
+                  </div>
                   {isLoading || isCacheLoading ? (
                     <div className="text-center text-white mt-8">
                       <p>Loading expenses...</p>
@@ -1266,34 +1186,57 @@ Return ONLY the JSON array:`;
                       {expenses.map((expense) => (
                         <div key={expense.id} className="bg-black border-2 border-white rounded-2xl p-4 relative">
                           <div className="absolute top-3 right-3 flex gap-2">
-                            {expense.receipt_image && (
+                            {expense.receipt_image_id && (
                               <button 
-                                onClick={() => {
-                                  setPreviewImageUrl(expense.receipt_image!);
-                                  setShowReceiptPreview(true);
+                                onClick={async () => {
+                                  try {
+                                    const { data: imageRow, error } = await supabase
+                                      .from('receipt_images')
+                                      .select('image_data')
+                                      .eq('id', expense.receipt_image_id)
+                                      .single();
+                                    
+                                    if (error) {
+                                      console.error('Error fetching image:', error);
+                                      return;
+                                    }
+                                    
+                                    const imageData = imageRow?.image_data;
+                                    if (imageData) {
+                                      setPreviewImageUrl(imageData);
+                                      setShowReceiptPreview(true);
+                                    }
+                                  } catch (error) {
+                                    console.error('Error fetching receipt image:', error);
+                                  }
                                 }}
-                                className="px-3 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-colors border-0 text-xs"
+                                className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
                                 style={{ background: '#111' }}
                                 title="View Receipt"
                               >
                                 📷
                               </button>
                             )}
+
                             <button 
-                              onClick={() => deleteExpense(expense.id)}
-                              className="px-3 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-colors border-0 text-xs"
-                              style={{ background: '#111' }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDeleteClick(expense.id);
+                              }}
+                              className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
+                              style={{ background: '#dc2626' }}
                             >
                               Delete
                             </button>
                           </div>
                           <div className="flex items-start justify-between pr-32">
                             <div className="flex-1">
-                              <div className="text-sm font-bold text-white mb-1">
+                              <div className="text-sm font-bold text-white mb-1 overflow-hidden text-ellipsis whitespace-nowrap max-w-xs">
                                 {expense.vendor}
                               </div>
                               
-                              <div className="text-xs font-bold text-[var(--favourite-blue)] mb-1">
+                              <div className="text-xs font-bold text-white mb-1">
                                 {expense.description}
                               </div>
                               
@@ -1301,16 +1244,16 @@ Return ONLY the JSON array:`;
                                 <span className="text-sm font-bold text-green-400">
                                   R{expense.amount.toFixed(2)}
                                 </span>
-                                <span className="text-xs font-bold text-[var(--favourite-blue)]">
-                                  Qty: {expense.quantity}
-                                </span>
+                                                                  <span className="text-xs font-bold text-white">
+                                    Qty: {expense.quantity}
+                                  </span>
                               </div>
                               
-                              <div className="flex items-center gap-3 text-xs font-bold text-[var(--favourite-blue)]">
+                              <div className="flex items-center gap-3 text-xs font-bold text-white">
                                 <span>
                                   {new Date(expense.expense_date).toLocaleDateString()}
                                 </span>
-                                <span className="bg-[var(--favourite-blue)] text-black px-2 py-1 rounded-full text-xs">
+                                <span className="bg-white text-black px-2 py-1 rounded-full text-xs">
                                   {expense.category}
                                 </span>
                               </div>
@@ -1322,6 +1265,7 @@ Return ONLY the JSON array:`;
                   ) : (
                     <div className="text-center text-white mt-8">
                       <p>No saved expenses yet.</p>
+                      <p className="text-xs text-gray-400 mt-2">Expenses count: {expenses.length}</p>
                     </div>
                   )}
                 </div>
@@ -1360,7 +1304,7 @@ Return ONLY the JSON array:`;
            </h2>
               <button
                 onClick={() => setShowReceiptPreview(false)}
-                className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+                className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors border border-white"
                 style={{ background: '#111' }}
                 aria-label="Close modal"
               >
@@ -1414,7 +1358,7 @@ Return ONLY the JSON array:`;
            </h2>
               <button
                 onClick={() => setShowQuickQuestion(false)}
-                className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+                className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors border border-white"
                 style={{ background: '#111' }}
                 aria-label="Close modal"
               >
@@ -1452,7 +1396,7 @@ Return ONLY the JSON array:`;
                     />
                     <button
                       onClick={handleMicClick}
-                      className={`px-4 py-3 rounded-2xl glassy-btn neon-grid-btn text-white font-bold transition-colors border-0 flex items-center justify-center ${isListening ? 'bg-red-600 animate-pulse' : ''}`}
+                      className={`px-4 py-3 rounded-2xl glassy-btn neon-grid-btn text-white font-bold transition-colors border border-white flex items-center justify-center ${isListening ? 'bg-red-600 animate-pulse' : ''}`}
                       style={{ background: isListening ? '#dc2626' : '#111' }}
                       disabled={isAskingQuestion}
                     >
@@ -1460,18 +1404,13 @@ Return ONLY the JSON array:`;
                     </button>
                   </div>
                   
-                  {/* Question Type Indicator */}
-                  {quickQuestion.trim() && (
-                    <div className="mt-2 text-xs text-gray-300">
-                      Question type: <span className="text-[var(--favourite-blue)] font-bold">{classifyQuestion(quickQuestion).toUpperCase()}</span>
-                    </div>
-                  )}
+
                   
                   <div className="flex justify-end gap-2 mt-3">
                     <button
                       onClick={() => setQuickQuestion('')}
                       disabled={isAskingQuestion}
-                      className="px-6 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0"
+                      className="px-6 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
                       style={{ background: '#111' }}
                     >
                       Clear
@@ -1479,7 +1418,7 @@ Return ONLY the JSON array:`;
                     <button
                       onClick={handleQuickQuestion}
                       disabled={!quickQuestion.trim() || isAskingQuestion}
-                      className="px-6 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border-0"
+                      className="px-6 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
                       style={{ background: '#111' }}
                     >
                       {isAskingQuestion ? 'Asking...' : 'Submit'}
@@ -1514,6 +1453,66 @@ Return ONLY the JSON array:`;
                     placeholder="Cache data will appear here..."
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmModal.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
+          <div className="rounded-2xl bg-black p-0 w-full max-w-md mx-4 flex flex-col" style={{ boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white' }}>
+            <div 
+              className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+                backdropFilter: 'blur(10px)',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+                transform: 'translateZ(5px)'
+              }}
+            >
+              <h2 
+                className="text-white font-bold text-base text-center"
+                style={{
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+                  filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+                  transform: 'translateZ(3px)'
+                }}
+              >
+                Confirm Deletion
+              </h2>
+              <div className="absolute top-2 right-2 flex items-center gap-2">
+                <button
+                  onClick={cancelDelete}
+                  className="w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors border border-white"
+                  style={{ background: '#111' }}
+                  aria-label="Close modal"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 px-4 pb-2 overflow-y-auto">
+              <p className="text-white text-center py-8">Are you sure you want to delete this expense?</p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={confirmDelete}
+                  className="px-6 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
+                  style={{ background: '#16a34a' }}
+                >
+                  Save
+                </button>
+                <button
+                  onClick={cancelDelete}
+                  className="px-6 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-colors border border-white"
+                  style={{ background: '#111' }}
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>

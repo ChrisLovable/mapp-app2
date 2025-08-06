@@ -7,14 +7,28 @@ export class CalendarEventService {
       const { data, error } = await supabase
         .from('calendar_events')
         .select('*')
-        .order('start', { ascending: true });
+        .order('start_time', { ascending: true });
 
       if (error) {
         console.error('Error loading events:', error);
         throw error;
       }
 
-      return data || [];
+      // Map database fields to interface fields
+      const mappedData = (data || []).map(event => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        start: event.start_time, // Map start_time to start
+        end: event.end_time,     // Map end_time to end
+        allDay: event.all_day,   // Map all_day to allDay
+        event_type: event.event_type,
+        location: event.location,
+        attendees: event.attendees || [],
+        reminder_minutes: event.reminder_minutes
+      }));
+      
+      return mappedData;
     } catch (error) {
       console.error('Failed to load events:', error);
       return [];

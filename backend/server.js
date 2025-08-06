@@ -23,9 +23,32 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ===== API KEYS =====
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
-const REPLICATE_API_KEY = process.env.REPLICATE_API_KEY;
 const AZURE_TTS_KEY = process.env.AZURE_TTS_KEY;
+const AZURE_TTS_REGION = process.env.AZURE_TTS_REGION;
+const SERPAPI_KEY = process.env.SERPAPI_KEY;
+
+// Make OpenAI API key required
+if (!OPENAI_API_KEY) {
+  console.error('❌ OPENAI_API_KEY is required. Please set it in your .env file.');
+  process.exit(1);
+}
+
+// Check other API keys
+if (!AZURE_TTS_KEY || !AZURE_TTS_REGION) {
+  console.log('⚠️  Azure TTS not configured - text-to-speech will be limited');
+}
+
+if (!SERPAPI_KEY) {
+  console.log('⚠️  SERPAPI_KEY not set - real-time search will be limited');
+}
+
+// API status for health check
+const apiStatus = {
+  openai: !!OPENAI_API_KEY,
+  azureTTS: !!(AZURE_TTS_KEY && AZURE_TTS_REGION),
+  serpapi: !!SERPAPI_KEY,
+  imageGeneration: !!OPENAI_API_KEY,
+};
 
 // ===== SUPABASE SETUP =====
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -39,22 +62,12 @@ if (supabaseUrl && supabaseKey) {
   console.log('⚠️  Supabase credentials not found - using mock data');
 }
 
-// Make REPLICATE_API_KEY optional for development
-if (!REPLICATE_API_KEY) {
-  console.log('⚠️  REPLICATE_API_KEY not set - image generation will be limited');
-}
-
 // ===== HEALTH CHECK =====
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    services: {
-      search: !!RAPIDAPI_KEY,
-      calendar: !!OPENAI_API_KEY,
-      imageGeneration: !!REPLICATE_API_KEY,
-      tts: !!AZURE_TTS_KEY
-    },
+    services: apiStatus,
     environment: process.env.NODE_ENV || 'development'
   });
 });
@@ -67,22 +80,22 @@ app.get('/api/search', async (req, res) => {
     return res.status(400).json({ error: 'Query parameter is required' });
   }
 
-  if (!RAPIDAPI_KEY) {
+  if (!SERPAPI_KEY) {
     return res.status(500).json({ error: 'Search API not configured' });
   }
 
   try {
     console.log('🔍 Search request:', q);
     
-    const response = await fetch(`https://real-time-web-search.p.rapidapi.com/search?q=${encodeURIComponent(q)}&num=10&start=0&gl=us&hl=en&device=desktop&nfpr=0`, {
+    const response = await fetch(`https://serpapi.com/search?q=${encodeURIComponent(q)}&num=10&start=0&gl=us&hl=en&device=desktop&nfpr=0`, {
       headers: {
-        'X-RapidAPI-Key': RAPIDAPI_KEY,
-        'X-RapidAPI-Host': 'real-time-web-search.p.rapidapi.com'
+        'X-RapidAPI-Key': SERPAPI_KEY,
+        'X-RapidAPI-Host': 'serpapi.com'
       }
     });
 
     if (!response.ok) {
-      throw new Error(`RapidAPI error: ${response.status}`);
+      throw new Error(`SERPAPI error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -347,163 +360,119 @@ Other rules:
 });
 
 // ===== IMAGE GENERATION =====
-app.post('/api/replicate/predictions', async (req, res) => {
-  const { prompt, width = 512, height = 512, negative_prompt, reference_image } = req.body;
+app.post('/api/openai/images/generations', async (req, res) => {
+  console.log('🎨 Image generation request received');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  
+  const { prompt, size = '1024x1024', quality = 'standard', style = 'vivid', reference_image } = req.body;
   
   if (!prompt) {
+    console.log('❌ No prompt provided');
     return res.status(400).json({ error: 'Prompt is required' });
   }
 
-  // For ChatGPT-style approach, reference image is optional
-  // We'll use text-to-image with enhanced prompts
-
-  if (!REPLICATE_API_KEY) {
-    console.log('⚠️  REPLICATE_API_KEY not set - returning demo mode for image generation');
-    const mockPrediction = {
-      id: `demo-${Date.now()}`,
-      status: 'starting',
-      output: null
+  if (!OPENAI_API_KEY) {
+    console.log('⚠️  OPENAI_API_KEY not set - returning demo mode for image generation');
+    const mockResponse = {
+      data: [{
+        url: 'https://via.placeholder.com/1024x1024/cccccc/666666?text=Demo+Image'
+      }],
+      usage: {
+        prompt_tokens: 10,
+        completion_tokens: 0,
+        total_tokens: 10
+      }
     };
-    return res.json(mockPrediction);
+    return res.json(mockResponse);
   }
 
   try {
-    console.log('🎨 Starting Replicate prediction with prompt:', prompt);
+    console.log('🎨 Starting OpenAI DALL-E generation with prompt:', prompt);
+    console.log('OpenAI API Key present:', !!OPENAI_API_KEY);
     
-    // Prepare the input object for ChatGPT-style text-to-image
+    // Prepare the request for OpenAI DALL-E
     let enhancedPrompt = prompt;
     
-    // If reference image is provided, enhance the prompt with style info
+    // If reference image is provided, enhance the prompt
     if (reference_image) {
-      enhancedPrompt = `Create an image based on this reference photo, but in the style described: ${prompt}`;
+      enhancedPrompt = `Based on the reference image style and composition: ${prompt}`;
     }
     
-    const input = {
+    const requestBody = {
+      model: 'dall-e-3',
       prompt: enhancedPrompt,
-      width: width,
-      height: height,
-      guidance_scale: 7.5, // How closely to follow the prompt
-      negative_prompt: negative_prompt || 'blurry, low quality, distorted, deformed, ugly, bad anatomy, watermark, signature, text'
+      n: 1,
+      size: size,
+      quality: quality,
+      style: style
     };
 
-    console.log('🔍 Debug - Input object:', {
+    console.log('🔍 Debug - OpenAI request:', {
       prompt: enhancedPrompt,
       hasImage: !!reference_image,
-      imageLength: reference_image?.length || 0,
-      width: input.width,
-      height: input.height,
-      guidance_scale: input.guidance_scale
+      size: size,
+      quality: quality,
+      style: style
     });
     
-    // Start the prediction
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
+    console.log('📡 Making request to OpenAI API...');
+    
+    // Call OpenAI DALL-E API
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
-        'Authorization': `Token ${REPLICATE_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
-              body: JSON.stringify({
-          version: 'a00d0b7dcbb9c3fbb34ba87d2d5b46c56969c84a628bf778a7fdaec30b1b99c5', // SDXL for text-to-image
-          input: input
-        })
+      body: JSON.stringify(requestBody)
     });
 
+    console.log('📡 OpenAI API response status:', response.status);
+    console.log('📡 OpenAI API response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Replicate API error:', response.status, response.statusText, errorText);
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+      
+      console.error('OpenAI API error:', errorMessage);
+      console.error('Error data:', JSON.stringify(errorData, null, 2));
       
       // If it's a payment/credit error, return demo mode instead
       if (response.status === 402) {
         console.log('Payment required, switching to demo mode');
-        const mockPrediction = {
-          id: `demo-${Date.now()}`,
-          status: 'starting',
-          output: null
+        const mockResponse = {
+          data: [{
+            url: 'https://via.placeholder.com/1024x1024/cccccc/666666?text=Demo+Image'
+          }],
+          usage: {
+            prompt_tokens: 10,
+            completion_tokens: 0,
+            total_tokens: 10
+          }
         };
-        return res.json(mockPrediction);
+        return res.json(mockResponse);
       }
       
       return res.status(response.status).json({ 
-        error: 'Replicate API error', 
+        error: 'OpenAI API error', 
         status: response.status, 
         statusText: response.statusText, 
-        details: errorText 
+        details: errorMessage 
       });
     }
 
-    const prediction = await response.json();
-    console.log('Prediction started:', prediction.id);
+    const data = await response.json();
+    console.log('✅ OpenAI DALL-E generation successful:', data.data[0].url);
     
-    res.json(prediction);
+    res.json(data);
   } catch (err) {
-    console.error('Replicate proxy error:', err);
-    res.status(500).json({ error: 'Failed to start prediction', details: err.message || err });
-  }
-});
-
-app.get('/api/replicate/predictions/:id', async (req, res) => {
-  const { id } = req.params;
-  
-  if (!id) {
-    return res.status(400).json({ error: 'Prediction ID is required' });
-  }
-
-  if (!REPLICATE_API_KEY) {
-    console.log('⚠️  REPLICATE_API_KEY not set - returning demo mode for status check');
-    // Demo mode - return mock results for demo predictions
-    if (id.startsWith('demo-')) {
-      console.log('Demo mode: Returning mock result');
-      const mockResult = {
-        id: id,
-        status: 'succeeded',
-        output: [
-          'https://picsum.photos/512/512?random=' + Math.floor(Math.random() * 1000)
-        ]
-      };
-      return res.json(mockResult);
-    } else {
-      return res.status(500).json({ error: 'Replicate API not configured' });
-    }
-  }
-
-  // Demo mode - return mock results for demo predictions
-  if (id.startsWith('demo-')) {
-    console.log('Demo mode: Returning mock result');
-    const mockResult = {
-      id: id,
-      status: 'succeeded',
-      output: [
-        'https://picsum.photos/512/512?random=' + Math.floor(Math.random() * 1000)
-      ]
-    };
-    return res.json(mockResult);
-  }
-
-  try {
-    const response = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
-      headers: {
-        'Authorization': `Token ${REPLICATE_API_KEY}`,
-      }
+    console.error('❌ OpenAI proxy error:', err);
+    console.error('Error stack:', err.stack);
+    res.status(500).json({ 
+      error: 'Failed to generate image', 
+      details: err.message || err,
+      stack: err.stack 
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Replicate status check error:', response.status, response.statusText, errorText);
-      return res.status(response.status).json({ 
-        error: 'Failed to check prediction status', 
-        status: response.status, 
-        statusText: response.statusText, 
-        details: errorText 
-      });
-    }
-
-    const result = await response.json();
-    console.log('Prediction status:', id, result.status);
-    
-    res.json(result);
-  } catch (err) {
-    console.error('Replicate status check error:', err);
-    res.status(500).json({ error: 'Failed to check prediction status', details: err.message || err });
   }
 });
 
@@ -962,8 +931,8 @@ app.listen(PORT, () => {
   console.log(`🚀 Backend API Server running on http://localhost:${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔑 Services configured:`);
-  console.log(`   - Search: ${!!RAPIDAPI_KEY ? '✅' : '❌'}`);
+  console.log(`   - Search: ${!!SERPAPI_KEY ? '✅' : '❌'}`);
   console.log(`   - Calendar: ${!!OPENAI_API_KEY ? '✅' : '❌'}`);
-  console.log(`   - Image Generation: ${!!REPLICATE_API_KEY ? '✅' : '❌'}`);
+  console.log(`   - Image Generation: ${!!OPENAI_API_KEY ? '✅' : '❌'}`);
   console.log(`   - TTS: ${!!AZURE_TTS_KEY ? '✅' : '❌'}`);
 }); 

@@ -1,4 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+// Define getGPTAnswer function
+const getGPTAnswer = async (prompt: string): Promise<string> => {
+  console.log('=== GETGPTANSWER CALLED ===');
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful AI assistant that generates educational content and questions.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('OpenAI response:', data);
+    
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+      return data.choices[0].message.content;
+    } else {
+      throw new Error('Invalid response format from OpenAI');
+    }
+  } catch (error) {
+    console.error('Error calling OpenAI:', error);
+    throw error;
+  }
+};
 
 
 // Add CSS animation for loading spinner
@@ -184,8 +230,8 @@ Requirements:
           } else {
             // Step 6: Fallback - Create questions from text format
             console.log('No JSON array found, attempting to create questions from text');
-            const lines = response.split('\n').filter(line => line.trim().length > 0);
-            const questionLines = lines.filter(line => 
+            const lines = response.split('\n').filter((line: string) => line.trim().length > 0);
+            const questionLines = lines.filter((line: string) => 
               line.includes('?') || 
               line.match(/^\d+\./) || 
               line.match(/^Question/) ||

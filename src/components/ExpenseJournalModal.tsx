@@ -15,6 +15,7 @@ interface ExpenseEntry {
   description: string;
   vendor: string;
   amount: number;
+  receipt_image_id?: string;
 }
 
 // Calendar helper functions
@@ -118,25 +119,26 @@ const Calendar = ({
     return days;
   };
 
-  return (
-    <div className="absolute top-full right-0 mt-1 bg-white border-2 border-white rounded-lg shadow-xl z-50 p-4 min-w-[280px]">
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={handlePrevMonth}
-          className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-blue-600 font-semibold"
-        >
-          ←
-        </button>
-        <h3 className="text-base font-bold text-gray-800">
-          {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-        </h3>
-        <button
-          onClick={handleNextMonth}
-          className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-blue-600 font-semibold"
-        >
-          →
-        </button>
-      </div>
+    return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]" onClick={onClose}>
+      <div className="bg-white border-2 border-white rounded-lg shadow-xl p-4 min-w-[280px] max-w-[320px]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={handlePrevMonth}
+            className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-blue-600 font-semibold"
+          >
+            ←
+          </button>
+          <h3 className="text-base font-bold text-gray-800">
+            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+          </h3>
+          <button
+            onClick={handleNextMonth}
+            className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-blue-600 font-semibold"
+          >
+            →
+          </button>
+        </div>
       
       <div className="grid grid-cols-7 gap-1 mb-3">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
@@ -148,6 +150,7 @@ const Calendar = ({
       
       <div className="grid grid-cols-7 gap-1">
         {renderCalendarDays()}
+      </div>
       </div>
     </div>
   );
@@ -165,6 +168,10 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
   const [showStartCalendar, setShowStartCalendar] = useState(false);
   const [showEndCalendar, setShowEndCalendar] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
+  const [showDescriptionModal, setShowDescriptionModal] = useState(false);
+  const [selectedDescription, setSelectedDescription] = useState<string>('');
 
   // Fetch expense entries from database
   const fetchExpenses = async () => {
@@ -175,7 +182,7 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
       
       const { data, error } = await supabase
         .from('expense_tracker')
-        .select('id, expense_date, category, description, vendor, amount')
+        .select('id, expense_date, category, description, vendor, amount, receipt_image_id')
         .eq('user_id', userId)
         .order('expense_date', { ascending: false });
 
@@ -369,6 +376,34 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
     return `${day}-${month}-${year}`;
   };
 
+  const handleViewReceipt = async (receiptImageId: string) => {
+    try {
+      const { data: imageRow, error } = await supabase
+        .from('receipt_images')
+        .select('image_data')
+        .eq('id', receiptImageId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching image:', error);
+        return;
+      }
+      
+      const imageData = imageRow?.image_data;
+      if (imageData) {
+        setPreviewImageUrl(imageData);
+        setShowReceiptPreview(true);
+      }
+    } catch (error) {
+      console.error('Error fetching receipt image:', error);
+    }
+  };
+
+  const handleDescriptionClick = (description: string) => {
+    setSelectedDescription(description);
+    setShowDescriptionModal(true);
+  };
+
   // Split expenses into pages (20 entries per page)
   const entriesPerPage = 20;
   const expensePages = [];
@@ -381,7 +416,7 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
     // Cover Page
             <div key="cover" className="flip-page w-full h-full overflow-y-auto bg-black shadow-lg rounded-3xl border border-gray-300 relative">
       <img
-        src="/expensejournalcover.jpg"
+        src="/gabby_minimalist.jpg"
         alt="Expense Journal Cover"
         className="w-full h-full object-cover"
       />
@@ -400,92 +435,104 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
     </div>,
 
     // Table of Contents Page
-            <div key="toc" className="flip-page bg-white shadow-lg rounded-3xl border border-gray-300 w-full h-full overflow-y-auto p-6 flex flex-col">
-      <h2 className="text-2xl font-semibold text-blue-800 text-center mb-4">📊 Expense Summaries</h2>
+            <div key="toc" className="flip-page bg-gradient-to-br from-amber-50 to-yellow-100 shadow-lg rounded-3xl border border-gray-300 w-full h-full overflow-y-auto p-6 flex flex-col">
+      <h2 className="text-2xl font-semibold text-amber-800 text-center mb-4">📊 Expense Summaries</h2>
       
       {/* Date Range Filter */}
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-700 mb-2">Filter by Date Range:</h3>
+
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 relative">
-            <span className="text-sm font-medium text-gray-600">From:</span>
-            <button
-              onClick={() => {
-                setShowStartCalendar(!showStartCalendar);
-                setShowEndCalendar(false);
-              }}
-              className="px-3 py-2 border-2 border-white rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white cursor-pointer bg-white min-w-[120px] text-left hover:bg-blue-50 transition-colors shadow-sm text-black"
-            >
-              {startDate ? formatDate(startDate) : 'Start Date'}
-            </button>
-            <Calendar
-              selectedDate={startDate}
-              onDateSelect={setStartDate}
-              isOpen={showStartCalendar}
-              onClose={() => setShowStartCalendar(false)}
-              maxDate={endDate || new Date()}
-            />
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-black">From:</span>
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowStartCalendar(!showStartCalendar);
+                  setShowEndCalendar(false);
+                }}
+                className="px-3 py-2 glassy-btn neon-grid-btn border-2 border-white rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer min-w-[120px] text-left transition-colors shadow-sm text-white"
+                style={{ background: '#111' }}
+              >
+                {startDate ? formatDate(startDate) : 'Start Date'}
+              </button>
+              <Calendar
+                selectedDate={startDate}
+                onDateSelect={setStartDate}
+                isOpen={showStartCalendar}
+                onClose={() => setShowStartCalendar(false)}
+                maxDate={endDate || new Date()}
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-2 relative">
-            <span className="text-sm font-medium text-gray-600">To:</span>
-            <button
-              onClick={() => {
-                setShowEndCalendar(!showEndCalendar);
-                setShowStartCalendar(false);
-              }}
-              className="px-3 py-2 border-2 border-white rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white cursor-pointer bg-white min-w-[120px] text-left hover:bg-blue-50 transition-colors shadow-sm text-black"
-            >
-              {endDate ? formatDate(endDate) : 'End Date'}
-            </button>
-            <Calendar
-              selectedDate={endDate}
-              onDateSelect={setEndDate}
-              isOpen={showEndCalendar}
-              onClose={() => setShowEndCalendar(false)}
-              minDate={startDate || undefined}
-              maxDate={new Date()}
-            />
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-black">To:</span>
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowEndCalendar(!showEndCalendar);
+                  setShowStartCalendar(false);
+                }}
+                className="px-3 py-2 glassy-btn neon-grid-btn border-2 border-white rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer min-w-[120px] text-left transition-colors shadow-sm text-white"
+                style={{ background: '#111' }}
+              >
+                {endDate ? formatDate(endDate) : 'End Date'}
+              </button>
+              <Calendar
+                selectedDate={endDate}
+                onDateSelect={setEndDate}
+                isOpen={showEndCalendar}
+                onClose={() => setShowEndCalendar(false)}
+                minDate={startDate || undefined}
+                maxDate={new Date()}
+              />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Category Filter */}
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-700 mb-2">Filter by Category:</h3>
-        <div className="flex flex-wrap gap-2 mb-3">
-          {Array.from(new Set(expenses.map(e => e.category))).sort().map(category => (
-            <button
-              key={category}
-              onClick={() => handleCategoryToggle(category)}
-              className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
-                selectedCategories.includes(category)
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
+        <h3 className="text-lg font-semibold text-black mb-2 text-left">Filter by Category:</h3>
+        <div className="max-h-32 overflow-y-auto">
+          <div className="flex flex-wrap gap-2 mb-3">
+            {Array.from(new Set(expenses.map(e => e.category))).sort().map(category => (
+              <button
+                key={category}
+                onClick={() => handleCategoryToggle(category)}
+                className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors glassy-btn neon-grid-btn ${
+                  selectedCategories.includes(category)
+                    ? 'text-white border-amber-400'
+                    : 'text-white border-white'
+                }`}
+                style={{ background: selectedCategories.includes(category) ? '#059669' : '#111' }}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Vendor Filter */}
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-700 mb-2">Filter by Vendor:</h3>
-        <div className="flex flex-wrap gap-2 mb-3">
-          {Array.from(new Set(expenses.map(e => e.vendor))).sort().map(vendor => (
-            <button
-              key={vendor}
-              onClick={() => handleVendorToggle(vendor)}
-              className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
-                selectedVendors.includes(vendor)
-                  ? 'bg-green-600 text-white border-green-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              {vendor}
-            </button>
-          ))}
+        <h3 className="text-lg font-semibold text-black mb-2 text-left">Filter by Vendor:</h3>
+        <div className="max-h-32 overflow-y-auto">
+          <div className="flex flex-wrap gap-2 mb-3">
+            {Array.from(new Set(expenses.map(e => e.vendor))).sort().map(vendor => (
+              <button
+                key={vendor}
+                onClick={() => handleVendorToggle(vendor)}
+                className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors glassy-btn neon-grid-btn ${
+                  selectedVendors.includes(vendor)
+                    ? 'text-white border-amber-400'
+                    : 'text-white border-white'
+                }`}
+                style={{ background: selectedVendors.includes(vendor) ? '#059669' : '#111' }}
+              >
+                {vendor}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -494,7 +541,8 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
         <div className="mb-4 flex justify-center">
           <button
             onClick={clearFilters}
-            className="px-2 py-1 bg-gray-500 text-white rounded-full text-base font-medium hover:bg-gray-600 transition-colors"
+            className="px-4 py-2 glassy-btn neon-grid-btn text-white rounded-xl text-sm font-medium transition-colors border border-white"
+            style={{ background: '#dc2626' }}
           >
             Clear All Filters
           </button>
@@ -503,9 +551,6 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
 
       <div className="flex-1 overflow-y-auto">
         <div className="text-center text-black mt-4">
-          <p className="text-lg mb-2">
-            Total Entries: {filteredExpenses.length} | Total Pages: {expensePages.length + 2}
-          </p>
           {(selectedCategories.length > 0 || selectedVendors.length > 0 || startDate || endDate) && (
             <div className="text-sm mt-1">
               {selectedVendors.length > 0 && (
@@ -548,7 +593,6 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Entries</p>
               <p className="text-2xl font-bold text-blue-600">{filteredExpenses.length}</p>
             </div>
             <div className="text-3xl text-blue-500">📝</div>
@@ -856,29 +900,46 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
           </h3>
           
           <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-white rounded-lg shadow-lg">
+            <table className="bg-white border border-white rounded-lg shadow-lg">
               <thead className="bg-blue-600 text-white">
                 <tr>
-                  <th className="px-2 py-1 text-left text-sm font-semibold w-20 border border-white">Date</th>
-                  <th className="px-2 py-1 text-left text-sm font-semibold w-24 border border-white">Category</th>
-                  <th className="px-2 py-1 text-left text-sm font-semibold w-32 border border-white">Description</th>
-                  <th className="px-2 py-1 text-left text-sm font-semibold w-20 border border-white">Amount</th>
+                  <th className="px-1 py-1 text-left text-[10px] font-semibold w-20 border border-blue-200">Date</th>
+                  <th className="px-1 py-1 text-left text-[10px] font-semibold w-20 border border-blue-200">Vendor</th>
+                  <th className="px-1 py-1 text-left text-[10px] font-semibold border border-blue-200" style={{ width: '40px' }}>Description</th>
+                  <th className="px-1 py-1 text-left text-[10px] font-semibold w-20 border border-blue-200">Amount</th>
+                  <th className="px-1 py-1 text-center text-[10px] font-semibold w-20 border border-blue-200">Image</th>
                 </tr>
               </thead>
               <tbody>
                 {pageExpenses.map((expense) => (
                   <tr key={expense.id} className="hover:bg-gray-50">
-                    <td className="px-2 py-1 text-sm font-medium text-black w-20 whitespace-nowrap overflow-hidden border border-white">
+                    <td className="px-1 py-1 text-[10px] font-medium text-black w-20 whitespace-nowrap overflow-hidden border border-blue-200">
                       {formatExpenseDate(expense.expense_date)}
                     </td>
-                    <td className="px-2 py-1 text-sm text-black font-medium w-24 whitespace-nowrap overflow-hidden border border-white">
-                      {expense.category}
+                    <td className="px-1 py-1 text-[10px] text-black font-medium w-20 whitespace-nowrap overflow-hidden border border-blue-200">
+                      {expense.vendor}
                     </td>
-                    <td className="px-2 py-1 text-sm text-black w-32 whitespace-nowrap overflow-hidden border border-white">
-                      {expense.description}
+                    <td 
+                      className="px-1 py-1 text-[10px] text-blue-600 underline whitespace-nowrap overflow-hidden border border-blue-200 text-left cursor-pointer hover:bg-blue-100" 
+                      style={{ width: '40px' }}
+                      onClick={() => handleDescriptionClick(expense.description)}
+                      title="Click to view full description"
+                    >
+                      {expense.description.length > 8 ? expense.description.substring(0, 8) + '...' : expense.description}
                     </td>
-                    <td className="px-2 py-1 text-sm font-semibold text-green-600 w-20 whitespace-nowrap overflow-hidden border border-white">
+                    <td className="px-1 py-1 text-[10px] font-semibold text-green-600 w-20 whitespace-nowrap overflow-hidden border border-blue-200">
                       R{expense.amount.toFixed(2)}
+                    </td>
+                    <td className="px-1 py-1 text-center w-20 border border-blue-200">
+                      {expense.receipt_image_id && (
+                        <button
+                          onClick={() => handleViewReceipt(expense.receipt_image_id!)}
+                          className="text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                          title="View Receipt"
+                        >
+                          📷
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -919,7 +980,8 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
         {/* Close Button */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-colors z-10"
+          className="absolute top-4 right-4 glassy-btn neon-grid-btn text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors z-10"
+          style={{ background: '#111' }}
         >
           ×
         </button>
@@ -928,13 +990,15 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4 z-10">
           <button
             onClick={handlePreviousPage}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md transition-colors flex items-center gap-2 min-w-[100px] justify-center"
+            className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-colors border border-white text-xs"
+            style={{ background: '#111', minWidth: '100px' }}
           >
             ← Previous
           </button>
           <button
             onClick={handleNextPage}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md transition-colors flex items-center gap-2 min-w-[100px] justify-center"
+            className="px-4 py-1 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-colors border border-white text-xs"
+            style={{ background: '#111', minWidth: '100px' }}
           >
             Next →
           </button>
@@ -991,6 +1055,103 @@ export default function ExpenseJournalModal({ isOpen, onClose }: ExpenseJournalM
           )}
         </div>
       </div>
+
+      {/* Receipt Preview Modal */}
+      {showReceiptPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
+          <div className="rounded-2xl bg-black p-0 w-full max-w-4xl mx-4 flex flex-col" style={{ boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white' }}>
+            {/* Modal Header */}
+            <div 
+              className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+                backdropFilter: 'blur(10px)',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+                transform: 'translateZ(5px)'
+              }}
+            >
+              <h2 
+                className="text-white font-bold text-base text-center"
+                style={{
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+                  filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+                  transform: 'translateZ(3px)'
+                }}
+              >
+                Receipt Preview
+              </h2>
+              <button
+                onClick={() => setShowReceiptPreview(false)}
+                className="absolute top-2 right-2 text-white hover:text-gray-300 transition-colors text-xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Image Content */}
+            <div className="flex-1 overflow-hidden px-4 pb-4">
+              <div className="w-full h-full flex items-center justify-center">
+                <img
+                  src={previewImageUrl}
+                  alt="Receipt"
+                  className="max-w-full max-h-full object-contain rounded-lg"
+                  style={{ maxHeight: 'calc(90vh - 120px)' }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Description Modal */}
+      {showDescriptionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
+          <div className="rounded-2xl bg-black p-0 w-full max-w-2xl mx-4 flex flex-col" style={{ boxSizing: 'border-box', maxHeight: '90vh', border: '2px solid white' }}>
+            {/* Modal Header */}
+            <div 
+              className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+                backdropFilter: 'blur(10px)',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+                transform: 'translateZ(5px)'
+              }}
+            >
+              <h2 
+                className="text-white font-bold text-base text-center"
+                style={{
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+                  filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+                  transform: 'translateZ(3px)'
+                }}
+              >
+                Full Description
+              </h2>
+              <button
+                onClick={() => setShowDescriptionModal(false)}
+                className="absolute top-2 right-2 text-white hover:text-gray-300 transition-colors text-xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Description Content */}
+            <div className="flex-1 overflow-hidden px-4 pb-4">
+              <div className="w-full h-full flex items-center justify-center">
+                <p className="text-white text-lg p-6 bg-gray-800 rounded-lg max-w-full">
+                  {selectedDescription}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

@@ -63,12 +63,15 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = selectedLanguage;
+      
+      console.log('Speech recognition initialized with language:', selectedLanguage);
 
       recognition.onstart = () => {
         setError(null);
       };
 
       recognition.onresult = (event) => {
+        console.log('Speech recognition result received:', event.results.length, 'results');
         let finalTranscript = '';
         let currentInterimTranscript = '';
         let maxConfidence = 0;
@@ -77,6 +80,8 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
           const result = event.results[i];
           const transcript = result[0].transcript;
           const confidence = result[0].confidence;
+          
+          console.log('Result:', transcript, 'isFinal:', result.isFinal, 'confidence:', confidence);
           
           if (result.isFinal) {
             finalTranscript += transcript + ' ';
@@ -87,11 +92,13 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
         }
 
         if (finalTranscript) {
+          console.log('Adding final transcript:', finalTranscript);
           setTranscript(prev => prev + finalTranscript);
           setMeetingRecording(prev => prev + finalTranscript);
           setInterimTranscript('');
           setConfidence(maxConfidence);
         } else {
+          console.log('Setting interim transcript:', currentInterimTranscript);
           setInterimTranscript(currentInterimTranscript);
         }
       };
@@ -113,6 +120,7 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
   // startRecording function
   const startRecording = async () => {
     try {
+      console.log('Starting recording...');
       setError(null);
       setInterimTranscript('');
       setConfidence(0);
@@ -123,15 +131,18 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
       
       // Initialize speech recognition only when recording starts
       if (!recognitionRef.current) {
+        console.log('Initializing speech recognition...');
         initializeSpeechRecognition();
       }
       
       if (recognitionRef.current) {
         try {
+          console.log('Starting speech recognition...');
           recognitionRef.current.start();
           setIsRecording(true);
           setIsPaused(false);
           stateRef.current = { ...stateRef.current, isRecording: true, isPaused: false, fallbackTimeout: null };
+          console.log('Recording started successfully');
         } catch (error) {
           console.error('Error starting speech recognition:', error);
           throw new Error('Failed to start speech recognition');
@@ -591,28 +602,54 @@ Please format the minutes in a clear, professional structure with proper heading
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
       <div
         ref={containerRef}
-        className="rounded-2xl p-2 w-full max-w-[90vw] max-h-[90vh] flex flex-col"
-        style={{ border: '2px solid white', boxSizing: 'border-box', background: 'linear-gradient(135deg, #000000 0%, #666666 100%)' }}
+        className="rounded-2xl p-4 w-full max-h-[90vh] flex flex-col"
+        style={{ 
+          border: '2px solid white', 
+          boxSizing: 'border-box', 
+          background: '#000000',
+          width: '85vw',
+          overflow: 'hidden'
+        }}
       >
         {/* Header */}
-        <div className="w-full bg-blue-600 rounded-t-2xl rounded-b-2xl flex items-center justify-between px-4 py-3 mb-4">
-          <h2 className="text-white font-bold text-lg sm:text-xl mx-auto w-full text-center">Smart Meeting Recorder</h2>
+        <div 
+          className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))',
+            border: '2px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(10px)',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+            filter: 'drop-shadow(0 0 8px rgba(30, 58, 138, 0.3))',
+            transform: 'translateZ(5px)'
+          }}
+        >
+          <h2 
+            className="text-white font-bold text-base text-center"
+            style={{
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)',
+              filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))',
+              transform: 'translateZ(3px)'
+            }}
+          >
+            Smart Meeting Recorder
+          </h2>
           <button
             onClick={onClose}
-            className="absolute right-6 top-4 text-white font-bold rounded-full hover:bg-blue-800 hover:text-gray-200 transition-colors w-8 h-8 flex items-center justify-center"
-            style={{ background: '#000000', fontSize: '15px' }}
-            aria-label="Close"
+            className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+            style={{ background: '#000000', fontSize: '15px', border: '1px solid #666666' }}
+            aria-label="Close modal"
           >
             ×
           </button>
         </div>
         
         {/* Meeting Journal Button */}
-        <div className="px-4 mb-4">
+        <div className="px-4 mb-4 flex justify-start">
           <button
             onClick={openMeetingJournal}
-            className={`w-full px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0`}
-            style={{ background: '#111' }}
+            className={`w-1/2 ml-0 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 text-xs`}
+            style={{ background: '#111', border: '1px solid #666666' }}
           >
             Meeting Journal
           </button>
@@ -624,16 +661,16 @@ Please format the minutes in a clear, professional structure with proper heading
             <div className="space-y-4">
               <div className="flex gap-2 w-full">
                 <div className="flex-1">
-                  <label className="text-sm text-white mb-2 block">Meeting Date</label>
+                  <label className="text-xs text-white mb-2 block">Meeting Date</label>
                   <CustomDatePicker
                     value={meetingDate}
                     onChange={setMeetingDate}
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-sm text-white block">Language</label>
+                  <label className="text-xs text-white block">Language</label>
                   <Select
-                    className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm"
+                    className="w-full px-3 py-2 rounded-xl bg-black text-white text-xs"
                     value={availableLanguages.find(opt => opt.code === selectedLanguage) || null}
                     onChange={(option) => option && handleLanguageChange(option.code)}
                     options={availableLanguages}
@@ -641,6 +678,7 @@ Please format the minutes in a clear, professional structure with proper heading
                     getOptionValue={opt => opt.code}
                     placeholder="Select language..."
                     isClearable={false}
+                    isSearchable={false}
                     components={{
                       DropdownIndicator: (props) => (
                         <div style={{
@@ -657,18 +695,19 @@ Please format the minutes in a clear, professional structure with proper heading
                       )
                     }}
                     styles={{
-                      container: (base) => ({ ...base, width: '150px', zIndex: 20 }),
+                      container: (base) => ({ ...base, width: '120px', zIndex: 20 }),
                       control: (base, state) => ({
                         ...base,
                         borderRadius: 16,
-                        border: '2px solid white',
-                        background: '#111',
+                        border: '1px solid white',
+                        background: 'transparent',
                         color: '#fff',
                         boxShadow: 'none',
                         fontWeight: 'bold',
-                        fontSize: '0.9rem',
+                        fontSize: '0.8rem',
                         minHeight: 44,
                         transition: 'border 0.2s, box-shadow 0.2s',
+                        cursor: 'pointer',
                       }),
                       menu: (base) => ({
                         ...base,
@@ -688,7 +727,7 @@ Please format the minutes in a clear, professional structure with proper heading
                         color: '#fff',
                         cursor: 'pointer',
                         padding: '8px 12px',
-                        fontSize: '0.9rem',
+                        fontSize: '0.8rem',
                         fontWeight: state.isSelected ? 'bold' : 'normal',
                       }),
                       singleValue: (base) => ({
@@ -707,12 +746,12 @@ Please format the minutes in a clear, professional structure with proper heading
               </div>
               
               <div>
-                <label className="text-sm text-white mb-2 block">Meeting Agenda</label>
+                <label className="text-xs text-white mb-2 block text-left">Meeting name</label>
                 <textarea
                   value={meetingAgenda}
                   onChange={(e) => setMeetingAgenda(e.target.value)}
                   placeholder="Enter meeting agenda..."
-                  className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-white resize-none"
+                  className="w-full px-3 py-2 rounded-xl bg-black text-white text-xs border-2 border-white resize-none"
                   rows={3}
                 />
               </div>
@@ -728,7 +767,7 @@ Please format the minutes in a clear, professional structure with proper heading
                 className={`flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
                   isRecording ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
-                style={{ background: isRecording ? '#dc2626' : '#111' }}
+                style={{ background: isRecording ? '#dc2626' : '#111', border: '1px solid #666666' }}
               >
                 {isRecording ? 'Recording...' : 'Start'}
               </button>
@@ -739,7 +778,7 @@ Please format the minutes in a clear, professional structure with proper heading
                 className={`flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
                   !isRecording && !isPaused ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
-                style={{ background: '#111' }}
+                style={{ background: '#111', border: '1px solid #666666' }}
               >
                 {isPaused ? 'Resume' : 'Pause'}
               </button>
@@ -750,7 +789,7 @@ Please format the minutes in a clear, professional structure with proper heading
                 className={`flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
                   !isRecording && !isPaused ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
-                style={{ background: '#111' }}
+                style={{ background: '#111', border: '1px solid #666666' }}
               >
                 Stop
               </button>
@@ -760,7 +799,7 @@ Please format the minutes in a clear, professional structure with proper heading
           {/* Meeting Recording */}
           <div className="space-y-4">
             <div>
-              <label className="text-sm text-white mb-2 block">Meeting Recording</label>
+              <label className="text-xs text-white mb-2 block">Meeting Recording</label>
               <textarea
                 value={meetingRecording + (interimTranscript ? ' ' + interimTranscript : '')}
                 onChange={(e) => {
@@ -770,7 +809,7 @@ Please format the minutes in a clear, professional structure with proper heading
                   setMeetingRecording(baseValue);
                 }}
                 placeholder="Recording will appear here..."
-                className="w-full px-3 py-2 rounded-xl bg-black text-white text-sm border-2 border-white resize-none"
+                className="w-full px-3 py-2 rounded-xl bg-black text-white text-xs border-2 border-white resize-none"
                 rows={8}
                 readOnly={isRecording}
               />
@@ -783,10 +822,10 @@ Please format the minutes in a clear, professional structure with proper heading
               <button
                 onClick={handleCreateMinutes}
                 disabled={!meetingRecording.trim() || isGeneratingMinutes}
-                className={`flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
+                className={`flex-1 px-4 py-4 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-xs ${
                   !meetingRecording.trim() || isGeneratingMinutes ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
-                style={{ background: '#111' }}
+                style={{ background: '#111', border: '1px solid #666666' }}
               >
                 {isGeneratingMinutes ? 'Generating...' : 'Create Minutes'}
               </button>
@@ -794,10 +833,10 @@ Please format the minutes in a clear, professional structure with proper heading
               <button
                 onClick={saveToDatabase}
                 disabled={!meetingRecording.trim() || isSavingToDatabase}
-                className={`flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
+                className={`flex-1 px-4 py-4 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-xs ${
                   !meetingRecording.trim() || isSavingToDatabase ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
-                style={{ background: '#111' }}
+                style={{ background: '#111', border: '1px solid #666666' }}
               >
                 {isSavingToDatabase ? 'Saving...' : 'Save to Database'}
               </button>
@@ -814,31 +853,31 @@ Please format the minutes in a clear, professional structure with proper heading
           {/* Meeting Minutes Display */}
           {meetingMinutes && (
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-white">Generated Meeting Minutes</h3>
+              <h3 className="text-base font-bold text-white">Generated Meeting Minutes</h3>
               <div className="bg-black bg-opacity-50 p-4 rounded-xl border border-white max-h-64 overflow-y-auto">
-                <pre className="text-white text-sm whitespace-pre-wrap">{meetingMinutes}</pre>
+                <pre className="text-white text-xs whitespace-pre-wrap">{meetingMinutes}</pre>
               </div>
               <div className="flex gap-2">
-                <button
-                  onClick={() => navigator.clipboard.writeText(meetingMinutes)}
-                  className="flex-1 px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
-                  style={{ background: '#111' }}
-                >
+                                  <button
+                    onClick={() => navigator.clipboard.writeText(meetingMinutes)}
+                    className="flex-1 px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-xs"
+                    style={{ background: '#111', border: '1px solid #666666' }}
+                  >
                   Copy to Clipboard
                 </button>
-                <button
-                  onClick={() => {
-                    const blob = new Blob([meetingMinutes], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `meeting-minutes-${new Date().toISOString().split('T')[0]}.txt`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="flex-1 px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm"
-                  style={{ background: '#111' }}
-                >
+                                  <button
+                    onClick={() => {
+                      const blob = new Blob([meetingMinutes], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `meeting-minutes-${new Date().toISOString().split('T')[0]}.txt`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="flex-1 px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-xs"
+                    style={{ background: '#111', border: '1px solid #666666' }}
+                  >
                   Download
                 </button>
               </div>
@@ -850,26 +889,26 @@ Please format the minutes in a clear, professional structure with proper heading
         {showConfirmDialog && confirmAction && (
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
             <div className="rounded-2xl bg-black p-4 w-full max-w-sm text-white text-center" style={{ border: '2px solid white' }}>
-              <h3 className="text-base font-bold mb-2">{confirmAction.message}</h3>
+              <h3 className="text-sm font-bold mb-2">{confirmAction.message}</h3>
               <div className="flex justify-center gap-3">
                 <button
                   onClick={handleConfirm}
-                  className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 text-sm"
-                  style={{ background: '#dc2626' }}
+                  className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 text-xs"
+                  style={{ background: '#dc2626', border: '1px solid #666666' }}
                 >
                   Clear
                 </button>
                 <button
                   onClick={handleContinue}
-                  className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 text-sm"
-                  style={{ background: '#2563eb' }}
+                  className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 text-xs"
+                  style={{ background: '#2563eb', border: '1px solid #666666' }}
                 >
                   Continue
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 text-sm"
-                  style={{ background: '#111' }}
+                  className="px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 text-xs"
+                  style={{ background: '#111', border: '1px solid #666666' }}
                 >
                   Cancel
                 </button>
@@ -882,14 +921,14 @@ Please format the minutes in a clear, professional structure with proper heading
       {/* Meeting Journal Modal */}
       {showMeetingJournal && (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[9999] p-4">
-          <div className="w-full h-full max-w-6xl max-h-[90vh] rounded-2xl bg-black p-6 text-white overflow-hidden" style={{ border: '2px solid white' }}>
+          <div className="w-full h-full max-w-4xl max-h-[90vh] rounded-2xl bg-black p-6 text-white overflow-hidden" style={{ border: '2px solid white' }}>
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Meeting Journal</h2>
+              <h2 className="text-xl font-bold">Meeting Journal</h2>
               <button
                 onClick={() => setShowMeetingJournal(false)}
                 className="px-4 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0"
-                style={{ background: '#dc2626' }}
+                style={{ background: '#dc2626', border: '1px solid #666666' }}
               >
                 Close
               </button>

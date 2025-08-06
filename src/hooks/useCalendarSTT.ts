@@ -239,7 +239,7 @@ export const useCalendarSTT = ({
             year = new Date().getFullYear();
           }
           
-          const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+          const date = new Date(parseInt(year.toString()), parseInt(month.toString()) - 1, parseInt(day.toString()));
           if (!isNaN(date.getTime())) {
             setCurrentDate(date);
             setFormData({ ...formData, start: date.toISOString() });

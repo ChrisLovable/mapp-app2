@@ -49,7 +49,7 @@ export interface FormData {
   allDay: boolean;
   event_type: string;
   location: string;
-  attendees: string[];
+  attendees: string | string[];
   reminder_minutes: number;
   duration: number;
 }
@@ -62,7 +62,7 @@ export interface EditingFormData {
   allDay: boolean;
   event_type: string;
   location: string;
-  attendees: string[];
+  attendees: string | string[];
   reminder_minutes: number;
   duration: number;
 }

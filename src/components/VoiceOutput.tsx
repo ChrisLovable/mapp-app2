@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { ttsService, generateAndPlaySpeech } from '../utils/tts';
+import { useState } from 'react';
 
 interface Props {
   message: string;
@@ -8,12 +7,6 @@ interface Props {
 
 export default function VoiceOutput({ message, language }: Props) {
   const [speaking, setSpeaking] = useState(false);
-  const [serverAvailable, setServerAvailable] = useState<boolean | null>(null);
-
-  // Check server availability on component mount
-  useEffect(() => {
-    ttsService.checkServerAvailability().then(setServerAvailable);
-  }, []);
 
   const handleSpeak = async () => {
     if (!message) return;
@@ -23,44 +16,61 @@ export default function VoiceOutput({ message, language }: Props) {
       return;
     }
 
-    // Check server availability before attempting TTS
-    if (serverAvailable === false) {
-      const instructions = 'Voice server is not available.\n\nTo start the voice server:\n1. Open a new terminal\n2. Navigate to your project directory\n3. Run: node azure-tts-proxy.js\n\nThen refresh this page.';
-      alert(instructions);
-      return;
-    }
-
     setSpeaking(true);
 
     try {
-      // Lazy fetch TTS audio only when user explicitly requests it
-      const result = await generateAndPlaySpeech({
-          text: message,
-          language: language
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+      if (!apiKey) {
+        alert('OpenAI API key not found. Please check your configuration.');
+        return;
+      }
+
+      // Use OpenAI TTS directly
+      const response = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'tts-1',
+          input: message,
+          voice: 'alloy', // You can change this to: alloy, echo, fable, onyx, nova, shimmer
+          response_format: 'mp3',
+          speed: 1.0
+        })
       });
 
-      if (!result.success) {
-        alert(result.error);
-        setServerAvailable(false);
+      if (!response.ok) {
+        throw new Error(`OpenAI TTS error: ${response.status}`);
       }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        setSpeaking(false);
+      };
+      
+      audio.onerror = () => {
+        URL.revokeObjectURL(audioUrl);
+        setSpeaking(false);
+        alert('Failed to play audio. Please try again.');
+      };
+      
+      await audio.play();
+      console.log('OpenAI TTS playing:', message);
     } catch (error) {
-      console.error('TTS Error:', error);
+      console.error('OpenAI TTS Error:', error);
       alert('Failed to generate speech. Please try again.');
-    } finally {
       setSpeaking(false);
     }
   };
 
   // Show server status indicator
   const getButtonStyle = () => {
-    if (serverAvailable === false) {
-      return {
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        borderColor: 'rgba(255, 255, 255, 0.8)',
-        color: '#ef4444',
-        cursor: 'not-allowed'
-      };
-    }
     return {
       backgroundColor: speaking ? '#16a34a' : 'rgba(255, 255, 255, 0.1)',
       borderColor: 'rgba(255, 255, 255, 0.8)',
@@ -70,17 +80,13 @@ export default function VoiceOutput({ message, language }: Props) {
   };
 
   const getTooltipText = () => {
-    if (serverAvailable === false) {
-      return 'Voice server is not available. Click for instructions to start it.';
-    }
     return speaking ? 'Stop speaking' : 'Speak message';
   };
 
   return (
     <button
       className={`glassy-btn neon-grid-btn p-2 rounded-full shadow-md transition-all duration-200 flex items-center justify-center border-0 active:scale-95 relative overflow-visible
-        ${speaking ? 'scale-125 animate-pulse ring-4 ring-opacity-60' : ''}
-        ${serverAvailable === false ? 'opacity-50' : ''}`}
+        ${speaking ? 'scale-125 animate-pulse ring-4 ring-opacity-60' : ''}`}
       style={{
         background: '#111',
         color: speaking ? 'white' : 'var(--text-color)',
@@ -89,13 +95,12 @@ export default function VoiceOutput({ message, language }: Props) {
         zIndex: 1,
       }}
       onClick={handleSpeak}
-      disabled={serverAvailable === false}
-      aria-label={speaking ? 'Stop speaking' : serverAvailable === false ? 'Voice server unavailable' : 'Speak message'}
+      aria-label={speaking ? 'Stop speaking' : 'Speak message'}
       type="button"
       title={getTooltipText()}
     >
       <span className="text-4xl">
-        {serverAvailable === false ? '🔇' : '🔊'}
+        {speaking ? '🔊' : '🔊'}
       </span>
     </button>
   );

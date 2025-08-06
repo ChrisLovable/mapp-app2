@@ -63,146 +63,111 @@ export class OpenAIImageService {
         console.log('Reference image data length:', referenceImage.length);
       }
 
-      let requestBody: any;
-      let endpoint: string;
+      let finalPrompt = prompt.trim();
+      
+      // Add reference image context to the prompt
+      if (referenceImage && finalPrompt) {
+        finalPrompt = `Based on the reference image style and composition: ${finalPrompt}`;
+      } else if (referenceImage && !finalPrompt) {
+        finalPrompt = 'Create an image inspired by the reference image style and composition';
+      }
+      
+      if (styleInfo) {
+        finalPrompt = `${finalPrompt}, ${styleInfo} style`;
+      }
 
-      if (referenceImage) {
-        // DALL-E 3 doesn't support direct image-to-image transformation
-        // Instead, we'll enhance the prompt to describe the reference image
-        endpoint = 'https://api.openai.com/v1/images/generations';
+      const requestBody = {
+        model: 'dall-e-3',
+        prompt: finalPrompt,
+        n: 1,
+        size: size,
+        quality: quality,
+        style: style
+      };
+      
+      console.log('=== REQUEST BODY ===');
+      console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+      console.log('====================');
+
+      const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('=== API RESPONSE STATUS ===');
+      console.log('Response Status:', response.status);
+      console.log('Response Status Text:', response.statusText);
+      console.log('===========================');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`;
         
-        let enhancedPrompt = prompt.trim();
+        console.error('OpenAI API error:', errorMessage);
+        console.log('Error Data:', JSON.stringify(errorData, null, 2));
         
-        // Add reference image context to the prompt
-        if (enhancedPrompt) {
-          enhancedPrompt = `Based on the reference image style and composition: ${enhancedPrompt}`;
-        } else {
-          enhancedPrompt = 'Create an image inspired by the reference image style and composition';
-        }
-        
-        if (styleInfo) {
-          enhancedPrompt = `${enhancedPrompt}, ${styleInfo} style`;
-        }
-
-        requestBody = {
-          model: 'dall-e-3',
-          prompt: enhancedPrompt,
-          n: 1,
-          size: size,
-          quality: quality,
-          style: style
-        };
-        
-        console.log('=== REQUEST BODY (with reference image) ===');
-        console.log('Request Body:', JSON.stringify(requestBody, null, 2));
-        console.log('===========================================');
-
-        const _response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.apiKey}`
-          },
-          body: JSON.stringify(requestBody)
-        });
-
-              } else {
-          // Use DALL-E 3 text-to-image generation
-          endpoint = 'https://api.openai.com/v1/images/generations';
-          
-                     requestBody = {
-             model: 'dall-e-3',
-             prompt: prompt.trim(),
-             n: 1,
-             size: size,
-             quality: quality,
-             style: style
-           };
-           
-           console.log('=== REQUEST BODY (text-to-image) ===');
-           console.log('Request Body:', JSON.stringify(requestBody, null, 2));
-           console.log('=====================================');
-        }
-
-        const _response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.apiKey}`
-          },
-          body: JSON.stringify(requestBody)
-        });
-
-        console.log('=== API RESPONSE STATUS ===');
-        console.log('Response Status:', _response.status);
-        console.log('Response Status Text:', _response.statusText);
-        console.log('===========================');
-        
-        if (!_response.ok) {
-          const errorData = await _response.json().catch(() => ({}));
-          const errorMessage = errorData.error?.message || `HTTP ${_response.status}: ${_response.statusText}`;
-          
-          console.error('OpenAI API error:', errorMessage);
-          console.log('Error Data:', JSON.stringify(errorData, null, 2));
-          
-          // Track failed API usage
-          const operationType = referenceImage ? 'Image Transformation' : 'Image Generation';
-          apiUsageTracker.trackOpenAIUsage(
-            endpoint,
-            'dall-e-3',
-            0,
-            0,
-            operationType,
-            false,
-            errorMessage
-          );
-
-          return {
-            success: false,
-            error: `OpenAI API error: ${errorMessage}`
-          };
-        }
-
-        const data = await _response.json();
-        
-        console.log('=== API RESPONSE DATA ===');
-        console.log('Response Data:', JSON.stringify(data, null, 2));
-        console.log('========================');
-        
-        if (!data.data || !data.data[0] || !data.data[0].url) {
-          console.error('No image URL in response data');
-          return {
-            success: false,
-            error: 'No image URL received from OpenAI'
-          };
-        }
-
-        const imageUrl = data.data[0].url;
-        const usage = data.usage;
-
+        // Track failed API usage
         const operationType = referenceImage ? 'Image Transformation' : 'Image Generation';
-        console.log(`OpenAI ${operationType.toLowerCase()} successful:`, imageUrl);
-        console.log('Generated Image URL:', imageUrl);
-
-        // Track successful API usage
         apiUsageTracker.trackOpenAIUsage(
-          endpoint,
+          'https://api.openai.com/v1/images/generations',
           'dall-e-3',
-          usage?.prompt_tokens || 0,
-          usage?.completion_tokens || 0,
+          0,
+          0,
           operationType,
-          true
+          false,
+          errorMessage
         );
 
         return {
-          success: true,
-          imageUrl,
-          usage: {
-            promptTokens: usage?.prompt_tokens || 0,
-            completionTokens: usage?.completion_tokens || 0,
-            totalTokens: usage?.total_tokens || 0
-          }
+          success: false,
+          error: `OpenAI API error: ${errorMessage}`
         };
+      }
+
+      const data = await response.json();
+      
+      console.log('=== API RESPONSE DATA ===');
+      console.log('Response Data:', JSON.stringify(data, null, 2));
+      console.log('========================');
+      
+      if (!data.data || !data.data[0] || !data.data[0].url) {
+        console.error('No image URL in response data');
+        return {
+          success: false,
+          error: 'No image URL received from OpenAI'
+        };
+      }
+
+      const imageUrl = data.data[0].url;
+      const usage = data.usage;
+
+      const operationType = referenceImage ? 'Image Transformation' : 'Image Generation';
+      console.log(`OpenAI ${operationType.toLowerCase()} successful:`, imageUrl);
+      console.log('Generated Image URL:', imageUrl);
+
+      // Track successful API usage
+      apiUsageTracker.trackOpenAIUsage(
+        'https://api.openai.com/v1/images/generations',
+        'dall-e-3',
+        usage?.prompt_tokens || 0,
+        usage?.completion_tokens || 0,
+        operationType,
+        true
+      );
+
+      return {
+        success: true,
+        imageUrl,
+        usage: {
+          promptTokens: usage?.prompt_tokens || 0,
+          completionTokens: usage?.completion_tokens || 0,
+          totalTokens: usage?.total_tokens || 0
+        }
+      };
 
     } catch (error) {
       console.error('OpenAI image generation error:', error);

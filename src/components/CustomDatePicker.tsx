@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 
 interface CustomDatePickerProps {
-  value: Date;
+  value?: Date;
   onChange: (date: Date) => void;
+  selected?: Date;
+  className?: string;
 }
 
 const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -33,9 +35,9 @@ function getWeeks(year: number, month: number) {
   return weeks;
 }
 
-const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange }) => {
+const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, selected }) => {
   const [showCalendar, setShowCalendar] = useState(false);
-  const [viewDate, setViewDate] = useState(new Date(value));
+  const [viewDate, setViewDate] = useState(new Date(selected || value || new Date()));
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -50,24 +52,25 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange }) 
   };
 
   return (
-    <div style={{ position: 'relative', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', width: '100%' }}>
+    <div style={{ position: 'relative', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
              <input
          type="text"
-         value={formatDate(value)}
+         value={formatDate(selected || value || new Date())}
          readOnly
          onClick={() => setShowCalendar((v) => !v)}
          className="date-picker-input"
         style={{
           cursor: 'pointer',
-          width: '150px',
+          width: '120px',
           background: '#111',
           color: '#fff',
           borderRadius: 16,
-          border: '2px solid white',
+          border: '1px solid white',
           boxShadow: 'none',
           padding: '0.5rem',
+          paddingLeft: '1.5rem',
           paddingRight: '2rem',
-          fontSize: '0.95rem',
+          fontSize: '0.85rem',
           fontWeight: 'bold',
           textAlign: 'left',
           transition: 'border 0.2s, box-shadow 0.2s'
@@ -83,7 +86,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange }) 
             background: '#111',
             color: '#fff',
             borderRadius: 8,
-            border: '2px solid white',
+            border: '1px solid white',
             zIndex: 11000,
             padding: 12,
             minWidth: 300,
@@ -160,9 +163,9 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange }) 
                 <tr key={i}>
                   {week.map((d, j) => {
                     const isSelected =
-                      d === value.getDate() &&
-                      month === value.getMonth() &&
-                      year === value.getFullYear();
+                      d === value?.getDate() &&
+                      month === value?.getMonth() &&
+                      year === value?.getFullYear();
                     return (
                       <td
                         key={j}

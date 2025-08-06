@@ -87,12 +87,11 @@ const StyledNotification: React.FC<{
 interface Props {
   message: string;
   setMessage: (message: string) => void;
-  clearKey?: number; // Add a key that changes when message is cleared externally
 }
 
 const commands = ["COPY", "PASTE", "UNDO", "CLEAR"]
 
-export default function CommandButtons({ message, setMessage, clearKey }: Props) {
+export default function CommandButtons({ message, setMessage }: Props) {
   const [history, setHistory] = useState<string[]>(['']);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [lastMessage, setLastMessage] = useState('');
@@ -142,15 +141,6 @@ export default function CommandButtons({ message, setMessage, clearKey }: Props)
       restoreNotifications();
     };
   }, []);
-
-  // Reset history when clearKey changes (external clear)
-  useEffect(() => {
-    if (clearKey && clearKey > 0) {
-      setHistory(['']);
-      setHistoryIndex(0);
-      setLastMessage('');
-    }
-  }, [clearKey]);
 
   // Track message changes and add to history
   useEffect(() => {

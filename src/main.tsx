@@ -8,7 +8,7 @@ import { registerServiceWorker } from './lib/pwa'
 // Force fullscreen and hide browser UI
 const hideBrowserUI = () => {
   // Hide address bar on mobile
-  if (window.navigator.standalone) {
+  if ('standalone' in window.navigator && window.navigator.standalone) {
     document.body.style.height = '100vh';
     document.body.style.overflow = 'hidden';
   }

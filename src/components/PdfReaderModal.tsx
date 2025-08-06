@@ -113,6 +113,15 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
   // Function to copy all extracted text
   const handleCopyText = async () => {
     try {
+      // Get the text from the textarea that's actually displayed
+      const textToCopy = topTextboxValue || extractedText || '';
+      
+      if (!textToCopy.trim()) {
+        setCopyMessage('No text to copy');
+        setTimeout(() => setCopyMessage(''), 3000);
+        return;
+      }
+
       // Select all text in the top textbox for visual feedback with blue selection
       const textarea = document.querySelector('.pdf-reader-textarea') as HTMLTextAreaElement;
       if (textarea) {
@@ -125,9 +134,30 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
         }, 2000);
       }
       
-      // Copy the full extracted text (all pages)
-      await navigator.clipboard.writeText(extractedText);
-      setCopyMessage('Text copied');
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(textToCopy);
+        setCopyMessage('Text copied');
+      } else {
+        // Fallback for older browsers or when clipboard API is not available
+        const textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+          setCopyMessage('Text copied');
+        } else {
+          throw new Error('Copy command failed');
+        }
+      }
   
       // Clear the message after 3 seconds
       setTimeout(() => {
@@ -384,23 +414,29 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
       };
       
       recognition.onresult = (event) => {
+        // Handle incremental results properly
         let finalTranscript = '';
         let interimTranscript = '';
-        
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript;
+
+        // Process all results incrementally
+        for (let i = 0; i < event.results.length; i++) {
+          const result = event.results.item(i);
+          const transcript = result.item(0).transcript;
+          
+          if (result.isFinal) {
+            finalTranscript += transcript + ' ';
           } else {
-            interimTranscript = transcript; // Only keep the latest interim result
+            interimTranscript = transcript; // Only keep the latest interim
           }
         }
+
+        // Combine final and latest interim results
+        const combinedTranscript = (finalTranscript + interimTranscript).trim();
         
-        // Update the text with final results only, append interim as temporary
-        if (finalTranscript) {
-          setQueryText(prev => prev + finalTranscript);
+        // Update the text with the combined transcript
+        if (combinedTranscript) {
+          setQueryText(combinedTranscript);
         }
-        // Don't add interim results to avoid duplication
       };
       
       recognition.onerror = (event) => {
@@ -738,17 +774,30 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
         style={{ width: '85vw', boxSizing: 'border-box', border: '2px solid white' }}
       >
         {/* Header */}
-        <div className="relative px-4 pb-[7px] pt-3 rounded-lg flex-shrink-0 simple-double-border" style={{ background: 'linear-gradient(135deg, #000000 0%, #666666 100%)', border: '4px double rgba(255, 255, 255, 0.9)' }}>
-                        <div className="token-dashboard-header">
-                <h2 className="header-title text-white font-bold text-base text-center">PDF Reader</h2>
-              </div>
-            <button
-              onClick={onClose}
-            className="absolute top-1 right-1 w-6 h-6 rounded-full text-sm font-bold text-white hover:text-gray-300 flex items-center justify-center"
-            style={{ background: '#000000', border: 'none', outline: 'none', fontSize: '15px' }}
-            >
+        <div className="sticky top-0 z-10 mb-6 py-3 rounded-xl mx-2 mt-2 glassy-btn" style={{
+          background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.9) 0%, rgba(0, 0, 0, 0.95) 100%)',
+          border: '2px solid rgba(255, 255, 255, 0.7)',
+          boxShadow: '0 4px 24px 0 rgba(30, 58, 138, 0.3), 0 1.5px 0 0 #fff',
+          backdropFilter: 'blur(12px)',
+          filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3))'
+        }}>
+          <h2 className="text-white font-bold text-lg text-center" style={{
+            textShadow: '0 1px 4px rgba(30, 58, 138, 0.8)',
+            margin: '0',
+            padding: '0'
+          }}>PDF Reader</h2>
+          <button
+            onClick={onClose}
+            className="absolute top-2 right-2 w-6 h-6 rounded-full text-white hover:text-gray-300 flex items-center justify-center transition-colors"
+            style={{
+              background: '#000000',
+              fontSize: '15px',
+              border: '1px solid #666666'
+            }}
+            aria-label="Close modal"
+          >
             ×
-            </button>
+          </button>
         </div>
         {/* Content */}
         <div className="flex flex-col lg:flex-row overflow-y-auto flex-1">
@@ -759,7 +808,7 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
               <div className="flex-1 flex flex-col items-center justify-center gap-4">
                 <button
                   className="glassy-btn neon-grid-btn px-8 py-4 rounded-2xl text-white font-bold text-sm transition-colors border-0"
-                  style={{ background: '#111', minWidth: '200px' }}
+                  style={{ background: '#111', minWidth: '200px', border: '1px solid #666666' }}
                   onClick={() => fileInputRef.current?.click()}
                 >
                   Upload PDF document
@@ -773,7 +822,7 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                   />
                 <button
                   className="glassy-btn neon-grid-btn px-8 py-4 rounded-2xl text-white font-bold text-sm transition-colors border-0"
-                  style={{ background: '#111', minWidth: '200px' }}
+                  style={{ background: '#111', minWidth: '200px', border: '1px solid #666666' }}
                   onClick={() => wordInputRef.current?.click()}
                 >
                   Upload Word document
@@ -805,6 +854,7 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage <= 1}
                       className="p-3 h-full flex items-center min-w-0 text-white glassy-btn neon-grid-btn rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ border: '1px solid #666666' }}
                     >
                       <MdNavigateBefore size={32} />
                     </button>
@@ -815,6 +865,7 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage >= totalPages}
                       className="p-3 h-full flex items-center min-w-0 text-white glassy-btn neon-grid-btn rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ border: '1px solid #666666' }}
                     >
                       <MdNavigateNext size={32} />
                     </button>
@@ -823,6 +874,7 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                     <button
                       onClick={handleZoomOut}
                       className="p-3 h-full flex items-center min-w-0 text-white glassy-btn neon-grid-btn rounded"
+                      style={{ border: '1px solid #666666' }}
                     >
                       <MdZoomOut size={32} />
                     </button>
@@ -830,6 +882,7 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                     <button
                       onClick={handleZoomIn}
                       className="p-3 h-full flex items-center min-w-0 text-white glassy-btn neon-grid-btn rounded"
+                      style={{ border: '1px solid #666666' }}
                     >
                       <MdZoomIn size={32} />
                     </button>
@@ -858,16 +911,19 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                     <button
                       onClick={() => setShowPdfFlipbookModal(true)}
                       className="w-full p-3 glassy-btn neon-grid-btn text-[11px] font-bold rounded-2xl transition-colors border-0"
-                      style={{ background: '#111' }}
+                      style={{ background: '#111', border: '1px solid #666666' }}
                       aria-label="Open PDF flipbook"
                       type="button"
                     >
                       PDF Flipbook
                     </button>
                     <button
-                      onClick={handleCopyText}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleCopyText();
+                      }}
                       className={`w-full p-3 glassy-btn neon-grid-btn text-[11px] font-bold rounded-2xl transition-colors border-0 ${analysisType === 'pageSummary' ? 'ring-4 ring-blue-400' : ''}`}
-                      style={{ background: '#111' }}
+                      style={{ background: '#111', border: '1px solid #666666' }}
                       aria-label="Copy text"
                       type="button"
                     >
@@ -885,9 +941,30 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
               <>
                 {/* Copy Message */}
                 {copyMessage && (
-                  <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[9999] w-full max-w-md mx-auto">
-                    <div className="bg-green-600 rounded-2xl p-4 text-white font-bold text-center shadow-lg">
-                      {copyMessage}
+                  <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[10000]" style={{ animation: 'fadeInUp 0.3s ease-out' }}>
+                    <div className="glassy-btn neon-grid-btn rounded-2xl border-0 p-6 min-w-[300px] max-w-[90vw] ring-2 ring-green-400 ring-opacity-60" style={{
+                      background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.85) 0%, rgba(0, 0, 0, 0.95) 100%)',
+                      boxShadow: '0 8px 32px 0 rgba(34, 197, 94, 0.25), 0 1.5px 0 0 #fff',
+                      border: '2px solid rgba(255, 255, 255, 0.7)',
+                      backdropFilter: 'blur(12px)',
+                      color: '#fff'
+                    }}>
+                      <div className="flex items-center gap-4">
+                        <div className="text-3xl" style={{ filter: 'drop-shadow(0 0 6px #22c55e)' }}>✅</div>
+                        <div className="flex-1">
+                          <p className="text-white font-bold text-lg" style={{ textShadow: '0 1px 4px #22c55e' }}>{copyMessage}</p>
+                        </div>
+                        <button
+                          onClick={() => setCopyMessage('')}
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:text-gray-300 transition-colors force-black-button"
+                          style={{
+                            background: 'rgba(34, 197, 94, 0.7)',
+                            fontSize: '22px',
+                            border: '1px solid #fff'
+                          }}
+                          aria-label="Close message"
+                        >×</button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -897,21 +974,21 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                   <div className="grid grid-cols-3 gap-3">
                     <button
                       className={`w-full p-3 glassy-btn neon-grid-btn text-[11px] font-bold rounded-2xl transition-colors border-0 ${analysisType === 'paragraphSummary' ? 'ring-4 ring-blue-400' : ''}`}
-                      style={{ background: '#111' }}
+                      style={{ background: '#111', border: '1px solid #666666' }}
                       onClick={handleParagraphSummary}
                     >
                       Paragraph summary
                     </button>
                     <button
                       className={`w-full p-3 glassy-btn neon-grid-btn text-[11px] font-bold rounded-2xl transition-colors border-0 ${analysisType === 'pageSummary' ? 'ring-4 ring-blue-400' : ''}`}
-                      style={{ background: '#111' }}
+                      style={{ background: '#111', border: '1px solid #666666' }}
                       onClick={handlePageSummary}
                     >
                       Page summary
                     </button>
                     <button
                       className={`w-full p-3 glassy-btn neon-grid-btn text-[11px] font-bold rounded-2xl transition-colors border-0 ${analysisType === 'questionAnswer' ? 'ring-4 ring-blue-400' : ''}`}
-                      style={{ background: '#111' }}
+                      style={{ background: '#111', border: '1px solid #666666' }}
                       onClick={handleAskQuestion}
                     >
                       Ask a question
@@ -954,8 +1031,10 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                     {/* Copy button for second textbox */}
                     <button
                       className="w-full mt-3 p-3 glassy-btn neon-grid-btn text-[11px] font-bold rounded-2xl transition-colors border-0"
-                      style={{ background: '#111' }}
-                      onClick={async () => {
+                      style={{ background: '#111', border: '1px solid #666666' }}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        
                         if (!analysisTextboxValue || analysisTextboxValue.trim() === '') {
                           setCopyMessage('No text to copy');
                           setTimeout(() => setCopyMessage(''), 3000);
@@ -976,9 +1055,30 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                             }, 2000);
                           }
                           
-                          // Copy the text from the second textbox
-                          await navigator.clipboard.writeText(analysisTextboxValue);
-                          setCopyMessage('Text copied');
+                          // Try modern clipboard API first
+                          if (navigator.clipboard && navigator.clipboard.writeText) {
+                            await navigator.clipboard.writeText(analysisTextboxValue);
+                            setCopyMessage('Text copied');
+                          } else {
+                            // Fallback for older browsers or when clipboard API is not available
+                            const textArea = document.createElement('textarea');
+                            textArea.value = analysisTextboxValue;
+                            textArea.style.position = 'fixed';
+                            textArea.style.left = '-999999px';
+                            textArea.style.top = '-999999px';
+                            document.body.appendChild(textArea);
+                            textArea.focus();
+                            textArea.select();
+                            
+                            const successful = document.execCommand('copy');
+                            document.body.removeChild(textArea);
+                            
+                            if (successful) {
+                              setCopyMessage('Text copied');
+                            } else {
+                              throw new Error('Copy command failed');
+                            }
+                          }
                           
                           // Clear the message after 3 seconds
                           setTimeout(() => {
@@ -1023,7 +1123,7 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
       {/* Query Document Modal */}
       {showQueryModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-75">
-          <div className="rounded-2xl bg-black p-0 w-full max-w-md mx-4 flex flex-col" style={{ boxSizing: 'border-box', border: '2px solid white' }}>
+          <div className="rounded-2xl bg-black p-0 flex flex-col" style={{ boxSizing: 'border-box', border: '2px solid white', width: '85vw' }}>
             {/* Modal Header */}
             <div 
               className="relative mb-6 px-4 py-3 rounded-xl mx-2 mt-2 glassy-btn" 
@@ -1094,16 +1194,14 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                 }`}
                 style={{ 
                   background: isListening ? '#dc2626' : '#111', 
-                  boxShadow: isListening 
-                    ? '0 0 16px 4px #ff1744, 0 0 32px 8px #ff1744cc, 0 1px 4px 0 #ff174488, 0 1.5px 3px rgba(220, 38, 38, 0.3), 0 0 2px rgba(255, 255, 255, 0.1)'
-                    : '0 0 6px 1.5px #00fff7, 0 0 8px 2px #00fff766, 0 3px 6px rgba(30, 64, 175, 0.3), 0 0 5px rgba(255, 255, 255, 0.1)', 
                   fontSize: '0.9rem', 
                   width: '40px',
                   height: '40px',
                   padding: '0',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  border: '1px solid #666666'
                 }}
                 aria-label={isListening ? 'Stop listening' : 'Start listening'}
                 type="button"
@@ -1113,7 +1211,7 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
               <button
                 onClick={() => setQueryText('')}
                 className="glassy-btn neon-grid-btn px-4 py-1 rounded-2xl text-white transition-colors text-sm border-0"
-                style={{ background: '#111', boxShadow: '0 0 6px 1.5px #00fff7, 0 0 8px 2px #00fff766, 0 3px 6px rgba(30, 64, 175, 0.3), 0 0 5px rgba(255, 255, 255, 0.1)', fontSize: '0.8rem', minWidth: '80px' }}
+                style={{ background: '#111', fontSize: '0.8rem', minWidth: '80px', border: '1px solid #666666' }}
                 aria-label="Clear text"
                 type="button"
               >
@@ -1123,7 +1221,7 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                 onClick={handleQuerySubmit}
                 disabled={!queryText.trim()}
                 className="glassy-btn neon-grid-btn px-4 py-1 rounded-2xl text-white transition-colors text-sm border-0"
-                style={{ background: '#111', boxShadow: '0 0 6px 1.5px #00fff7, 0 0 8px 2px #00fff766, 0 3px 6px rgba(30, 64, 175, 0.3), 0 0 5px rgba(255, 255, 255, 0.1)', fontSize: '0.8rem', minWidth: '120px' }}
+                style={{ background: '#111', fontSize: '0.8rem', minWidth: '120px', border: '1px solid #666666' }}
                 aria-label="Submit question"
                 type="button"
               >
@@ -1181,7 +1279,7 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                       onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                       disabled={currentPage <= 1}
                       className="glassy-btn neon-grid-btn px-3 py-1 rounded-xl text-white transition-colors text-sm border-0"
-                      style={{ background: '#111' }}
+                      style={{ background: '#111', border: '1px solid #666666' }}
                     >
                       ← Previous
                     </button>
@@ -1192,7 +1290,7 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
                       onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                       disabled={currentPage >= totalPages}
                       className="glassy-btn neon-grid-btn px-3 py-1 rounded-xl text-white transition-colors text-sm border-0"
-                      style={{ background: '#111' }}
+                      style={{ background: '#111', border: '1px solid #666666' }}
                     >
                       Next →
                     </button>

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EnhancedTouchDragSelect from './EnhancedTouchDragSelect';
-import SpeechToText from './SpeechToText';
 import { TextToSpeechButton, LanguageToggleButton } from './SpeechToTextButton';
 
 import { supabase } from '../lib/supabase';
@@ -204,6 +203,8 @@ interface Props {
   onShowImageChoice?: () => void;
   onGalleryUpload?: () => void;
   onCameraCapture?: () => void;
+  language?: string;
+  onLanguageChange?: (language: string) => void;
 }
 
 export default function MessageBox({ 
@@ -216,7 +217,9 @@ export default function MessageBox({
   setUploadedImage,
   onShowImageChoice,
   onGalleryUpload,
-  onCameraCapture
+  onCameraCapture,
+  language = 'en-US',
+  onLanguageChange
 }: Props) {
   // Component rendered - EMERGENCY DEBUG
   console.log('📦 MessageBox: Props received - uploadedImage:', uploadedImage ? 'PRESENT' : 'NULL');
@@ -231,9 +234,10 @@ export default function MessageBox({
   }, []);
   const { user } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [currentLanguage, setCurrentLanguage] = useState('en-US');
   const [isCorrecting, setIsCorrecting] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const finalTranscriptRef = useRef('');
 
   const [thumbnailPosition, setThumbnailPosition] = useState({ x: 50, y: 50 });
 
@@ -389,11 +393,6 @@ export default function MessageBox({
 
   // Cleanup is now handled by the parent component (Home.tsx)
   // No cleanup needed here since MessageBox doesn't own the state
-  const [recognition, setRecognition] = useState<any>(null);
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const [error, setError] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isAskingAI, setIsAskingAI] = useState(false);
 
   // Test database connection on component mount
@@ -415,16 +414,71 @@ export default function MessageBox({
     onChange(syntheticEvent);
   };
 
+  const handleMicClick = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showNotification('Speech recognition is not supported in this browser.', 'error');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+
+    recognition.lang = language;
+    recognition.interimResults = true;
+    recognition.continuous = true;
+
+    recognition.onstart = () => {
+      finalTranscriptRef.current = value;
+      setIsListening(true);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      showNotification(`Speech recognition error: ${event.error}`, 'error');
+      setIsListening(false);
+    };
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscriptRef.current += event.results[i][0].transcript + ' ';
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+      handleSTTResult(finalTranscriptRef.current + interimTranscript);
+    };
+
+    try {
+      recognition.start();
+    } catch (error) {
+      showNotification('Failed to start speech recognition. Please check your microphone permissions.', 'error');
+    }
+  };
+
   const handleTTS = (text: string) => {
     if (window.speechSynthesis) {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = currentLanguage;
+      utterance.lang = language;
       window.speechSynthesis.speak(utterance);
     }
   };
 
   const handleLanguageChange = (newLanguage: string) => {
-    setCurrentLanguage(newLanguage);
+    if (onLanguageChange) {
+      onLanguageChange(newLanguage);
+    }
   };
 
   // Detect if question requires real-time search
@@ -738,8 +792,8 @@ export default function MessageBox({
         throw new Error('OpenAI API key not configured. Please create a .env file with VITE_OPENAI_API_KEY=your_actual_api_key and restart the server.');
       }
 
-      const language = currentLanguage === 'en-US' ? 'English' : 'Afrikaans';
-      const prompt = `Correct the grammar, punctuation, and capitalization of the following ${language} text. Do not change the wording, style, or meaning. Return only the corrected text, nothing else.
+      const languageName = language === 'en-US' ? 'English' : 'Afrikaans';
+      const prompt = `Correct the grammar, punctuation, and capitalization of the following ${languageName} text. Do not change the wording, style, or meaning. Return only the corrected text, nothing else.
 
 Text to correct: "${value}"`;
 
@@ -829,7 +883,7 @@ Text to correct: "${value}"`;
     try {
       console.log('=== STARTING SAVE OPERATION ===');
       console.log('Text to save:', value);
-      console.log('Current language:', currentLanguage);
+      console.log('Current language:', language);
       
       // Get the current user
       const userId = user?.id || '00000000-0000-0000-0000-000000000000';
@@ -849,7 +903,7 @@ Text to correct: "${value}"`;
           {
             user_id: userId, // Use the authenticated user's ID
             comment_text: value, // Save only the user's input
-            language: currentLanguage,
+            language: language,
             metadata: {
               device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
               browser: navigator.userAgent.includes('Chrome') ? 'chrome' : 
@@ -974,47 +1028,40 @@ Text to correct: "${value}"`;
         <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-row justify-between gap-4 py-2 px-4" style={{ height: 'auto' }}>
           {/* Language Toggle Button */}
           <LanguageToggleButton
-            currentLanguage={currentLanguage}
-            onLanguageChange={handleLanguageChange}
+            currentLanguage={language}
+            onLanguageChange={onLanguageChange || handleLanguageChange}
             size="sm"
             variant="primary"
             className="shadow-lg glassy-btn neon-grid-btn"
           />
           {/* Mobile-optimized Speech-to-Text Button */}
-          <SpeechToText
-            onTranscriptChange={handleSTTResult}
-            onListeningChange={(isListening) => {
-              console.log('Speech recognition listening:', isListening);
+          <button
+            onClick={handleMicClick}
+            className="w-8 h-8 glassy-btn neon-grid-btn rounded-full border-0 flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-lg active:scale-95 relative overflow-visible"
+            style={{
+              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(59, 130, 246, 0.15))',
+              backdropFilter: 'blur(20px)',
+              border: '2px solid rgba(255, 255, 255, 0.4)',
+              boxShadow: '0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(0, 255, 247, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2)',
+              filter: 'drop-shadow(0 0 5px rgba(0, 255, 247, 0.5)) drop-shadow(0 0 10px rgba(0, 255, 247, 0.4)) drop-shadow(0 0 15px rgba(0, 255, 247, 0.3))',
+              transform: 'translateZ(20px) perspective(1000px) rotateX(5deg)',
+              borderRadius: '50%',
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              aspectRatio: '1.15',
+              minWidth: '32px',
+              minHeight: '28px',
+              width: '32px',
+              height: '28px'
             }}
-            language={currentLanguage}
+            title="Speech to text"
           >
-            <button
-              className="w-8 h-8 glassy-btn neon-grid-btn rounded-full border-0 flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-lg active:scale-95 relative overflow-visible"
-              style={{
-                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(59, 130, 246, 0.15))',
-                backdropFilter: 'blur(20px)',
-                border: '2px solid rgba(255, 255, 255, 0.4)',
-                boxShadow: '0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(0, 255, 247, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2)',
-                filter: 'drop-shadow(0 0 5px rgba(0, 255, 247, 0.5)) drop-shadow(0 0 10px rgba(0, 255, 247, 0.4)) drop-shadow(0 0 15px rgba(0, 255, 247, 0.3))',
-                transform: 'translateZ(20px) perspective(1000px) rotateX(5deg)',
-                borderRadius: '50%',
-                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                aspectRatio: '1.15',
-                minWidth: '32px',
-                minHeight: '28px',
-                width: '32px',
-                height: '28px'
-              }}
-              title="Speech to text"
-            >
-              🎤
-            </button>
-          </SpeechToText>
+            {isListening ? '🛑' : '🎤'}
+          </button>
           {/* Text-to-Speech Button */}
           <TextToSpeechButton
             onSpeak={handleTTS}
             text={value || " "}
-            language={currentLanguage}
+            language={language}
             size="sm"
             variant="primary"
             className="shadow-lg glassy-btn neon-grid-btn"

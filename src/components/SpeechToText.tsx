@@ -88,10 +88,12 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
 
       recognition.onresult = (event: any) => {
         console.log('🎤 Speech recognition result received:', event.results);
+        
+        // Handle incremental results properly
         let finalTranscript = '';
         let interimTranscript = '';
 
-        // Process all results
+        // Process all results incrementally
         for (let i = 0; i < event.results.length; i++) {
           const result = event.results.item(i);
           const transcript = result.item(0).transcript;
@@ -99,15 +101,15 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
           if (result.isFinal) {
             finalTranscript += transcript + ' ';
           } else {
-            interimTranscript += transcript;
+            interimTranscript = transcript; // Only keep the latest interim
           }
         }
 
-        // Combine final and interim results
+        // Combine final and latest interim results
         const combinedTranscript = (finalTranscript + interimTranscript).trim();
         
         console.log('📝 Transcript updated:', combinedTranscript);
-        
+
         // Update local state and notify parent
         setTranscript(combinedTranscript);
         onTranscriptChange(combinedTranscript);
@@ -117,6 +119,13 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
         console.log('🛑 Speech recognition ended');
         setIsListening(false);
         onListeningChange?.(false);
+        
+        // IMPORTANT: When recognition ends, ensure the final transcript is committed.
+        // This can help prevent the loss of the last spoken words if 'onend' fires
+        // before the last 'onresult' is fully processed.
+        if (recognitionRef.current && transcript) {
+          onTranscriptChange(transcript);
+        }
       };
 
       recognition.onerror = (event: any) => {

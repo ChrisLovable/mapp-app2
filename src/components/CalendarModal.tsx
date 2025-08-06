@@ -286,6 +286,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
         title: selectedEvent.title,
         description: selectedEvent.description || '',
         start: selectedEvent.start,
+        end: selectedEvent.end,
         allDay: selectedEvent.allDay,
         event_type: selectedEvent.event_type,
         location: selectedEvent.location || '',
@@ -865,10 +866,12 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
   const loadEvents = async () => {
     setIsLoading(true);
     try {
+      console.log('🔄 Loading events from database...');
       const events = await CalendarEventService.loadEvents();
+      console.log('✅ Loaded events:', events);
       setEvents(events);
     } catch (error) {
-      console.error('Error loading events:', error);
+      console.error('❌ Error loading events:', error);
     } finally {
       setIsLoading(false);
     }
@@ -1121,6 +1124,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
       title: '',
       description: '',
       start: '',
+      end: '',
       allDay: false,
       event_type: 'meeting',
       location: '',
@@ -1219,59 +1223,6 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
     if (isOpen) {
       loadEvents();
       requestNotificationPermission();
-      
-      // Add sample events for testing if no events exist
-      if (events.length === 0) {
-        const today = new Date();
-        const sampleEvents = [
-          {
-            id: '1',
-            title: 'Team Meeting',
-            description: 'Weekly team sync',
-            start: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 10, 0).toISOString(),
-            end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 11, 0).toISOString(),
-            allDay: false,
-            event_type: 'meeting',
-            location: 'Conference Room A',
-            attendees: ['John', 'Jane', 'Mike'],
-            color: '#3B82F6',
-            priority: 'medium',
-            reminder_minutes: 15,
-            is_completed: false
-          },
-          {
-            id: '2',
-            title: 'Client Call',
-            description: 'Review project progress',
-            start: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 0).toISOString(),
-            end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 15, 30).toISOString(),
-            allDay: false,
-            event_type: 'conference-call',
-            location: 'Zoom',
-            attendees: ['Client', 'Team Lead'],
-            color: '#8B5CF6',
-            priority: 'high',
-            reminder_minutes: 30,
-            is_completed: false
-          },
-          {
-            id: '3',
-            title: 'Doctor Appointment',
-            description: 'Annual checkup',
-            start: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 17, 0).toISOString(),
-            end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 18, 0).toISOString(),
-            allDay: false,
-            event_type: 'appointment',
-            location: 'Medical Center',
-            attendees: [],
-            color: '#10B981',
-            priority: 'medium',
-            reminder_minutes: 10,
-            is_completed: false
-          }
-        ];
-        setEvents(sampleEvents);
-      }
     }
   }, [isOpen]);
 
@@ -1448,114 +1399,21 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
               </div>
             </div>
 
-            {/* Calendar Content */}
+                        {/* Calendar Content */}
             {currentView === 'month' && (
-              <div className="calendar-month-view" style={{ border: '2px solid white', borderRadius: '8px', padding: '10px', height: '70vh' }}>
-                {/* Fixed Header Section - Always Visible */}
-                <div style={{ 
-                  height: '180px',
-                  background: 'rgba(0, 0, 0, 0.95)',
-                  paddingBottom: '10px',
-                  marginBottom: '10px',
-                  borderBottom: '2px solid rgba(255, 255, 255, 0.3)',
-                  position: 'relative',
-                  zIndex: 20
-                }}>
-                  {/* Month Title Row */}
-                  <div className="text-center mb-2 rounded-lg" style={{ background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))', padding: '5px' }}>
-                    <h3 className="text-white font-bold text-lg">
-                      {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </h3>
-                  </div>
-                  
-                  {/* Event Type Legend */}
-                  <div className="flex flex-wrap justify-center gap-2 mb-2 p-2 bg-gray-800 rounded">
-                    {[
-                      { type: 'meeting', label: 'Meeting' },
-                      { type: 'work', label: 'Work' },
-                      { type: 'health', label: 'Health' },
-                      { type: 'social', label: 'Social' },
-                      { type: 'personal', label: 'Personal' }
-                    ].map(({ type, label }) => (
-                      <div key={type} className="flex items-center space-x-1">
-                        <div 
-                          className="w-3 h-3 rounded"
-                          style={{ backgroundColor: getLocalEventTypeColor(type) }}
-                        />
-                        <span className="text-xs text-white">{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Day Headers */}
-                  <div className="grid grid-cols-7 gap-1 mb-1">
-                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
-                      <div key={index} className="text-center p-2 border-b border-gray-700" style={{ background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))' }}>
-                        <div className="text-white font-bold text-sm">{day}</div>
-                      </div>
-                    ))}
-                  </div>
+              <>
+                <div className="text-white text-xs mb-2">
+                  Debug: {events.length} events loaded
                 </div>
-                
-                {/* Scrollable Calendar Days - Separate Container */}
-                <div style={{ 
-                  height: 'calc(70vh - 200px)', 
-                  overflowY: 'auto', 
-                  paddingTop: '5px',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '4px',
-                  position: 'relative',
-                  zIndex: 10
-                }}>
-                  <div className="grid grid-cols-7 gap-1">
-                    {getCalendarDays().map((day: any, index) => {
-                                              const eventsByType = getLocalEventsByTypeForDate(day.date);
-                      const totalEvents = getLocalEventsForDate(day.date).length;
-                      
-                      return (
-                      <div
-                        key={index}
-                          className={`calendar-day p-2 text-center cursor-pointer transition-colors border border-gray-700 min-h-[80px] ${
-                          day.isCurrentMonth
-                            ? 'text-white hover:bg-white hover:text-black'
-                            : 'text-gray-400 bg-gray-800'
-                        } ${
-                          day.isToday ? 'text-white' : ''
-                        }`}
-                        style={day.isToday ? { background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 58, 138, 0.9))' } : {}}
-                        onClick={() => day.isCurrentMonth && handleDayClick(day.date)}
-                      >
-                        <div className="text-sm font-bold mb-1">{day.dayNumber}</div>
-                          
-                          {/* Event Type Blocks with Counts */}
-                          <div className="event-type-blocks space-y-1">
-                            {Object.entries(eventsByType).map(([eventType, events]) => (
-                              <div
-                                key={eventType}
-                                className="flex items-center justify-center rounded px-1 py-0.5 text-xs font-bold text-white shadow-sm"
-                                style={{ 
-                                  backgroundColor: getLocalEventTypeColor(eventType),
-                                  minWidth: '24px'
-                                }}
-                              >
-                                <span className="mr-1">{eventType.charAt(0).toUpperCase()}</span>
-                                <span>{events.length}</span>
-                              </div>
-                            ))}
-                        </div>
-                          
-                          {/* Total Events Count */}
-                          {totalEvents > 0 && (
-                            <div className="text-xs text-gray-300 mt-1 text-center">
-                              {totalEvents} event{totalEvents !== 1 ? 's' : ''}
-                      </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+                <MonthView
+                  currentView={currentView}
+                  currentDate={currentDate}
+                  events={events}
+                  onDayClick={handleDayClick}
+                  onEventClick={handleEventClick}
+                  renderEventBlock={renderEventBlock}
+                />
+              </>
             )}
 
             {currentView === 'week' && (
@@ -2767,7 +2625,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                             <input
                               type="text"
                               value={editingFormData?.title || ''}
-                              onChange={(e) => setEditingFormData(prev => ({ ...prev, title: e.target.value }))}
+                              onChange={(e) => setEditingFormData((prev: EditingFormData) => ({ ...prev, title: e.target.value }))}
                               className="w-full px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all"
                             />
                           </div>
@@ -2777,7 +2635,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                             <label className="block text-sm mb-1 text-white text-left">Description</label>
                             <textarea
                               value={editingFormData?.description || ''}
-                              onChange={(e) => setEditingFormData(prev => ({ ...prev, description: e.target.value }))}
+                              onChange={(e) => setEditingFormData((prev: EditingFormData) => ({ ...prev, description: e.target.value }))}
                               className="w-full px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all resize-none"
                               rows={3}
                             />
@@ -2792,7 +2650,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                                 onChange={(date) => {
                                   const currentTime = editingFormData?.start ? editingFormData.start.split('T')[1]?.slice(0, 5) : new Date().toTimeString().slice(0, 5);
                                   const newStart = `${date.toISOString().split('T')[0]}T${currentTime}`;
-                                  setEditingFormData(prev => ({ ...prev, start: newStart }));
+                                  setEditingFormData((prev: EditingFormData) => ({ ...prev, start: newStart }));
                                 }}
                               />
                             </div>
@@ -2811,7 +2669,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                                   if (option) {
                                     const currentDate = editingFormData?.start ? editingFormData.start.split('T')[0] : new Date().toISOString().split('T')[0];
                                     const newStart = `${currentDate}T${option.value}`;
-                                    setEditingFormData(prev => ({ ...prev, start: newStart }));
+                                    setEditingFormData((prev: EditingFormData) => ({ ...prev, start: newStart }));
                                   }
                                 }}
                                 options={timeOptions}
@@ -2844,7 +2702,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                             <input
                               type="text"
                               value={editingFormData?.location || ''}
-                              onChange={(e) => setEditingFormData(prev => ({ ...prev, location: e.target.value }))}
+                              onChange={(e) => setEditingFormData((prev: EditingFormData) => ({ ...prev, location: e.target.value }))}
                               className="w-full px-4 py-3 bg-black border-2 border-white rounded-xl text-white focus:outline-none focus:border-white transition-all"
                             />
                           </div>
@@ -2863,7 +2721,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
                               }}
                               onChange={(option: SingleValue<EventTypeOption>) => {
                                 if (option) {
-                                  setEditingFormData(prev => ({ ...prev, event_type: option.value }));
+                                  setEditingFormData((prev: EditingFormData) => ({ ...prev, event_type: option.value }));
                                 }
                               }}
                               options={eventTypeOptions}
