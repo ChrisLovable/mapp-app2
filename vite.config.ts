@@ -1,13 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { format, utcToZonedTime } from 'date-fns-tz';
+import { format, toZonedTime } from 'date-fns-tz';
 
 // https://vitejs.dev/config/
 // Helper to get build time in SAST (GMT+2) at build time
 function getSASTBuildTimestamp() {
   const now = new Date();
   const timeZone = 'Africa/Johannesburg';
-  const zoned = utcToZonedTime(now, timeZone);
+  const zoned = toZonedTime(now, timeZone);
   return format(zoned, 'yyyy-MM-dd HH:mm:ssXXX', { timeZone });
 }
 
