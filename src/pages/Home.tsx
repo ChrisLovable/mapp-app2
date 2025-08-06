@@ -196,6 +196,8 @@ export default function Home({ onShowAuth }: HomeProps) {
     previewUrl: string;
   } | null>(null);
   const [showImageChoice, setShowImageChoice] = useState(false);
+  const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
   // AI Processing Functions
   const processAIQuestion = async (question: string) => {
@@ -369,6 +371,26 @@ export default function Home({ onShowAuth }: HomeProps) {
     setLanguages(availableLanguages);
   }, []);
 
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPromptEvent(e);
+      setShowInstallPrompt(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = () => {
+    if (installPromptEvent) {
+      installPromptEvent.prompt();
+      installPromptEvent.userChoice.then(() => {
+        setShowInstallPrompt(false);
+        setInstallPromptEvent(null);
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
@@ -443,7 +465,30 @@ export default function Home({ onShowAuth }: HomeProps) {
             message={message} 
             setMessage={setMessage} 
           />
-          
+
+          {/* Build timestamp above grid buttons */}
+          <div className="w-full flex justify-end mb-2">
+            <span className="text-xs text-gray-400 bg-black/60 px-2 py-1 rounded shadow">
+              Build: {__BUILD_TIMESTAMP__}
+            </span>
+          </div>
+
+          {/* PWA Install Prompt */}
+          {showInstallPrompt && (
+            <div className="fixed top-6 right-6 z-[9999]">
+              <div className="glassy-btn neon-grid-btn rounded-2xl border-0 p-4 min-w-[220px] max-w-[90vw] ring-2 ring-blue-400 ring-opacity-60 shadow-xl flex items-center gap-3 animate-bounce">
+                <span className="text-2xl">📲</span>
+                <span className="text-base font-semibold text-white">Install Gabby to Home Screen</span>
+                <button
+                  className="ml-4 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition"
+                  onClick={handleInstallClick}
+                >
+                  Install
+                </button>
+              </div>
+            </div>
+          )}
+
           <AppGrid 
             onAskAIClick={handleAskAI}
             onTranslateClick={handleTranslateClick}

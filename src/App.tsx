@@ -53,9 +53,7 @@ function App() {
           isOpen={showSupabaseError}
           onClose={() => setShowSupabaseError(false)}
         />
-        <div className="fixed bottom-2 right-2 text-xs text-gray-500">
-          Build: {__BUILD_TIMESTAMP__}
-        </div>
+        {/* Build timestamp moved to Home.tsx above grid buttons */}
       </div>
     </AuthProvider>
   );

@@ -9,13 +9,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/handshakeround.jpg",
+      "src": "/Gabby.jpg",
       "sizes": "192x192",
       "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {
-      "src": "/handshakeround.jpg",
+      "src": "/Gabby.jpg",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any maskable"

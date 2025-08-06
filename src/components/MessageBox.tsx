@@ -424,8 +424,10 @@ export default function MessageBox({
 
     GlobalSpeechRecognition.start(
       language,
-      (transcript) => {
-        handleSTTResult(initialText + transcript);
+      (transcript, isFinal) => {
+        if (isFinal) {
+          handleSTTResult(initialText + transcript);
+        }
       },
       () => {
         setIsListening(false);
