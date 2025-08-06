@@ -1,0 +1,22 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import React, { useEffect, useState } from 'react';
+export default function AlarmPopup({ isOpen, onClose, description }) {
+    const [isVisible, setIsVisible] = useState(false);
+    useEffect(() => {
+        if (isOpen) {
+            setIsVisible(true);
+            // Auto-close after 10 seconds
+            const timer = setTimeout(() => {
+                setIsVisible(false);
+                setTimeout(onClose, 300); // Wait for fade out animation
+            }, 10000);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen, onClose]);
+    if (!isOpen)
+        return null;
+    return (_jsx("div", { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4", children: _jsxs("div", { className: `bg-red-900 rounded-lg p-8 w-full max-w-md transform transition-all duration-300 ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`, children: [_jsxs("div", { className: "text-center mb-6", children: [_jsx("div", { className: "text-4xl mb-2", children: "\u23F0" }), _jsx("h2", { className: "text-2xl font-bold text-white", children: "ALARM!" })] }), _jsx("div", { className: "space-y-4", children: _jsxs("div", { className: "text-center", children: [_jsx("label", { className: "block text-sm font-medium text-red-200 mb-2", children: "Reminder:" }), _jsx("div", { className: "p-4 rounded-lg bg-red-800 border border-red-600", children: _jsx("span", { className: "text-white text-lg font-medium", children: description }) })] }) }), _jsx("div", { className: "flex justify-center space-x-3 mt-6", children: _jsx("button", { onClick: () => {
+                            setIsVisible(false);
+                            setTimeout(onClose, 300);
+                        }, className: "px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors", children: "Dismiss" }) })] }) }));
+}

@@ -1,0 +1,12 @@
+import type { CalendarEvent, CalendarDay } from '../types/calendar';
+export declare const getCalendarDays: (currentDate: Date) => CalendarDay[];
+export declare const getMonthDays: (currentDate: Date) => CalendarDay[];
+export declare const getWeekDays: (currentDate: Date) => CalendarDay[];
+export declare const getDayHours: () => number[];
+export declare const getEventTypeColor: (eventType: string) => string;
+export declare const getEventsForDate: (events: CalendarEvent[], date: Date) => CalendarEvent[];
+export declare const getEventsByTypeForDate: (events: CalendarEvent[], date: Date) => Record<string, CalendarEvent[]>;
+export declare const getEventsForDateAndHour: (events: CalendarEvent[], date: Date, hour: number) => CalendarEvent[];
+export declare const formatEventTime: (date: Date) => string;
+export declare const formatEventDate: (date: Date) => string;
+export declare const calculateEventDuration: (start: Date, end: Date) => number;
