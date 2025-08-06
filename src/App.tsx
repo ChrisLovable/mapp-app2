@@ -14,6 +14,10 @@ function App() {
   const [showSupabaseError, setShowSupabaseError] = useState(false);
 
   useEffect(() => {
+    // DEBUGGING: Log environment variables to check if they are loaded
+    console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
+    console.log('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY);
+
     // Show error modal if Supabase is not configured
     if (!isSupabaseAvailable) {
       setShowSupabaseError(true);
