@@ -413,6 +413,8 @@ export default function MessageBox({
     onChange(syntheticEvent);
   };
 
+  const lastTranscriptRef = useRef('');
+
   const handleMicClick = () => {
     if (isListening) {
       GlobalSpeechRecognition.stop();
@@ -420,13 +422,17 @@ export default function MessageBox({
     }
 
     const initialText = value;
+    lastTranscriptRef.current = '';
     setIsListening(true);
 
     GlobalSpeechRecognition.start(
       language,
       (transcript, isFinal) => {
         if (isFinal) {
-          handleSTTResult(initialText + transcript);
+          // Only append the new part of the transcript
+          const newPart = transcript.replace(lastTranscriptRef.current, '');
+          handleSTTResult(initialText + newPart);
+          lastTranscriptRef.current = transcript;
         }
       },
       () => {
