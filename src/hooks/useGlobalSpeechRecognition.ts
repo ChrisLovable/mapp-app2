@@ -1,4 +1,5 @@
 let recognition: SpeechRecognition | null = null;
+let shouldStop = false;
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -8,6 +9,7 @@ const start = (
   onEnd: () => void,
   onError: (error: string) => void
 ) => {
+  shouldStop = false;
   if (recognition) {
     recognition.stop();
   }
@@ -26,13 +28,17 @@ const start = (
     const fullTranscript = Array.from(event.results)
       .map(result => result[0].transcript)
       .join('');
-      
     const isFinal = event.results[event.results.length - 1].isFinal;
-
     onResult(fullTranscript, isFinal);
   };
 
   recognition.onend = () => {
+    if (!shouldStop) {
+      // Restart recognition automatically
+      recognition = null;
+      start(lang, onResult, onEnd, onError);
+      return;
+    }
     onEnd();
     recognition = null;
   };
@@ -51,6 +57,7 @@ const start = (
 };
 
 const stop = () => {
+  shouldStop = true;
   if (recognition) {
     recognition.stop();
   }
