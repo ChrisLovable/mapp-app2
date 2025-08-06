@@ -198,6 +198,7 @@ export default function Home({ onShowAuth }: HomeProps) {
   const [showImageChoice, setShowImageChoice] = useState(false);
   const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
 
   // AI Processing Functions
   const processAIQuestion = async (question: string) => {
@@ -381,13 +382,25 @@ export default function Home({ onShowAuth }: HomeProps) {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  // Detect if app is installed (standalone mode)
+  useEffect(() => {
+    const checkInstalled = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+      setIsAppInstalled(isStandalone);
+    };
+    checkInstalled();
+    window.addEventListener('appinstalled', checkInstalled);
+    window.matchMedia('(display-mode: standalone)').addEventListener('change', checkInstalled);
+    return () => {
+      window.removeEventListener('appinstalled', checkInstalled);
+      window.matchMedia('(display-mode: standalone)').removeEventListener('change', checkInstalled);
+    };
+  }, []);
+
   const handleInstallClick = () => {
     if (installPromptEvent) {
       installPromptEvent.prompt();
-      installPromptEvent.userChoice.then(() => {
-        setShowInstallPrompt(false);
-        setInstallPromptEvent(null);
-      });
+      // Do not hide the prompt if dismissed; only hide if installed
     }
   };
 
@@ -474,7 +487,7 @@ export default function Home({ onShowAuth }: HomeProps) {
           </div>
 
           {/* PWA Install Prompt */}
-          {showInstallPrompt && (
+          {showInstallPrompt && !isAppInstalled && (
             <div className="fixed top-6 right-6 z-[9999]">
               <div className="glassy-btn neon-grid-btn rounded-2xl border-0 p-4 min-w-[220px] max-w-[90vw] ring-2 ring-blue-400 ring-opacity-60 shadow-xl flex items-center gap-3 animate-bounce">
                 <span className="text-2xl">📲</span>
