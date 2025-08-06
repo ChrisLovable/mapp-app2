@@ -5,6 +5,7 @@ import ExpenseJournalModal from './ExpenseJournalModal';
 import { useAuth } from '../contexts/AuthContext';
 import { ExpenseAnalytics } from '../services/ExpenseAnalytics';
 import { OpenAIService } from '../services/OpenAIService';
+import { GlobalSpeechRecognition } from '../hooks/useGlobalSpeechRecognition';
 import { QuestionProcessor } from '../services/QuestionProcessor';
 
 // Temporary placeholder functions for missing dependencies
@@ -72,7 +73,6 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, currentLan
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
   const [expenseCache, setExpenseCache] = useState<Expense[]>([]);
   const [cacheTimestamp, setCacheTimestamp] = useState<number>(0);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ show: boolean; expenseId: string | null }>({ show: false, expenseId: null });
@@ -827,65 +827,25 @@ Return ONLY the JSON array:`;
   };
 
   const handleMicClick = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Speech recognition is not supported in this browser.');
-      return;
-    }
-
     if (isListening) {
-      // Stop listening
-      if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop();
-      }
-      setIsListening(false);
+      GlobalSpeechRecognition.stop();
       return;
     }
 
-    // Start listening
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
       setIsListening(true);
-    };
-
-    recognition.onresult = (event) => {
-      // Handle incremental results properly
-      let finalTranscript = '';
-      let interimTranscript = '';
-
-      // Process all results incrementally
-      for (let i = 0; i < event.results.length; i++) {
-        const result = event.results.item(i);
-        const transcript = result.item(0).transcript;
-        
-        if (result.isFinal) {
-          finalTranscript += transcript + ' ';
-        } else {
-          interimTranscript = transcript; // Only keep the latest interim
-        }
+    GlobalSpeechRecognition.start(
+      currentLanguage,
+      (transcript) => {
+        setQuickQuestion(transcript);
+      },
+      () => {
+      setIsListening(false);
+      },
+      (error) => {
+        alert(`Speech recognition error: ${error}`);
+      setIsListening(false);
       }
-
-      // Combine final and latest interim results
-      const combinedTranscript = (finalTranscript + interimTranscript).trim();
-      setQuickQuestion(combinedTranscript);
-    };
-
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    speechRecognitionRef.current = recognition;
-    recognition.start();
+    );
   };
 
 

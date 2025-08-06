@@ -1,3 +1,4 @@
+import { GlobalSpeechRecognition } from '../hooks/useGlobalSpeechRecognition';
 import React, { useState, useRef, useEffect } from 'react';
 
 
@@ -114,12 +115,7 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
   const [isListening, setIsListening] = useState(false);
   const [chatHistory, setChatHistory] = useState<{ role: "user"|"assistant", content: string }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const lastProcessedTranscript = useRef<string>('');
-  const isProcessingRef = useRef<boolean>(false);
-  const sessionId = useRef<string>(Date.now().toString());
-  const micDisabledUntil = useRef<number>(0);
 
   // Debug logging
   useEffect(() => {
@@ -141,10 +137,6 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
       setMessages([]);
       setChatHistory([]);
       setInputMessage('');
-      lastProcessedTranscript.current = ''; // Reset transcript tracking
-      isProcessingRef.current = false; // Reset processing flag
-      sessionId.current = Date.now().toString(); // New session ID
-      micDisabledUntil.current = 0; // Reset mic disable timer
       initializeGabby();
     }
   }, [isOpen]);
@@ -202,108 +194,29 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
     }
   };
 
-  const startListening = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert(language === 'af-ZA' 
-        ? "Spraakherkenning word nie in hierdie blaaier ondersteun nie."
-        : "Speech Recognition not supported in this browser.");
+  const handleMicClick = () => {
+    if (isListening) {
+      GlobalSpeechRecognition.stop();
       return;
     }
-    
-    // Check if microphone is temporarily disabled
-    const now = Date.now();
-    if (now < micDisabledUntil.current) {
-      console.log('Microphone temporarily disabled');
-      return;
-    }
-    
-    // Prevent multiple simultaneous recordings
-    if (isListening || isProcessingRef.current) {
-      return;
-    }
-    
-    // Add a small delay to prevent rapid successive recordings on mobile
-    setTimeout(() => {
-      if (isListening || isProcessingRef.current || now < micDisabledUntil.current) {
-        return;
-      }
-    
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.lang = language === 'af-ZA' ? "af-ZA" : "en-US";
-    recognition.interimResults = false;
-    recognition.continuous = false; // Keep false for mobile reliability
-    recognition.maxAlternatives = 1;
-    
-    let hasProcessedResult = false;
-    
+
     setIsListening(true);
-
-    recognition.onresult = (event: any) => {
-      // Only process when we have a final result
-      const finalResults = Array.from(event.results).filter((result: any) => result.isFinal);
-      
-      if (finalResults.length === 0) {
-        // Still processing, don't send yet
-        return;
-      }
-      
-      // Get the latest final transcript
-      const latestFinalResult = finalResults[finalResults.length - 1] as any;
-      const transcript = latestFinalResult[0].transcript;
-      
-      if (transcript && transcript.trim()) {
-        // Check if this transcript was already processed
-        if (lastProcessedTranscript.current === transcript.trim()) {
-          console.log('Duplicate transcript prevented:', transcript.trim());
-          return;
-        }
-        
-        console.log('Processing final transcript:', transcript.trim(), 'Session:', sessionId.current);
-        
-        hasProcessedResult = true;
-        isProcessingRef.current = true;
-        lastProcessedTranscript.current = transcript.trim();
-        
-        // Disable microphone for 3 seconds to prevent rapid successive recordings
-        micDisabledUntil.current = Date.now() + 3000;
-        
+    GlobalSpeechRecognition.start(
+      language,
+      (transcript, isFinal) => {
         setInputMessage(transcript);
-        handleSendMessage(transcript);
+        if (isFinal) {
+          handleSendMessage(transcript);
+        }
+      },
+      () => {
         setIsListening(false);
-        recognition.stop();
-        
-        // Reset processing flag after a longer delay
-        setTimeout(() => {
-          isProcessingRef.current = false;
-          console.log('Processing flag reset');
-        }, 3000);
+      },
+      (error) => {
+        alert(`Speech recognition error: ${error}`);
+        setIsListening(false);
       }
-    };
-    
-    recognition.onerror = (event: any) => {
-      console.log('Speech recognition error:', event.error);
-      setIsListening(false);
-      hasProcessedResult = false;
-      isProcessingRef.current = false;
-      micDisabledUntil.current = 0; // Reset mic disable timer on error
-    };
-    
-    recognition.onend = () => {
-      setIsListening(false);
-      hasProcessedResult = false;
-      isProcessingRef.current = false;
-      micDisabledUntil.current = 0; // Reset mic disable timer on end
-    };
-    
-    recognitionRef.current = recognition;
-    recognition.start();
-    }, 100); // 100ms delay
-  };
-
-  const stopListening = () => {
-    recognitionRef.current && recognitionRef.current.stop();
-    setIsListening(false);
+    );
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -474,20 +387,20 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
             />
             {/* Microphone Button */}
             <button
-              onClick={startListening}
-              disabled={isTyping || isListening || Date.now() < micDisabledUntil.current}
+              onClick={handleMicClick}
+              disabled={isTyping || isListening}
               className="px-3 py-2 rounded-xl transition-colors flex items-center justify-center"
               style={{
-                background: isListening ? '#dc2626' : Date.now() < micDisabledUntil.current ? '#666' : '#00cfff',
+                background: isListening ? '#dc2626' : '#00cfff',
                 color: '#fff',
                 border: 'none',
-                cursor: (isTyping || isListening || Date.now() < micDisabledUntil.current) ? 'not-allowed' : 'pointer',
+                cursor: (isTyping || isListening) ? 'not-allowed' : 'pointer',
                 minWidth: '40px',
-                opacity: Date.now() < micDisabledUntil.current ? 0.5 : 1
+                opacity: 1
               }}
-              aria-label={isListening ? "Listening..." : Date.now() < micDisabledUntil.current ? "Microphone disabled" : "Click to speak"}
+              aria-label={isListening ? "Listening..." : "Click to speak"}
             >
-              {isListening ? "🎙️" : Date.now() < micDisabledUntil.current ? "⏸️" : "🎤"}
+              {isListening ? "🎙️" : "🎤"}
             </button>
             <button
               onClick={() => handleSendMessage()}

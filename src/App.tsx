@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import AuthModal from './components/AuthModal';
 import SupabaseErrorModal from './components/SupabaseErrorModal';
 import { isSupabaseAvailable } from './lib/supabase';
+import { supabase } from './lib/supabase';
 import './App.css';
 
 function App() {
@@ -17,6 +18,18 @@ function App() {
     if (!isSupabaseAvailable) {
       setShowSupabaseError(true);
     }
+
+    // Handle auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        console.log('User session:', session);
+        setShowAuthModal(false);
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const handleAuthSuccess = (user: any) => {

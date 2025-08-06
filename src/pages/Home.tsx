@@ -175,7 +175,6 @@ export default function Home({ onShowAuth }: HomeProps) {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isSmartMeetingRecorderOpen, setIsSmartMeetingRecorderOpen] = useState(false);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
-  const [_isMindGamesModalOpen, _setIsMindGamesModalOpen] = useState(false);
   const [isImageGeneratorModalOpen, setIsImageGeneratorModalOpen] = useState(false);
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
   const [isGabbyChatModalOpen, setIsGabbyChatModalOpen] = useState(false);

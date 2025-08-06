@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EnhancedTouchDragSelect from './EnhancedTouchDragSelect';
+import { GlobalSpeechRecognition } from '../hooks/useGlobalSpeechRecognition';
 import { TextToSpeechButton, LanguageToggleButton } from './SpeechToTextButton';
 
 import { supabase } from '../lib/supabase';
@@ -236,8 +237,6 @@ export default function MessageBox({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isCorrecting, setIsCorrecting] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
-  const finalTranscriptRef = useRef('');
 
   const [thumbnailPosition, setThumbnailPosition] = useState({ x: 50, y: 50 });
 
@@ -416,55 +415,26 @@ export default function MessageBox({
 
   const handleMicClick = () => {
     if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
+      GlobalSpeechRecognition.stop();
       return;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      showNotification('Speech recognition is not supported in this browser.', 'error');
-      return;
-    }
+    const initialText = value;
+    setIsListening(true);
 
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
-
-    recognition.lang = language;
-    recognition.interimResults = true;
-    recognition.continuous = true;
-
-    recognition.onstart = () => {
-      finalTranscriptRef.current = value;
-      setIsListening(true);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.onerror = (event) => {
-      showNotification(`Speech recognition error: ${event.error}`, 'error');
-      setIsListening(false);
-    };
-
-    recognition.onresult = (event) => {
-      let interimTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscriptRef.current += event.results[i][0].transcript + ' ';
-        } else {
-          interimTranscript += event.results[i][0].transcript;
-        }
+    GlobalSpeechRecognition.start(
+      language,
+      (transcript) => {
+        handleSTTResult(initialText + transcript);
+      },
+      () => {
+        setIsListening(false);
+      },
+      (error) => {
+        showNotification(`Speech recognition error: ${error}`, 'error');
+        setIsListening(false);
       }
-      handleSTTResult(finalTranscriptRef.current + interimTranscript);
-    };
-
-    try {
-      recognition.start();
-    } catch (error) {
-      showNotification('Failed to start speech recognition. Please check your microphone permissions.', 'error');
-    }
+    );
   };
 
   const handleTTS = (text: string) => {
