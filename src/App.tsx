@@ -1,12 +1,13 @@
 import React from 'react';
 import Landing from './pages/Landing';
 
+// SIMPLE APP - JUST SHOW LANDING PAGE
 function App() {
-  const handleSelectPlan = (plan: 'free' | 'paid') => {
-    alert(`Selected ${plan} plan - this will be wired up next!`);
-  };
-
-  return <Landing onSelectPlan={handleSelectPlan} />;
+  return (
+    <div>
+      <Landing onSelectPlan={(plan) => alert(`You selected ${plan} plan!`)} />
+    </div>
+  );
 }
 
 export default App;
