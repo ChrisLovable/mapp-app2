@@ -1,4 +1,5 @@
 import React from 'react';
+import { envValidation } from '../lib/env';
 
 interface SupabaseErrorModalProps {
   isOpen: boolean;
@@ -27,9 +28,12 @@ export default function SupabaseErrorModal({ isOpen, onClose }: SupabaseErrorMod
           </p>
           
           <div className="bg-gray-50 rounded-lg p-3 mb-4 text-left">
+            <p className="text-xs text-red-600 mb-2">Missing variables:</p>
             <code className="text-xs text-gray-800">
-              VITE_SUPABASE_URL<br/>
-              VITE_SUPABASE_ANON_KEY
+              {envValidation.missingVars.length > 0 
+                ? envValidation.missingVars.map(v => <div key={v}>{v}</div>)
+                : "All required variables are set, but there might be a connection issue."
+              }
             </code>
           </div>
           

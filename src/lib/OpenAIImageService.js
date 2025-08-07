@@ -4,8 +4,9 @@ export class OpenAIImageService {
     apiKey;
     constructor() {
         this.apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+        // Initialize with API key but don't warn - handled in generateImage method
         if (!this.apiKey) {
-            console.warn('OpenAI API key not found. Please set VITE_OPENAI_API_KEY in your .env file.');
+            this.apiKey = '';
         }
     }
     async generateImage(options) {

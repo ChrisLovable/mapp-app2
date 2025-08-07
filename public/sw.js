@@ -1,9 +1,10 @@
-const CACHE_NAME = 'umbukulo-v2';
+const CACHE_NAME = 'gabby-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/static/js/bundle.js',
-  '/static/css/main.css'
+  '/manifest.json',
+  '/handshakeround.jpg',
+  '/Gabby.jpg'
 ];
 
 // Install event - cache resources
@@ -16,7 +17,6 @@ self.addEventListener('install', (event) => {
         return cache.addAll(urlsToCache);
       })
   );
-  // Force the waiting service worker to become the active service worker
   self.skipWaiting();
 });
 
@@ -35,11 +35,10 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  // Take control of all clients immediately
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - network first for API calls, cache first for static assets
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
@@ -50,11 +49,34 @@ self.addEventListener('fetch', (event) => {
   // Skip data URLs
   if (event.request.url.startsWith('data:')) return;
 
+  // Network first strategy for API calls
+  if (event.request.url.includes('/api/')) {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Cache first strategy for static assets
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
+        if (response) {
+          return response; // Return cached version
+        }
+        return fetch(event.request)
+          .then((response) => {
+            // Cache new resources
+            if (response.status === 200) {
+              const responseToCache = response.clone();
+              caches.open(CACHE_NAME)
+                .then((cache) => {
+                  cache.put(event.request, responseToCache);
+                });
+            }
+            return response;
+          });
       })
       .catch(() => {
         // If both cache and network fail, return offline page
@@ -70,4 +92,4 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-}); 
+});

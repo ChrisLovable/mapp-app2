@@ -7,10 +7,15 @@ import AuthModal from './components/AuthModal';
 import SupabaseErrorModal from './components/SupabaseErrorModal';
 import { isSupabaseAvailable } from './lib/supabase';
 import { supabase } from './lib/supabase';
+import { deviceDetection } from './utils/deviceDetection';
 import './App.css';
 
 function App() {
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  // Enforce phone-only usage
+  useEffect(() => {
+    deviceDetection.enforcePhoneOnly();
+  }, []);
+  const [showAuthModal, setShowAuthModal] = useState(true);
   const [showSupabaseError, setShowSupabaseError] = useState(false);
 
   useEffect(() => {
