@@ -64,9 +64,9 @@ const Landing: React.FC<LandingProps> = ({ onSelectPlan }) => {
                   onSelectPlan(plan.type as 'free' | 'paid');
                 }}
               >
-                <span className="text-lg font-bold text-white">{plan.title}</span>
-                <span className="text-sm text-blue-200">{plan.description}</span>
-                <span className="text-md font-bold text-blue-300">{plan.price}</span>
+                <span className="text-sm font-bold text-white">{plan.title}</span>
+                <span className="text-xs text-blue-200">{plan.description}</span>
+                <span className="text-sm font-bold text-blue-300">{plan.price}</span>
               </button>
             ))}
             {selectedPlan === 'paid' && <PayFastSandboxMock />}
