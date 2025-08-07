@@ -9,7 +9,7 @@ const plans = [
   {
     type: 'free',
     title: 'Free Plan',
-    description: '50,000 tokens per month',
+    description: '7 Day Trial Period',
     price: 'R0',
     highlight: false,
   },
@@ -22,13 +22,25 @@ const plans = [
   },
 ];
 
+const PayFastSandboxMock: React.FC = () => (
+  <div className="w-full flex flex-col items-center justify-center mt-6 p-4 rounded-2xl border-2 border-yellow-400 bg-yellow-50 text-yellow-900 shadow-lg" style={{ minHeight: 120 }}>
+    <div className="text-2xl font-bold mb-2">PayFast Sandbox</div>
+    <div className="mb-2">[This is a mockup of the PayFast payment screen]</div>
+    <div className="flex gap-2 mt-2">
+      <button className="px-6 py-2 rounded-lg bg-green-500 text-white font-bold">Pay R299</button>
+      <button className="px-6 py-2 rounded-lg bg-gray-300 text-gray-800 font-bold">Cancel</button>
+    </div>
+  </div>
+);
+
 const Landing: React.FC<LandingProps> = ({ onSelectPlan }) => {
   const [showPlans, setShowPlans] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<null | 'free' | 'paid'>(null);
 
   return (
     <div className="gabby-landing-bg min-h-screen flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-xs mx-auto flex flex-col items-center gap-8">
-        <img src="/Gabby.jpg" alt="Gabby" className="w-24 h-24 rounded-full shadow-lg mb-4" />
+        <img src="/Gabby.jpg" alt="Gabby" className="w-48 h-48 rounded-full shadow-lg mb-4" />
         <h1 className="text-3xl font-bold text-white mb-2 text-center drop-shadow-lg">Download Gabby App</h1>
         <p className="text-white text-center mb-6 opacity-80">Your AI-powered assistant for productivity, creativity, and more.</p>
         {!showPlans ? (
@@ -44,15 +56,19 @@ const Landing: React.FC<LandingProps> = ({ onSelectPlan }) => {
             {plans.map(plan => (
               <button
                 key={plan.type}
-                className={`w-full rounded-2xl p-6 flex flex-col items-center justify-center shadow-xl border-2 ${plan.highlight ? 'border-blue-400 bg-blue-900/60' : 'border-gray-400 bg-gray-800/60'} glassy-btn neon-grid-btn transition-transform active:scale-95`}
-                style={{ minHeight: 120 }}
-                onClick={() => onSelectPlan(plan.type as 'free' | 'paid')}
+                className={`w-full rounded-2xl p-6 flex flex-col items-center justify-center shadow-xl border-2 border-blue-400 glassy-btn neon-grid-btn transition-transform active:scale-95`}
+                style={{ minHeight: 60 }}
+                onClick={() => {
+                  setSelectedPlan(plan.type as 'free' | 'paid');
+                  onSelectPlan(plan.type as 'free' | 'paid');
+                }}
               >
                 <span className="text-2xl font-bold text-white mb-1">{plan.title}</span>
                 <span className="text-lg text-blue-200 mb-2">{plan.description}</span>
                 <span className="text-xl font-bold text-blue-300">{plan.price}</span>
               </button>
             ))}
+            {selectedPlan === 'paid' && <PayFastSandboxMock />}
           </div>
         )}
       </div>
