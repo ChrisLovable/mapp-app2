@@ -124,7 +124,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
 
         <div className="p-8">
           <div className="flex flex-col items-center mb-2">
-            <div className="relative w-80 h-60 rounded-lg mb-4 overflow-hidden shadow-lg max-w-full">
+            <div className="relative w-64 h-48 rounded-lg mb-2 overflow-hidden shadow-lg">
               {isPlaying ? (
                 <>
                   <video

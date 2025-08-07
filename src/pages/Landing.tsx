@@ -40,10 +40,7 @@ const Landing: React.FC<LandingProps> = ({ onSelectPlan }) => {
 
   return (
     <div className="gabby-landing-bg min-h-screen flex flex-col items-center justify-center p-4">
-      <div
-        className="relative w-full mx-auto bg-black border-2 border-blue-500 rounded-2xl shadow-lg shadow-blue-500/50 overflow-y-auto flex flex-col items-center gap-8"
-        style={{ width: '85vw', maxWidth: '600px', minHeight: '500px' }}
-      >
+      <div className="w-full max-w-xs mx-auto flex flex-col items-center gap-8">
         <img src="/Gabby.jpg" alt="Gabby" className="w-48 h-48 rounded-full shadow-lg mb-4" />
         <h1 className="text-3xl font-bold text-white mb-2 text-center drop-shadow-lg">Download Gabby App</h1>
         <p className="text-white text-center mb-6 opacity-80">Your AI-powered assistant for productivity, creativity, and more.</p>
