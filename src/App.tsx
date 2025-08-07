@@ -4,6 +4,7 @@ import AuthModal from './components/AuthModal';
 import Header from './components/Header';
 import MessageBox from './components/MessageBox';
 import { supabase } from './lib/supabase';
+import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
   const [step, setStep] = useState<'landing' | 'auth' | 'main'>('landing');
@@ -112,4 +113,10 @@ function App() {
   return null;
 }
 
-export default App;
+export default function WrappedApp() {
+  return (
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
+}
