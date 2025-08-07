@@ -11,20 +11,19 @@ function getSASTBuildTimestamp() {
   return format(zoned, 'yyyy-MM-dd HH:mm:ssXXX', { timeZone });
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   define: {
     '__BUILD_TIMESTAMP__': JSON.stringify(getSASTBuildTimestamp()),
   },
   server: {
-    host: '0.0.0.0', // Allow external connections
-    // HTTPS disabled for easier development - clipboard will use fallback method
-    proxy: {
+    host: '0.0.0.0',
+    proxy: mode === 'development' ? {
       '/api': {
-        target: 'http://192.168.101.105:3000', // Use network IP instead of localhost
+        target: 'http://192.168.101.105:3000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
-    }
+    } : undefined
   }
-})
+}))

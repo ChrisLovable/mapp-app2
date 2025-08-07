@@ -38,7 +38,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - network first for API calls, cache first for static assets
+// Fetch event - network-first for documents, network-first for API, cache-first for other static assets
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
@@ -49,7 +49,23 @@ self.addEventListener('fetch', (event) => {
   // Skip data URLs
   if (event.request.url.startsWith('data:')) return;
 
-  // Network first strategy for API calls
+  // Network-first for HTML documents to avoid stale SPA shell
+  if (event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Network-first strategy for API calls
   if (event.request.url.includes('/api/')) {
     event.respondWith(
       fetch(event.request)

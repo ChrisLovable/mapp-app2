@@ -1,12 +1,19 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
-import App from './App'
-import './index.css'
-import { registerServiceWorker } from './lib/pwa'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App';
+import './index.css';
+import { registerServiceWorker } from './lib/pwa';
 
-// Add CSS to hide browser UI
-const addUIStyles = () => {
+// Force fullscreen and hide browser UI
+const hideBrowserUI = (): void => {
+  // Hide address bar on mobile
+  if ('standalone' in window.navigator && (window.navigator as any).standalone) {
+    document.body.style.height = '100vh';
+    document.body.style.overflow = 'hidden';
+  }
+
+  // Add CSS to hide browser UI
   const style = document.createElement('style');
   style.textContent = `
     @media screen and (display-mode: standalone) {
@@ -33,15 +40,26 @@ const addUIStyles = () => {
 };
 
 // Execute on load
-addUIStyles();
+hideBrowserUI();
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  </React.StrictMode>
-)
+// Capture the PWA install prompt globally once
+window.addEventListener('beforeinstallprompt', (e: Event) => {
+  e.preventDefault();
+  // @ts-ignore
+  window.deferredPrompt = e;
+});
+
+// Create root and render app
+const root = document.getElementById('root');
+if (root) {
+  ReactDOM.createRoot(root).render(
+    <React.StrictMode>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </React.StrictMode>
+  );
+}
 
 // Register PWA service worker
 registerServiceWorker();
