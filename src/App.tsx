@@ -11,10 +11,10 @@ import { deviceDetection } from './utils/deviceDetection';
 import './App.css';
 
 function App() {
-  // Enforce phone-only usage
-  useEffect(() => {
-    deviceDetection.enforcePhoneOnly();
-  }, []);
+  // Remove phone-only enforcement
+  // useEffect(() => {
+  //   deviceDetection.enforcePhoneOnly();
+  // }, []);
   const [showAuthModal, setShowAuthModal] = useState(true);
   const [showSupabaseError, setShowSupabaseError] = useState(false);
 
