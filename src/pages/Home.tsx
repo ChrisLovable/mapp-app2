@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import AppGrid from '../components/AppGrid';
 import MessageBox from '../components/MessageBox';
+import { SpeechProvider } from '../contexts/SpeechContext';
 import CommandButtons from '../components/CommandButtons';
 import ImageChoiceModal from '../components/ImageChoiceModal';
 
@@ -429,6 +430,7 @@ export default function Home({ onShowAuth }: HomeProps) {
   }
 
   return (
+    <SpeechProvider>
     <div className="min-h-screen bg-black relative">
       {/* Gabby Chat Button - Floating */}
       <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40">
@@ -684,6 +686,7 @@ export default function Home({ onShowAuth }: HomeProps) {
       </>
 
       </div>
+    </SpeechProvider>
 
   );
 }
