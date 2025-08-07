@@ -65,7 +65,7 @@ function App() {
   if (step === 'main' && user) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white">
-        <Header />
+        <Header onDashboardClick={() => {}} />
         <div className="flex-1 flex flex-col items-center justify-center">
           <MessageBox value={''} onChange={() => {}} uploadedImage={null} setUploadedImage={() => {}} />
         </div>
