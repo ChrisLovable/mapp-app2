@@ -253,6 +253,7 @@ export default function ImageGeneratorModal({ isOpen, onClose }) {
     const [saveSuccess, setSaveSuccess] = useState(false);
     const fileInputRef = useRef(null);
     const [selectedQuote, setSelectedQuote] = useState('');
+    const lastTranscriptRef = useRef('');
     // Test image loading on component mount
     useEffect(() => {
         console.log('🔍 Testing Gabby image accessibility...');
@@ -271,7 +272,10 @@ export default function ImageGeneratorModal({ isOpen, onClose }) {
     }, []);
     // Handle STT result
     const handleSTTResult = (text) => {
-        setPrompt(text);
+        // Only append the new part of the transcript
+        const newPart = text.replace(lastTranscriptRef.current, '');
+        setPrompt(prev => prev + newPart);
+        lastTranscriptRef.current = text;
     };
     const generateImage = async () => {
         if (!prompt.trim())

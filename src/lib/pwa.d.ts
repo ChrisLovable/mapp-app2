@@ -1,2 +1,6 @@
 export declare function registerServiceWorker(): void;
-export declare function forceUpdate(): void;
+declare global {
+    interface Window {
+        deferredPrompt: any;
+    }
+}

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import Landing from './pages/Landing';
 import AuthModal from './components/AuthModal';
+import Home from './pages/Home';
+import { AuthProvider } from './contexts/AuthContext';
 // import PayFastSandboxMock from './components/PayFastSandboxMock'; // If you have a separate component, otherwise use inline
 import { supabase } from './lib/supabase';
 
@@ -16,7 +18,7 @@ const PayFastSandboxMock = ({ onSuccess, onCancel }: { onSuccess: () => void; on
 );
 
 function App() {
-  const [step, setStep] = useState<'landing' | 'payfast' | 'auth' | 'done'>('landing');
+  const [step, setStep] = useState<'landing' | 'payfast' | 'auth' | 'main' | 'done'>('landing');
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'paid' | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [installing, setInstalling] = useState(false);
@@ -61,13 +63,23 @@ function App() {
           } else if (selectedPlan === 'paid') {
             await supabase.from('users').upsert({ id: user.id, email: user.email, plan: 'paid', tokens: 300000 });
           }
-          setStep('done');
+          // After successful auth, show main UI
+          setStep('main');
         }}
       />
     );
   }
 
-  // 4. PWA install prompt (done) - FORCE DEPLOY 1234
+  // 4. Main UI after authentication
+  if (step === 'main') {
+    return (
+      <AuthProvider>
+        <Home onShowAuth={() => setStep('auth')} />
+      </AuthProvider>
+    );
+  }
+
+  // 5. PWA install prompt (done) - FORCE DEPLOY 1234
   if (step === 'done') {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white p-8${installing ? ' cursor-wait' : ''}`}

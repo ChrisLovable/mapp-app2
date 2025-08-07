@@ -90,6 +90,7 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }) 
     const [chatHistory, setChatHistory] = useState([]);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
+    const lastTranscriptRef = useRef('');
     // Debug logging
     useEffect(() => {
         console.log('GabbyChatModal rendered, isOpen:', isOpen);
@@ -163,8 +164,12 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }) 
             return;
         }
         setIsListening(true);
+        lastTranscriptRef.current = '';
         GlobalSpeechRecognition.start(language, (transcript, isFinal) => {
-            setInputMessage(transcript);
+            // Only append the new part of the transcript
+            const newPart = transcript.replace(lastTranscriptRef.current, '');
+            setInputMessage(prev => prev + newPart);
+            lastTranscriptRef.current = transcript;
             if (isFinal) {
                 handleSendMessage(transcript);
             }

@@ -29,6 +29,7 @@ const SmartMeetingRecorder = ({ isOpen, onClose }) => {
     const [confirmAction, setConfirmAction] = useState(null);
     // Refs for speech recognition
     const recognitionRef = useRef(null);
+    const lastTranscriptRef = useRef('');
     // Ref to track current state values for onend handler
     const stateRef = useRef({
         isResuming: false,
@@ -63,7 +64,10 @@ const SmartMeetingRecorder = ({ isOpen, onClose }) => {
                     const confidence = result[0].confidence;
                     console.log('Result:', transcript, 'isFinal:', result.isFinal, 'confidence:', confidence);
                     if (result.isFinal) {
-                        finalTranscript += transcript + ' ';
+                        // Only append the new part of the transcript
+                        const newPart = transcript.replace(lastTranscriptRef.current, '');
+                        finalTranscript += newPart + ' ';
+                        lastTranscriptRef.current = transcript;
                         maxConfidence = Math.max(maxConfidence, confidence);
                     }
                     else {
@@ -101,6 +105,7 @@ const SmartMeetingRecorder = ({ isOpen, onClose }) => {
             setError(null);
             setInterimTranscript('');
             setConfidence(0);
+            lastTranscriptRef.current = '';
             // Clear previous content
             setTranscript('');
             setMeetingRecording('');

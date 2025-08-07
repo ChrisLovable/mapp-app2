@@ -297,7 +297,20 @@ const menuOptions = [
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, children }) => {
     if (!isOpen)
         return null;
-    return (_jsx("div", { className: "fixed inset-0 z-[9999] flex items-center justify-center", style: { background: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(10px)' }, children: _jsxs("div", { className: "bg-gray-800 rounded-lg p-6 w-full max-w-sm", style: { animation: 'fadeInUp 0.3s ease-out' }, children: [_jsx("h2", { className: "text-white text-xl mb-4", children: title }), _jsx("div", { className: "text-gray-300 mb-6", children: children }), _jsxs("div", { className: "flex justify-end gap-4", children: [_jsx("button", { onClick: onClose, className: "px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white transition-colors", children: "Cancel" }), _jsx("button", { onClick: onConfirm, className: "px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors", children: "Confirm" })] })] }) }));
+    return (_jsx("div", { className: "fixed inset-0 z-[9999] flex items-center justify-center", style: { background: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(10px)' }, children: _jsxs("div", { className: "glassy-btn neon-grid-btn rounded-2xl border-0 p-6 w-full max-w-sm shadow-lg shadow-blue-500/50", style: {
+                animation: 'fadeInUp 0.3s ease-out',
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(59, 130, 246, 0.2))',
+                backdropFilter: 'blur(20px)',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 25px 50px rgba(0, 0, 0, 0.8), 0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4)',
+                filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.5))',
+                transform: 'translateZ(30px) perspective(1000px)',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+            }, children: [_jsxs("div", { className: "flex items-center gap-4 mb-4", children: [_jsx("div", { className: "text-3xl", style: {
+                                filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 16px rgba(255, 255, 255, 0.4))',
+                                textShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.6)',
+                                transform: 'translateZ(10px)'
+                            }, children: '❓' }), _jsx("h2", { className: "text-white text-xl font-bold", style: { textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)', filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))', transform: 'translateZ(5px)' }, children: title })] }), _jsx("div", { className: "text-gray-300 mb-6 text-center", children: children }), _jsxs("div", { className: "flex justify-end gap-4", children: [_jsx("button", { onClick: onClose, className: "px-4 py-2 rounded-lg glassy-btn neon-grid-btn text-white font-bold transition-colors border-0", style: { background: '#222', minWidth: 90 }, children: "Cancel" }), _jsx("button", { onClick: onConfirm, className: "px-4 py-2 rounded-lg glassy-btn neon-grid-btn text-white font-bold transition-colors border-0", style: { background: '#e11d48', minWidth: 90 }, children: "Confirm" })] })] }) }));
 };
 export default function Header({ onDashboardClick, onAdminDashboardClick }) {
     const { signOut } = useAuth();

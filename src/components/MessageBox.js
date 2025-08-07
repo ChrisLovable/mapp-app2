@@ -279,15 +279,22 @@ export default function MessageBox({ value, onChange, onTranslateClick, onRewrit
         };
         onChange(syntheticEvent);
     };
+    const lastTranscriptRef = useRef('');
     const handleMicClick = () => {
         if (isListening) {
             GlobalSpeechRecognition.stop();
             return;
         }
         const initialText = value;
+        lastTranscriptRef.current = '';
         setIsListening(true);
-        GlobalSpeechRecognition.start(language, (transcript) => {
-            handleSTTResult(initialText + transcript);
+        GlobalSpeechRecognition.start(language, (transcript, isFinal) => {
+            if (isFinal) {
+                // Only append the new part of the transcript
+                const newPart = transcript.replace(lastTranscriptRef.current, '');
+                handleSTTResult(initialText + newPart);
+                lastTranscriptRef.current = transcript;
+            }
         }, () => {
             setIsListening(false);
         }, (error) => {
@@ -741,7 +748,7 @@ Text to correct: "${value}"`;
             height: '210px',
             width: '85vw',
             margin: '0 auto'
-        }, children: [_jsxs("div", { className: "relative w-full h-full", children: [_jsx(EnhancedTouchDragSelect, { text: value, onChange: handleTextChange, onSelect: handleTextSelect, placeholder: isAskingAI ? "🤖 AI is thinking..." : "Type or record your message here...", className: "h-full resize-none p-3 pr-36\n            text-black placeholder-gray-400 font-semibold shadow-inner text-lg", style: {
+        }, children: [_jsxs("div", { className: "relative w-full h-full", children: [_jsx(EnhancedTouchDragSelect, { text: value, onChange: handleTextChange, onSelect: handleTextSelect, placeholder: isAskingAI ? "🤖 AI is thinking..." : "Type or record your message here...", className: "h-full resize-none p-3 pr-36\r\n            text-black placeholder-gray-400 font-semibold shadow-inner text-lg", style: {
                             backgroundColor: '#000000 !important',
                             border: '2px solid white !important',
                             borderRadius: '16px',

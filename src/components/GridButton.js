@@ -65,7 +65,7 @@ export default function GridButton({ label, icon, onClick }) {
                 return label.toLowerCase().replace(/\s+/g, '');
         }
     };
-    return (_jsxs("div", { className: "\n      font-semibold text-[12px]\n      rounded-2xl text-center p-2 select-none cursor-pointer\n      border-0\n      backdrop-blur-xl\n      transition-all duration-200\n      active:scale-95\n      relative\n      overflow-visible\n      neon-grid-btn glassy-btn\n      h-[65px]\n    ", style: {
+    return (_jsxs("div", { className: "\r\n      font-semibold text-[12px]\r\n      rounded-2xl text-center p-2 select-none cursor-pointer\r\n      border-0\r\n      backdrop-blur-xl\r\n      transition-all duration-200\r\n      active:scale-95\r\n      relative\r\n      overflow-visible\r\n      neon-grid-btn glassy-btn\r\n      h-[65px]\r\n    ", style: {
             background: '#111',
             color: 'white',
             width: '90px',

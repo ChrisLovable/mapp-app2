@@ -131,6 +131,9 @@ export default function Home({ onShowAuth }) {
     const [isProcessingAI, setIsProcessingAI] = useState(false);
     const [uploadedImage, setUploadedImage] = useState(null);
     const [showImageChoice, setShowImageChoice] = useState(false);
+    const [installPromptEvent, setInstallPromptEvent] = useState(null);
+    const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+    const [isAppInstalled, setIsAppInstalled] = useState(false);
     // AI Processing Functions
     const processAIQuestion = async (question) => {
         setIsProcessingAI(true);
@@ -275,6 +278,35 @@ export default function Home({ onShowAuth }) {
     useEffect(() => {
         setLanguages(availableLanguages);
     }, []);
+    useEffect(() => {
+        const handler = (e) => {
+            e.preventDefault();
+            setInstallPromptEvent(e);
+            setShowInstallPrompt(true);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+    // Detect if app is installed (standalone mode)
+    useEffect(() => {
+        const checkInstalled = () => {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+            setIsAppInstalled(isStandalone);
+        };
+        checkInstalled();
+        window.addEventListener('appinstalled', checkInstalled);
+        window.matchMedia('(display-mode: standalone)').addEventListener('change', checkInstalled);
+        return () => {
+            window.removeEventListener('appinstalled', checkInstalled);
+            window.matchMedia('(display-mode: standalone)').removeEventListener('change', checkInstalled);
+        };
+    }, []);
+    const handleInstallClick = () => {
+        if (installPromptEvent) {
+            installPromptEvent.prompt();
+            // Do not hide the prompt if dismissed; only hide if installed
+        }
+    };
     if (loading) {
         return (_jsx("div", { className: "h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black", children: _jsx("div", { className: "text-white text-xl", children: "Loading..." }) }));
     }
@@ -287,7 +319,7 @@ export default function Home({ onShowAuth }) {
                         boxShadow: 'none',
                         filter: 'none',
                         transform: 'none'
-                    }, children: _jsx("div", { className: "absolute inset-0 rounded-full overflow-hidden", children: _jsx("img", { src: "/Gabby.jpg", alt: "Gabby Chat", className: "w-full h-full object-cover" }) }) }) }), _jsxs("div", { className: "pt-20 pb-8 px-4", children: [_jsx(Header, { onDashboardClick: () => { }, onAdminDashboardClick: () => setIsAdminDashboardOpen(true) }), _jsxs("div", { className: "max-w-4xl mx-auto", children: [_jsx(MessageBox, { value: message, onChange: (e) => setMessage(e.target.value), uploadedImage: uploadedImage, setUploadedImage: setUploadedImage, onShowImageChoice: handleShowImageChoice, onGalleryUpload: handleGalleryUpload, onCameraCapture: handleCameraCapture, language: language, onLanguageChange: handleLanguageChange }), _jsx(CommandButtons, { message: message, setMessage: setMessage }), _jsx(AppGrid, { onAskAIClick: handleAskAI, onTranslateClick: handleTranslateClick, onRewriteClick: handleRewriteClick, onDiaryClick: () => setIsDiaryModalOpen(true), onCalendarClick: () => setIsCalendarModalOpen(true), onExpenseClick: handleExpenseClick, onTodoClick: handleTodoClick, onShoppingClick: handleShoppingListClick, onImageToTextClick: handleImageToTextClick, onPdfReaderClick: handlePdfReaderClick, onMeetingMinutesClick: () => { }, onSmartMeetingRecorderClick: handleSmartMeetingRecorderClick, onImageGeneratorClick: () => setIsImageGeneratorModalOpen(true), onExpenseJournalClick: () => { }, onTokenDashboardClick: () => { }, onAdminDashboardClick: () => setIsAdminDashboardOpen(true) })] })] }), _jsxs(_Fragment, { children: [_jsx(TranslateModal, { isOpen: isTranslateModalOpen, onClose: () => setIsTranslateModalOpen(false), currentText: message }), _jsx(RewriteModal, { isOpen: isRewriteModalOpen, onClose: () => setIsRewriteModalOpen(false), currentText: message, onTextChange: setMessage }), _jsx(ImageToTextModal, { isOpen: isImageToTextModalOpen, onClose: () => setIsImageToTextModalOpen(false) }), _jsx(PdfReaderModal, { isOpen: isPdfReaderModalOpen, onClose: () => setIsPdfReaderModalOpen(false) }), _jsx(TodoModal, { isOpen: isTodoModalOpen, onClose: () => setIsTodoModalOpen(false), initialInput: "" }), _jsx(ShoppingListModal, { isOpen: isShoppingListModalOpen, onClose: () => setIsShoppingListModalOpen(false), currentLanguage: language }), _jsx(ExpenseModal, { isOpen: isExpenseModalOpen, onClose: () => setIsExpenseModalOpen(false), currentLanguage: language }), _jsx(SmartMeetingRecorder, { isOpen: isSmartMeetingRecorderOpen, onClose: () => setIsSmartMeetingRecorderOpen(false) }), _jsx(CalendarModal, { isOpen: isCalendarModalOpen, onClose: () => setIsCalendarModalOpen(false) }), _jsx(DiaryModal, { isOpen: isDiaryModalOpen, onClose: () => setIsDiaryModalOpen(false), currentText: message }), _jsx(GabbyChatModal, { isOpen: isGabbyChatModalOpen, onClose: () => setIsGabbyChatModalOpen(false), language: language }), _jsx(ImageGeneratorModal, { isOpen: isImageGeneratorModalOpen, onClose: () => setIsImageGeneratorModalOpen(false) }), _jsx(AdminDashboard, { isOpen: isAdminDashboardOpen, onClose: () => setIsAdminDashboardOpen(false) }), _jsx(RealtimeConfirmationModal, { isOpen: showRealtimeConfirmation, onConfirm: handleRealtimeConfirm, onCancel: handleRealtimeCancel, matchedTriggers: realtimeMatchedTriggers }), isProcessingAI && (_jsx("div", { className: "fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[9998]", style: { animation: 'fadeInUp 0.3s ease-out' }, children: _jsxs("div", { className: "glassy-btn neon-grid-btn rounded-2xl border-0 p-6 min-w-[300px] max-w-[90vw] ring-2 ring-blue-400 ring-opacity-60 text-center", style: {
+                    }, children: _jsx("div", { className: "absolute inset-0 rounded-full overflow-hidden", children: _jsx("img", { src: "/Gabby.jpg", alt: "Gabby Chat", className: "w-full h-full object-cover" }) }) }) }), _jsxs("div", { className: "pt-20 pb-8 px-4", children: [_jsx(Header, { onDashboardClick: () => { }, onAdminDashboardClick: () => setIsAdminDashboardOpen(true) }), _jsxs("div", { className: "max-w-4xl mx-auto", children: [_jsx(MessageBox, { value: message, onChange: (e) => setMessage(e.target.value), uploadedImage: uploadedImage, setUploadedImage: setUploadedImage, onShowImageChoice: handleShowImageChoice, onGalleryUpload: handleGalleryUpload, onCameraCapture: handleCameraCapture, language: language, onLanguageChange: handleLanguageChange }), _jsx(CommandButtons, { message: message, setMessage: setMessage }), _jsx("div", { className: "w-full flex justify-end mb-2", children: _jsxs("span", { className: "text-xs text-gray-400 bg-black/60 px-2 py-1 rounded shadow", children: ["Build: ", __BUILD_TIMESTAMP__] }) }), showInstallPrompt && !isAppInstalled && (_jsx("div", { className: "fixed top-6 right-6 z-[9999]", children: _jsxs("div", { className: "glassy-btn neon-grid-btn rounded-2xl border-0 p-4 min-w-[220px] max-w-[90vw] ring-2 ring-blue-400 ring-opacity-60 shadow-xl flex items-center gap-3 animate-bounce", children: [_jsx("span", { className: "text-2xl", children: "\uD83D\uDCF2" }), _jsx("span", { className: "text-base font-semibold text-white", children: "Install Gabby to Home Screen" }), _jsx("button", { className: "ml-4 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition", onClick: handleInstallClick, children: "Install" })] }) })), _jsx(AppGrid, { onAskAIClick: handleAskAI, onTranslateClick: handleTranslateClick, onRewriteClick: handleRewriteClick, onDiaryClick: () => setIsDiaryModalOpen(true), onCalendarClick: () => setIsCalendarModalOpen(true), onExpenseClick: handleExpenseClick, onTodoClick: handleTodoClick, onShoppingClick: handleShoppingListClick, onImageToTextClick: handleImageToTextClick, onPdfReaderClick: handlePdfReaderClick, onMeetingMinutesClick: () => { }, onSmartMeetingRecorderClick: handleSmartMeetingRecorderClick, onImageGeneratorClick: () => setIsImageGeneratorModalOpen(true), onExpenseJournalClick: () => { }, onTokenDashboardClick: () => { }, onAdminDashboardClick: () => setIsAdminDashboardOpen(true) })] })] }), _jsxs(_Fragment, { children: [_jsx(TranslateModal, { isOpen: isTranslateModalOpen, onClose: () => setIsTranslateModalOpen(false), currentText: message }), _jsx(RewriteModal, { isOpen: isRewriteModalOpen, onClose: () => setIsRewriteModalOpen(false), currentText: message, onTextChange: setMessage }), _jsx(ImageToTextModal, { isOpen: isImageToTextModalOpen, onClose: () => setIsImageToTextModalOpen(false) }), _jsx(PdfReaderModal, { isOpen: isPdfReaderModalOpen, onClose: () => setIsPdfReaderModalOpen(false) }), _jsx(TodoModal, { isOpen: isTodoModalOpen, onClose: () => setIsTodoModalOpen(false), initialInput: "" }), _jsx(ShoppingListModal, { isOpen: isShoppingListModalOpen, onClose: () => setIsShoppingListModalOpen(false), currentLanguage: language }), _jsx(ExpenseModal, { isOpen: isExpenseModalOpen, onClose: () => setIsExpenseModalOpen(false), currentLanguage: language }), _jsx(SmartMeetingRecorder, { isOpen: isSmartMeetingRecorderOpen, onClose: () => setIsSmartMeetingRecorderOpen(false) }), _jsx(CalendarModal, { isOpen: isCalendarModalOpen, onClose: () => setIsCalendarModalOpen(false) }), _jsx(DiaryModal, { isOpen: isDiaryModalOpen, onClose: () => setIsDiaryModalOpen(false), currentText: message }), _jsx(GabbyChatModal, { isOpen: isGabbyChatModalOpen, onClose: () => setIsGabbyChatModalOpen(false), language: language }), _jsx(ImageGeneratorModal, { isOpen: isImageGeneratorModalOpen, onClose: () => setIsImageGeneratorModalOpen(false) }), _jsx(AdminDashboard, { isOpen: isAdminDashboardOpen, onClose: () => setIsAdminDashboardOpen(false) }), _jsx(RealtimeConfirmationModal, { isOpen: showRealtimeConfirmation, onConfirm: handleRealtimeConfirm, onCancel: handleRealtimeCancel, matchedTriggers: realtimeMatchedTriggers }), isProcessingAI && (_jsx("div", { className: "fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[9998]", style: { animation: 'fadeInUp 0.3s ease-out' }, children: _jsxs("div", { className: "glassy-btn neon-grid-btn rounded-2xl border-0 p-6 min-w-[300px] max-w-[90vw] ring-2 ring-blue-400 ring-opacity-60 text-center", style: {
                                 background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(59, 130, 246, 0.2))',
                                 backdropFilter: 'blur(20px)',
                                 border: '2px solid rgba(255, 255, 255, 0.4)',
