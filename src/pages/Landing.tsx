@@ -57,16 +57,16 @@ const Landing: React.FC<LandingProps> = ({ onSelectPlan }) => {
             {plans.map(plan => (
               <button
                 key={plan.type}
-                className={`w-full rounded-2xl p-6 flex flex-col items-center justify-center shadow-xl border-2 border-blue-400 glassy-btn neon-grid-btn transition-transform active:scale-95`}
-                style={{ minHeight: 60 }}
+                className={`w-full rounded-2xl p-2 flex flex-col items-center justify-center shadow-xl border-2 border-blue-400 glassy-btn neon-grid-btn transition-transform active:scale-95`}
+                style={{ height: 60, minHeight: 60 }}
                 onClick={() => {
                   setSelectedPlan(plan.type as 'free' | 'paid');
                   onSelectPlan(plan.type as 'free' | 'paid');
                 }}
               >
-                <span className="text-2xl font-bold text-white mb-1">{plan.title}</span>
-                <span className="text-lg text-blue-200 mb-2">{plan.description}</span>
-                <span className="text-xl font-bold text-blue-300">{plan.price}</span>
+                <span className="text-lg font-bold text-white">{plan.title}</span>
+                <span className="text-sm text-blue-200">{plan.description}</span>
+                <span className="text-md font-bold text-blue-300">{plan.price}</span>
               </button>
             ))}
             {selectedPlan === 'paid' && <PayFastSandboxMock />}
