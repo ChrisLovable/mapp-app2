@@ -594,12 +594,48 @@ const ConfirmationModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ background: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(10px)' }}>
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm" style={{ animation: 'fadeInUp 0.3s ease-out' }}>
-        <h2 className="text-white text-xl mb-4">{title}</h2>
-        <div className="text-gray-300 mb-6">{children}</div>
+      <div
+        className="glassy-btn neon-grid-btn rounded-2xl border-0 p-6 w-full max-w-sm shadow-lg shadow-blue-500/50"
+        style={{
+          animation: 'fadeInUp 0.3s ease-out',
+          background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(59, 130, 246, 0.2))',
+          backdropFilter: 'blur(20px)',
+          border: '2px solid rgba(255, 255, 255, 0.4)',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.8), 0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4)',
+          filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.5))',
+          transform: 'translateZ(30px) perspective(1000px)',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+      >
+        <div className="flex items-center gap-4 mb-4">
+          <div
+            className="text-3xl"
+            style={{
+              filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 16px rgba(255, 255, 255, 0.4))',
+              textShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.6)',
+              transform: 'translateZ(10px)'
+            }}
+          >
+            {'❓'}
+          </div>
+          <h2 className="text-white text-xl font-bold" style={{ textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3)', filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))', transform: 'translateZ(5px)' }}>{title}</h2>
+        </div>
+        <div className="text-gray-300 mb-6 text-center">{children}</div>
         <div className="flex justify-end gap-4">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white transition-colors">Cancel</button>
-          <button onClick={onConfirm} className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors">Confirm</button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg glassy-btn neon-grid-btn text-white font-bold transition-colors border-0"
+            style={{ background: '#222', minWidth: 90 }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 rounded-lg glassy-btn neon-grid-btn text-white font-bold transition-colors border-0"
+            style={{ background: '#e11d48', minWidth: 90 }}
+          >
+            Confirm
+          </button>
         </div>
       </div>
     </div>

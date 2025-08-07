@@ -123,7 +123,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-80 backdrop-blur-md">
       <div 
         className="relative w-full mx-auto bg-black border-2 border-blue-500 rounded-2xl shadow-lg shadow-blue-500/50 overflow-y-auto"
-        style={{ width: '85vw', maxWidth: '600px', height: '70vh', minHeight: '500px' }}
+        style={{ width: '85vw', maxWidth: '600px', height: '90vh', minHeight: '500px' }}
       >
         <button
           onClick={onClose}
