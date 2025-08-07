@@ -19,6 +19,7 @@ function App() {
   const [step, setStep] = useState<'landing' | 'payfast' | 'auth' | 'done'>('landing');
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'paid' | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [installing, setInstalling] = useState(false);
 
   // 1. Landing page
   if (step === 'landing') {
@@ -69,22 +70,32 @@ function App() {
   // 4. PWA install prompt (done)
   if (step === 'done') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white p-8">
+      <div className={`min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white p-8${installing ? ' cursor-wait' : ''}`}
+        style={installing ? { cursor: 'wait' } : {}}>
         <img src="/Gabby.jpg" alt="Gabby" className="w-32 h-32 rounded-full mb-6 shadow-lg" />
         <h2 className="text-2xl font-bold mb-4">Welcome to Gabby!</h2>
         <p className="mb-4">Thank you for signing up. Tap below to install Gabby as a PWA and get started!</p>
         <button
           className="glassy-btn neon-grid-btn px-8 py-4 rounded-2xl text-xl font-bold text-white shadow-lg mb-4"
           style={{ background: 'linear-gradient(135deg, #2563eb 60%, #1e293b 100%)', border: '2px solid #fff', boxShadow: '0 8px 30px rgba(30, 58, 138, 0.4)' }}
-          onClick={() => {
+          disabled={installing}
+          onClick={async () => {
+            setInstalling(true);
             if ((window as any).deferredPrompt) {
-              (window as any).deferredPrompt.prompt();
+              const promptEvent = (window as any).deferredPrompt;
+              promptEvent.prompt();
+              promptEvent.userChoice.then(() => {
+                setInstalling(false);
+              }).catch(() => {
+                setInstalling(false);
+              });
             } else {
               alert('If you see an install button in your browser, tap it to add Gabby to your home screen!');
+              setInstalling(false);
             }
           }}
         >
-          Install Gabby App
+          {installing ? 'Installing...' : 'Install Gabby App'}
         </button>
         <p className="text-sm opacity-70">You will stay logged in forever unless you log out.</p>
       </div>
