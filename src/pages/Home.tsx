@@ -180,7 +180,7 @@ export default function Home({ onShowAuth }: HomeProps) {
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
   const [isGabbyChatModalOpen, setIsGabbyChatModalOpen] = useState(false);
   const [_isTokenDashboardOpen, _setIsTokenDashboardOpen] = useState(false);
-  const [_excelFile, _setExcelFile] = useState<any | null>(null); // Changed type to any
+  // Excel feature removed
 
   const [_selectedModel, _setSelectedModel] = useState<string>('openai/gpt-4o');
 
