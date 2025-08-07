@@ -175,7 +175,6 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
             <form onSubmit={handleAuth} className="space-y-4">
               <input
                 type="email"
-                autoComplete="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -184,7 +183,6 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
               />
               <input
                 type="password"
-                autoComplete="current-password"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
