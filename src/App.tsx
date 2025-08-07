@@ -67,7 +67,7 @@ function App() {
     );
   }
 
-  // 4. PWA install prompt (done)
+  // 4. PWA install prompt (done) - FORCE DEPLOY 1234
   if (step === 'done') {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white p-8${installing ? ' cursor-wait' : ''}`}
