@@ -1,0 +1,3 @@
+export { GlobalSpeechRecognition } from './useGlobalSpeechRecognition';
+
+
