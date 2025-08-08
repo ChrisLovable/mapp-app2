@@ -84,6 +84,197 @@ const { user } = useAuth();
   const openAI = new OpenAIService();
   const questionProcessor = new QuestionProcessor(analytics, openAI);
 
+  const saveExpenseCache = (expenses: Expense[]) => {
+    setExpenseCache(expenses);
+    setCacheTimestamp(Date.now());
+    
+    const cacheSafeExpenses = expenses.map(expense => ({
+      id: expense.id,
+      expense_date: expense.expense_date,
+      vendor: expense.vendor,
+      amount: expense.amount,
+      quantity: expense.quantity,
+      description: expense.description,
+      category: expense.category,
+      user_id: expense.user_id,
+      created_at: expense.created_at,
+      receipt_image_id: expense.receipt_image_id,
+    }));
+    
+    try {
+      localStorage.setItem('expenseCache', JSON.stringify(cacheSafeExpenses));
+      localStorage.setItem('expenseCacheTimestamp', Date.now().toString());
+    } catch (error) {
+      console.warn('Failed to save expense cache to localStorage:', error);
+      try {
+        localStorage.removeItem('expenseCache');
+        localStorage.removeItem('expenseCacheTimestamp');
+        const recentExpenses = cacheSafeExpenses.slice(0, 10);
+        localStorage.setItem('expenseCache', JSON.stringify(recentExpenses));
+        localStorage.setItem('expenseCacheTimestamp', Date.now().toString());
+      } catch (retryError) {
+        console.error('Failed to save even reduced cache:', retryError);
+      }
+    }
+  };
+
+  const deleteExpense = async (id: string) => {
+    try {
+      const userId = user?.id || '00000000-0000-0000-0000-000000000000';
+      
+      const { error } = await supabase
+        .from('expense_tracker')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Database error during deletion:', error);
+        return;
+      }
+
+      setExpenses(prevExpenses => {
+        const filtered = prevExpenses.filter(expense => expense.id !== id);
+        return filtered;
+      });
+      
+    } catch (error) {
+      console.error('Error in deleteExpense:', error);
+    }
+  };
+
+  const processImage = async (file: File) => {
+    try {
+      setProcessingStep('Converting image format...');
+      
+      let processedFile = file;
+      if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
+        const heic2any = (await import('heic2any')).default;
+        processedFile = await heic2any({
+          blob: file,
+          toType: 'image/jpeg',
+          quality: 0.8
+        }) as File;
+      }
+
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(processedFile);
+      });
+
+      setProcessingStep('Extracting text from image...');
+      
+      const extractedText = await askOpenAIVision(
+        'Extract all text from this receipt image. Include all text visible on the receipt including vendor name, items, prices, dates, and any other relevant information.',
+        base64
+      );
+
+      if (!extractedText) {
+        throw new Error('Failed to extract text from image');
+      }
+
+      setProcessingStep('Parsing expense data...');
+      
+      const parsePrompt = `Parse the following receipt text into structured expense entries. Extract multiple expense items if present. For each item, provide:
+- expense_date: Date from receipt (YYYY-MM-DD format)
+- vendor: Store/business name
+- amount: Price/amount (number only)
+- quantity: Quantity of items (default to 1 if not specified)
+- description: Item description
+- category: Categorize as: Food, Transportation, Shopping, Entertainment, Health, Utilities, Other
+
+Receipt text to parse:
+${extractedText}`;
+
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+      if (!apiKey) {
+        throw new Error('OpenAI API key not configured');
+      }
+
+      const parseApiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content: 'Parse receipt text into structured JSON format. Return only valid JSON arrays.'
+            },
+            {
+              role: 'user',
+              content: parsePrompt
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.1
+        })
+      });
+
+      if (!parseApiResponse.ok) {
+        const errorData = await parseApiResponse.json().catch(() => ({}));
+        throw new Error(`OpenAI API error: ${errorData.error?.message || parseApiResponse.statusText}`);
+      }
+
+      const data = await parseApiResponse.json();
+      const parseResponse = data.choices[0]?.message?.content;
+
+      if (!parseResponse) {
+        throw new Error('No response received from OpenAI');
+      }
+
+      try {
+        let parsedData = JSON.parse(parseResponse);
+        if (!Array.isArray(parsedData)) {
+          parsedData = [parsedData];
+        }
+        
+        let imageId = null;
+        if (user && base64) {
+          imageId = await saveReceiptImageToDB(user.id, base64);
+        }
+        
+        const expensesWithImageRef = parsedData.map(expense => ({
+          ...expense,
+          receipt_image_id: imageId
+        }));
+        
+        setNewExpenses(expensesWithImageRef);
+        setShowImageUpload(false);
+        setImagePreview(base64);
+        setProcessingSuccess(true);
+        setProcessingStep('✅ Processing complete!');
+      } catch (parseError) {
+        console.error('Error parsing response:', parseError);
+        
+        const fallbackExpense = [{
+          expense_date: new Date().toISOString().split('T')[0],
+          vendor: 'Unknown Vendor',
+          amount: 0,
+          quantity: 1,
+          description: 'Failed to parse expense data. Please edit manually.',
+          category: 'Other',
+          receipt_image_id: null
+        }];
+        
+        setNewExpenses(fallbackExpense);
+        setShowImageUpload(false);
+        setImagePreview(base64);
+        setProcessingSuccess(true);
+        setProcessingStep('⚠️ Processing completed with fallback data');
+      }
+    } catch (error) {
+      console.error('Error processing image:', error);
+      setIsProcessing(false);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   // Add helper to save image and get its id
   async function saveReceiptImageToDB(userId: string, base64: string) {
     const { data, error } = await supabase
