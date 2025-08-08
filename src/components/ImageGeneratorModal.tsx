@@ -246,7 +246,6 @@ const styleCategories = [
 export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorModalProps) {
   const [prompt, setPrompt] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<string>('none');
   const [selectedSubstyle, setSelectedSubstyle] = useState<string>('');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -258,8 +257,6 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedQuote, setSelectedQuote] = useState<string>('');
   const lastTranscriptRef = useRef('');
 
   // Test image loading on component mount
@@ -346,39 +343,63 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
 
   const saveToGallery = async () => {
     if (!generatedImage) return;
-
     try {
-      // For mobile devices, we can use the Web Share API if available
-      if (navigator.share) {
-        // Try to fetch the image with proper headers
-        const response = await fetch(generatedImage, {
-          mode: 'cors',
-          headers: {
-            'Accept': 'image/*'
-          }
+      // Fetch the image data
+      const response = await fetch(generatedImage, { mode: 'cors' });
+      if (!response.ok) throw new Error('Failed to fetch image');
+      const blob = await response.blob();
+      const mime = blob.type || 'image/png';
+      const filename = `gabby-ai-image-${Date.now()}.${mime.includes('png') ? 'png' : mime.includes('jpeg') ? 'jpg' : 'png'}`;
+      const file = new File([blob], filename, { type: mime });
+
+      // 1) Best: Web Share API with files (Android/iOS PWAs)
+      // @ts-ignore
+      if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
+        await (navigator as any).share({
+          files: [file],
+          title: 'Gabby AI Image',
+          text: `Generated from prompt: ${prompt}`
         });
-        
-        if (response.ok) {
-        const blob = await response.blob();
-        const file = new File([blob], `ai-image-${Date.now()}.png`, { type: 'image/png' });
-        
-        await navigator.share({
-          title: 'AI Generated Image',
-          text: `Generated from prompt: ${prompt}`,
-          files: [file]
-        });
-        } else {
-          // Fallback to direct download
-          downloadImage();
-        }
-      } else {
-        // Fallback: trigger download
-        downloadImage();
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2000);
+        return;
       }
+
+      // 2) File System Access API → suggest Pictures directory (Android Chrome)
+      // @ts-ignore
+      const showSaveFilePicker = (window as any).showSaveFilePicker;
+      if (showSaveFilePicker) {
+        try {
+          const handle = await showSaveFilePicker({
+            suggestedName: filename,
+            startIn: 'pictures',
+            types: [{ description: 'Image', accept: { [mime]: [`.${filename.split('.').pop()}`] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          setSaveSuccess(true);
+          setTimeout(() => setSaveSuccess(false), 2000);
+          return;
+        } catch (e) {
+          // fall through to anchor fallback
+        }
+      }
+
+      // 3) Fallback: download link (user can move to gallery)
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
     } catch (err) {
       console.error('Save to gallery error:', err);
-      // Fallback to download
-      downloadImage();
+      setError('Failed to save image to gallery');
     }
   };
 
@@ -437,40 +458,7 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
     }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setError('Please select a valid image file.');
-        return;
-      }
-
-      // Validate file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setError('Image file size must be less than 10MB.');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setReferenceImage(e.target?.result as string);
-        setError(null);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeReferenceImage = () => {
-    setReferenceImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const triggerFileUpload = () => {
-    fileInputRef.current?.click();
-  };
+  // Reference image functionality removed
 
   const showEnlargedImage = (imageSrc: string) => {
     setEnlargedImage(imageSrc);
@@ -643,14 +631,6 @@ The image should be designed to inspire and uplift, with the quote prominently d
   return (
          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-5">
       <div className="bg-[#111] rounded-2xl p-6 w-[90vw] max-h-[90vh] overflow-y-auto shadow-lg" style={{ border: '2px solid white' }}>
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="hidden"
-        />
         {/* Page Title */}
         <div className="sticky top-0 z-10 mb-6 py-3 rounded-xl mx-2 mt-2 glassy-btn" style={{
           background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.9) 0%, rgba(0, 0, 0, 0.95) 100%)',
@@ -678,45 +658,21 @@ The image should be designed to inspire and uplift, with the quote prominently d
           </button>
         </div>
 
-        {/* Reference Image Upload Section */}
-        <div className="mb-6">
-          <label className="block text-white mb-3 text-sm text-left">Reference Image (Optional):</label>
-                     <div className="flex gap-3 justify-center mx-auto">
-            {referenceImage ? (
-               <div className="w-[300px] relative">
-                <img
-                  src={referenceImage}
-                  alt="Reference"
-                   className="w-[300px] h-auto object-cover rounded-xl border border-white"
-                />
-                <button
-                  onClick={removeReferenceImage}
-                  className="absolute -top-2 -right-2 glassy-btn neon-grid-btn bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold z-10 border-0"
-                >
-                  <FaTimes size={10} />
-                </button>
-              </div>
-            ) : (
-              <div className="flex-1">
-                <button
-                  onClick={triggerFileUpload}
-                   className="w-full p-3 rounded-2xl glassy-btn text-white font-medium transition-all duration-200 border-0 animated-white-border"
-                   style={{ background: '#111', fontSize: '1rem' }}
-                >
-                  Upload Reference Image
-                </button>
-              </div>
-            )}
-          </div>
-          
-        </div>
+        {/* Reference image functionality removed */}
 
         {/* Prompt Input Section */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
                          <label className="block text-white text-[11px] text-left">Describe your image (prompt):</label>
             <div className="flex gap-2">
-              {/* Removed STT button to avoid prompt duplication */}
+              <SpeechToTextButton
+                onResult={handleSTTResult}
+                onError={(error) => alert(error)}
+                size="md"
+                className="px-4 py-3 border border-gray-500"
+                interimResults={true}
+                continuous={true}
+              />
             <button
                  onClick={() => setPrompt('')}
                  className="px-4 py-3 glassy-btn neon-grid-btn text-white rounded-lg transition-all border border-gray-500"
@@ -740,9 +696,7 @@ The image should be designed to inspire and uplift, with the quote prominently d
              className="w-full p-4 bg-black border border-white rounded-xl text-white resize-none focus:outline-none focus:ring-2 focus:ring-[var(--favourite-blue)] focus:ring-opacity-50"
              style={{ minHeight: '60px', maxHeight: '200px', overflowY: 'auto' }}
            />
-           <div className="mt-2 text-xs text-gray-400 text-left">
-             💡 Tip: Click the microphone button and speak to create your image description in real-time!
-           </div>
+           {/* Tip removed */}
         </div>
 
         {/* Generated Image Display */}
@@ -987,38 +941,7 @@ The image should be designed to inspire and uplift, with the quote prominently d
           </div>
         )}
 
-        {/* Success Notification */}
-        {saveSuccess && (
-          <div className="mb-4 p-4 bg-green-900 border border-green-500 rounded-xl text-green-200 font-medium">
-            <div className="flex items-center gap-2">
-              <span className="text-green-400">✅</span>
-              <span>Image saved to phone gallery successfully!</span>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        {generatedImage && (
-          <div className="flex gap-3 mb-6">
-              <button
-                onClick={saveToPhoneGallery}
-                disabled={isSaving}
-                className="flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-xl transition-all border-0 text-sm flex items-center justify-center gap-2 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Saving...</span>
-                  </>
-                ) : (
-                  <>
-                <FaSave size={16} />
-                    Save to Phone Gallery
-                  </>
-                )}
-              </button>
-            </div>
-        )}
+        {/* Bottom save button removed; keep in-image Save to Gallery only */}
       </div>
       
       {/* Enlarged Image Modal */}

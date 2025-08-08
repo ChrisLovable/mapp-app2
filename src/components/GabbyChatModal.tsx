@@ -16,7 +16,7 @@ interface ChatMessage {
 }
 
 const GABBY_GREETING_EN = "Hi! This is Gabby. How can I help you today?";
-const GABBY_GREETING_AF = "Hallo! Dit is Gabby. Hoe kan ek jou vandag help?";
+const GABBY_GREETING_AF = "Hi.  Ghabbie kannie Afrikaans praat nie.  So jammer, tot ek 'n vroulike afrikaanse stem kry gaan jy maar met my - Chris - moet gesels!";
 
 
 async function speakWithOpenAI(text: string, language: string) {
@@ -143,7 +143,14 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
       setChatHistory([]);
       setInputMessage('');
       initializeGabby();
+      // Start continuous listening owned by this modal
+      ownerIdRef.current = 'gabby-modal';
+      startListening(language, ownerIdRef.current);
     }
+    return () => {
+      stopListening(ownerIdRef.current);
+      stopAndCleanupAudio();
+    };
   }, [isOpen]);
 
   const initializeGabby = async () => {
@@ -178,26 +185,13 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
     try {
       // stop any current playback before starting new one
       stopAndCleanupAudio();
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      if (!apiKey) {
-        return;
-      }
-      const response = await fetch('https://api.openai.com/v1/audio/speech', {
+      const resp = await fetch('/api/azure-tts', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'tts-1',
-          input: text,
-          voice: 'alloy',
-          response_format: 'mp3',
-          speed: 1.0
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, language: lang })
       });
-      if (!response.ok) return;
-      const audioBlob = await response.blob();
+      if (!resp.ok) return;
+      const audioBlob = await resp.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       currentAudioUrlRef.current = audioUrl;
@@ -250,32 +244,30 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
     }
   };
 
+  // Continuously accumulate final STT into inputMessage, then send as messages and clear
   useEffect(() => {
+    if (sessionOwner !== 'gabby-modal') return;
     if (!finalDelta) return;
-    if (sessionOwner !== ownerIdRef.current) return; // ignore deltas not owned by this modal
-    const newPart = (finalDelta || '').replace(lastTranscriptRef.current, '');
-    setInputMessage(prev => (prev + newPart));
-    lastTranscriptRef.current = (lastTranscriptRef.current + newPart);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finalVersion, sessionOwner]);
+    // append delta to input
+    setInputMessage(prev => (prev ? (prev + ' ' + finalDelta.trim()).trim() : finalDelta.trim()));
+  }, [finalVersion, finalDelta, sessionOwner]);
 
-  // Auto-send when mic stops and we have input
+  // Remove autosend on mic stop. Instead, when we detect a long pause (no deltas for 2s) we send.
   useEffect(() => {
-    const wasListening = prevListeningRef.current;
-    if (wasListening && !isListening && inputMessage.trim()) {
-      handleSendMessage();
+    if (sessionOwner !== 'gabby-modal') return;
+    if (!inputMessage.trim()) return;
+    const timer = setTimeout(() => {
+      // send current input after pause
+      handleSendMessage(inputMessage.trim());
+      setInputMessage('');
       lastTranscriptRef.current = '';
-    }
-    prevListeningRef.current = isListening;
-  }, [isListening]);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [inputMessage, sessionOwner]);
 
   const handleMicClick = () => {
-    if (isListening) {
-      stopListening(ownerIdRef.current);
-    } else {
-      lastTranscriptRef.current = '';
-      startListening(language, ownerIdRef.current);
-    }
+    // Mic button becomes a no-op; we keep continuous recording. Provide visual feedback only.
+    if (!isListening) startListening(language, ownerIdRef.current);
   };
 
   // Stop listening and audio when modal closes or unmounts
@@ -444,21 +436,21 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
           <div className="flex gap-2">
             <button
               onClick={handleMicClick}
-              disabled={isTyping || isListening}
+              disabled={false}
               className="px-3 py-2 rounded-xl transition-colors flex items-center justify-center"
               style={{
                 background: isListening ? '#dc2626' : '#00cfff',
                 color: '#fff',
                 border: 'none',
-                cursor: (isTyping || isListening) ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 minWidth: '40px',
                 opacity: 1
               }}
-              aria-label={isListening ? "Listening..." : "Click to speak"}
+              aria-label={isListening ? "Listening..." : "Listening"}
             >
               {isListening ? "🎙️" : "🎤"}
             </button>
-            {/* Removed typing/send to enforce voice-only */}
+            {/* Voice-only. Transcription will appear as messages automatically */}
           </div>
           <div className="mt-2 text-xs text-gray-400 text-center">
             Click 🎤 to speak

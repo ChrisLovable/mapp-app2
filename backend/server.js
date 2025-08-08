@@ -26,6 +26,11 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const AZURE_TTS_KEY = process.env.AZURE_TTS_KEY;
 const AZURE_TTS_REGION = process.env.AZURE_TTS_REGION;
 const SERPAPI_KEY = process.env.SERPAPI_KEY;
+// ElevenLabs config
+const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+const ELEVEN_VOICE_ID_EN = process.env.ELEVENLABS_VOICE_ID_EN || 'kPzsL2i3teMYv0FxEYQ6'; // Brittney
+const ELEVEN_VOICE_ID_AF = process.env.ELEVENLABS_VOICE_ID_AF || 'R9JI6TuZ3IXlpRNVaYix'; // Chris
+const ELEVEN_MODEL = process.env.ELEVENLABS_MODEL || 'eleven_turbo_v2_5';
 
 // Make OpenAI API key required
 if (!OPENAI_API_KEY) {
@@ -478,32 +483,45 @@ app.post('/api/openai/images/generations', async (req, res) => {
 
 // ===== TEXT TO SPEECH =====
 app.post('/api/azure-tts', async (req, res) => {
-  const { text, voice = 'en-US-JennyNeural' } = req.body;
-
-  if (!text) {
-    return res.status(400).json({ error: 'Text is required' });
-  }
-
-  if (!AZURE_TTS_KEY) {
-    return res.status(500).json({ error: 'Azure TTS API not configured' });
-  }
-
   try {
-    console.log('🗣️ TTS request:', text.substring(0, 50) + '...');
-    
-    // For demo purposes, return a mock response
-    // In production, this would call Azure TTS API
-    const mockResponse = {
-      audioUrl: `https://picsum.photos/200/100?random=${Date.now()}`,
-      duration: Math.floor(Math.random() * 10) + 5,
-      text: text
-    };
-    
-    console.log('✅ TTS response generated');
-    res.json(mockResponse);
+    const { text, language } = req.body || {};
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'Text is required' });
+    }
+    if (!ELEVEN_API_KEY) {
+      return res.status(500).json({ error: 'ELEVENLABS_API_KEY not configured' });
+    }
+
+    const isAfrikaans = String(language || '').toLowerCase().startsWith('af');
+    const voiceId = isAfrikaans ? ELEVEN_VOICE_ID_AF : ELEVEN_VOICE_ID_EN;
+
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?optimize_streaming_latency=2`;
+    const elevenResp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': ELEVEN_API_KEY,
+        'Accept': 'audio/mpeg',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text: text.trim(),
+        model_id: ELEVEN_MODEL,
+        voice_settings: { stability: 0.5, similarity_boost: 0.7 }
+      })
+    });
+
+    if (!elevenResp.ok) {
+      const errText = await elevenResp.text().catch(() => '');
+      return res.status(elevenResp.status).json({ error: 'ElevenLabs TTS failed', details: errText });
+    }
+
+    const buf = Buffer.from(await elevenResp.arrayBuffer());
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(buf);
   } catch (error) {
     console.error('❌ TTS error:', error);
-    res.status(500).json({ error: 'TTS failed', details: error.message });
+    return res.status(500).json({ error: 'TTS failed', details: error?.message || String(error) });
   }
 });
 
@@ -934,5 +952,5 @@ app.listen(PORT, () => {
   console.log(`   - Search: ${!!SERPAPI_KEY ? '✅' : '❌'}`);
   console.log(`   - Calendar: ${!!OPENAI_API_KEY ? '✅' : '❌'}`);
   console.log(`   - Image Generation: ${!!OPENAI_API_KEY ? '✅' : '❌'}`);
-  console.log(`   - TTS: ${!!AZURE_TTS_KEY ? '✅' : '❌'}`);
+  console.log(`   - TTS: ${!!ELEVEN_API_KEY ? '✅' : '❌'}`);
 }); 

@@ -407,11 +407,22 @@ export default function MessageBox({
     onChange(syntheticEvent);
   };
 
+  // Keep a live ref to the latest textbox value to avoid stale-closure duplication
+  const currentValueRef = React.useRef(value);
+  useEffect(() => { currentValueRef.current = value; }, [value]);
+
   useEffect(() => {
     if (!finalDelta) return;
     if (sessionOwner !== ownerIdRef.current) return; // ignore mic input not owned by MessageBox
+
+    const base = (currentValueRef.current || '').trim();
+    const next = (base ? base + ' ' : '') + finalDelta.trim();
+
+    // Avoid duplicate append if the textbox already ends with this delta
+    if (base.endsWith(finalDelta.trim())) return;
+
     const syntheticEvent = {
-      target: { value: (value + ' ' + finalDelta).trim() }
+      target: { value: next }
     } as React.ChangeEvent<HTMLTextAreaElement>;
     onChange(syntheticEvent);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1074,28 +1085,24 @@ Text to correct: "${value}"`;
           >
             📷
           </button>
-          {/* Save Comment Button */}
+          {/* Save Comment Button (replaces old send button) */}
           <button
             onClick={handleSaveComment}
-            className="w-8 h-8 glassy-btn neon-grid-btn rounded-full border-0 flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-lg active:scale-95 relative overflow-visible"
+            className="glassy-btn neon-grid-btn px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center transition-all duration-200 shadow-lg active:scale-95 relative overflow-visible"
             style={{
-              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(59, 130, 246, 0.2))',
-              backdropFilter: 'blur(20px)',
+              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(59, 130, 246, 0.7))',
+              color: '#fff',
               border: '2px solid rgba(255, 255, 255, 0.4)',
-              boxShadow: '0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(59, 130, 246, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2)',
-              filter: 'drop-shadow(0 0 5px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 10px rgba(59, 130, 246, 0.4)) drop-shadow(0 0 15px rgba(59, 130, 246, 0.3))',
-              transform: 'translateZ(20px) perspective(1000px) rotateX(5deg)',
-              borderRadius: '50%',
-              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-              aspectRatio: '1.15',
-              minWidth: '32px',
-              minHeight: '28px',
-              width: '32px',
-              height: '28px'
+              boxShadow: '0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 0 rgba(59, 130, 246, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4)',
+              backdropFilter: 'blur(20px)',
+              minWidth: '120px',
+              minHeight: '32px',
+              fontSize: '1rem',
+              fontWeight: 700
             }}
-            title="Send message"
+            title="Submit your comment or report"
           >
-            📤
+            Comment/Report
           </button>
         </div>
         

@@ -680,14 +680,16 @@ Please format the minutes in a clear, professional structure with proper heading
               <div className="flex gap-2 w-full">
                 <div className="flex-1">
                   <label className="text-xs text-white mb-2 block">Meeting Date</label>
-                  <CustomDatePicker
-                    value={meetingDate}
-                    onChange={setMeetingDate}
-                  />
+                  <div style={{ maxWidth: 160 }}>
+                    <CustomDatePicker
+                      value={meetingDate}
+                      onChange={setMeetingDate}
+                    />
+                  </div>
                 </div>
                 <div className="flex-1">
                   <label className="text-xs text-white block">Language</label>
-                  <Select
+                   <Select
                     className="w-full px-3 py-2 rounded-xl bg-black text-white text-xs"
                     value={availableLanguages.find(opt => opt.code === selectedLanguage) || null}
                     onChange={(option) => option && handleLanguageChange(option.code)}
@@ -712,8 +714,8 @@ Please format the minutes in a clear, professional structure with proper heading
                         </div>
                       )
                     }}
-                    styles={{
-                      container: (base) => ({ ...base, width: '120px', zIndex: 20 }),
+                     styles={{
+                       container: (base) => ({ ...base, width: '120px', zIndex: 20, maxWidth: '140px' }),
                       control: (base, state) => ({
                         ...base,
                         borderRadius: 16,
