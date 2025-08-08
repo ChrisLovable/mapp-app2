@@ -19,18 +19,15 @@ const PayFastSandboxMock = ({ onSuccess, onCancel }: { onSuccess: () => void; on
 );
 
 function App() {
-  const [step, setStep] = useState<'auth' | 'main'>('auth');
+  const [step, setStep] = useState<'auth' | 'main'>('main');
   // Simplified flow: no plan selection upfront
 
   // Ensure we resume into the main UI after install or refresh if user is authenticated
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        const stored = localStorage.getItem('onboardingComplete') === '1';
-        const { data: { session } } = await supabase.auth.getSession();
-        if (stored || session) {
-          setStep('main');
-        }
+        // For quick testing, always go to main
+        setStep('main');
       } catch {
         // ignore
       }
