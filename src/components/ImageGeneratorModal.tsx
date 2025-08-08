@@ -933,8 +933,16 @@ The image should be designed to inspire and uplift, with the quote prominently d
 
         {/* Error Display */}
         {error && (
-          <div className="mb-4 p-4 bg-red-900 border border-red-500 rounded-xl text-red-200 font-medium">
-            <div className="flex items-center gap-2">
+          <div className="mb-4 p-4 bg-red-900 border border-red-500 rounded-xl text-red-200 font-medium relative">
+            <button
+              aria-label="Close error"
+              onClick={() => setError(null)}
+              className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-red-100 hover:text-white hover:bg-red-800 transition-colors"
+              style={{ border: '1px solid rgba(255,255,255,0.2)' }}
+            >
+              ×
+            </button>
+            <div className="flex items-center gap-2 pr-6">
               <span className="text-red-400">⚠️</span>
               <span>{error}</span>
             </div>

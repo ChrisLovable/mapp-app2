@@ -432,7 +432,13 @@ export default function MessageBox({
 
   const handleMicClick = () => {
     if (isListening) {
-      stopListening(ownerIdRef.current);
+      if (sessionOwner !== ownerIdRef.current) {
+        // Preempt other owners: force stop, then start for this owner
+        stopListening();
+        setTimeout(() => startListening(language, ownerIdRef.current), 150);
+      } else {
+        stopListening(ownerIdRef.current);
+      }
     } else {
       startListening(language, ownerIdRef.current);
     }

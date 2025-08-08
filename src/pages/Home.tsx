@@ -488,13 +488,6 @@ export default function Home({ onShowAuth }: HomeProps) {
             setMessage={setMessage} 
           />
 
-          {/* Build timestamp above grid buttons */}
-          <div className="w-full flex justify-end mb-2">
-            <span className="text-xs text-gray-400 bg-black/60 px-2 py-1 rounded shadow">
-              Build: {__BUILD_TIMESTAMP__}
-            </span>
-          </div>
-
           {/* PWA Install Prompt (manual) */}
           {showInstallPrompt && !isAppInstalled && (
             <div className="fixed top-6 right-6 z-[9999]">

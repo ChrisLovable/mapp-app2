@@ -28,7 +28,18 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
   const [finalVersion, setFinalVersion] = useState(0);
 
   const startListening = useCallback((language?: string, ownerId?: string) => {
-    if (isListening) return; // mic lock
+    if (isListening) {
+      // If another owner requests, preempt by stopping current and restarting
+      if (ownerId && sessionOwner && ownerId !== sessionOwner) {
+        if (recognitionRef.current) {
+          try { recognitionRef.current.stop(); } catch {}
+        }
+        setIsListening(false);
+        setSessionOwner(null);
+      } else {
+        return; // same owner or no ownerId, keep current session
+      }
+    }
 
     const SpeechRecognitionImpl: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionImpl) {

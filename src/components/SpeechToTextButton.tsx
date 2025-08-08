@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSpeechToText, useContinuousSpeechToText, useMobileSpeechToText } from '../hooks/useSpeechToText';
+import { useSpeech } from '../contexts/SpeechContext';
 
 interface SpeechToTextButtonProps {
   onResult: (text: string) => void;
@@ -44,6 +45,8 @@ export const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
     onStart
   });
 
+  const speechCtx = useSpeech();
+
   const handleClick = () => {
     if (!isSupported) {
       onError?.('Speech recognition is not supported on this device.');
@@ -53,6 +56,8 @@ export const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
     if (isListening) {
       stopListening();
     } else {
+      // Preempt any global mic session before starting local recognition
+      try { speechCtx.stopListening(); } catch {}
       startListening();
     }
   };
@@ -154,6 +159,8 @@ export const ContinuousSpeechToTextButton: React.FC<SpeechToTextButtonProps> = (
     onStart
   });
 
+  const speechCtx2 = useSpeech();
+
   console.log('ContinuousSpeechToTextButton render - isListening:', isListening);
 
   const handleClick = () => {
@@ -170,6 +177,8 @@ export const ContinuousSpeechToTextButton: React.FC<SpeechToTextButtonProps> = (
       stopListening();
     } else {
       console.log('Starting continuous listening...');
+      // Preempt any global mic session before starting local recognition
+      try { speechCtx2.stopListening(); } catch {}
       startListening();
     }
   };
@@ -265,6 +274,8 @@ export const MobileSpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
     onStart
   });
 
+  const speechCtx3 = useSpeech();
+
   console.log('MobileSpeechToTextButton render - isListening:', isListening);
 
   const handleClick = () => {
@@ -283,6 +294,8 @@ export const MobileSpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       stopListening();
     } else {
       console.log('Starting mobile listening...');
+      // Preempt any global mic session before starting local recognition
+      try { speechCtx3.stopListening(); } catch {}
       startListening();
     }
   };
