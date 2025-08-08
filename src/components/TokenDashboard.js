@@ -1,5 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React, { useState, useEffect, useRef } from 'react';
+import { TOKEN_API_BASE } from '../lib/config';
 import { FaDownload, FaRedo, FaChartLine, FaClock, FaExclamationTriangle, FaCheckCircle, FaTimes } from 'react-icons/fa';
 export default function TokenDashboard({ isOpen, onClose }) {
     const [stats, setStats] = useState(null);
@@ -10,7 +11,7 @@ export default function TokenDashboard({ isOpen, onClose }) {
     const [refreshing, setRefreshing] = useState(false);
     const [_timeRange, _setTimeRange] = useState('24h');
     const liveUpdateInterval = useRef(null);
-    const apiBaseUrl = 'http://localhost:4002/api';
+    const apiBaseUrl = TOKEN_API_BASE;
     // Fetch token statistics
     const fetchTokenStats = async () => {
         try {

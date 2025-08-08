@@ -1,4 +1,4 @@
-import { GlobalSpeechRecognition } from '../hooks/useGlobalSpeechRecognition';
+import { useSpeech } from '../contexts/SpeechContext';
 import React, { useState, useRef, useEffect } from 'react';
 
 
@@ -112,11 +112,14 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [isListening, setIsListening] = useState(false);
+  const { isListening, startListening, stopListening, finalDelta, finalVersion, sessionOwner } = useSpeech();
   const [chatHistory, setChatHistory] = useState<{ role: "user"|"assistant", content: string }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastTranscriptRef = useRef('');
+  const ownerIdRef = useRef<string>('gabby-modal');
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const currentAudioUrlRef = useRef<string | null>(null);
 
   // Debug logging
   useEffect(() => {
@@ -152,9 +155,60 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
     };
     setMessages([welcomeMessage]);
     setChatHistory([{ role: "assistant" as const, content: greeting }]);
-    await speakWithOpenAI(greeting, language);
+    await speakInModal(greeting, language);
     // Removed automatic focus to prevent keyboard from opening
   };
+
+  const stopAndCleanupAudio = () => {
+    try {
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current.src = '';
+      }
+      if (currentAudioUrlRef.current) {
+        URL.revokeObjectURL(currentAudioUrlRef.current);
+      }
+    } catch {}
+    currentAudioRef.current = null;
+    currentAudioUrlRef.current = null;
+  };
+
+  async function speakInModal(text: string, lang: string) {
+    try {
+      // stop any current playback before starting new one
+      stopAndCleanupAudio();
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+      if (!apiKey) {
+        return;
+      }
+      const response = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'tts-1',
+          input: text,
+          voice: 'alloy',
+          response_format: 'mp3',
+          speed: 1.0
+        })
+      });
+      if (!response.ok) return;
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      currentAudioUrlRef.current = audioUrl;
+      currentAudioRef.current = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        currentAudioRef.current = null;
+        currentAudioUrlRef.current = null;
+      };
+      await audio.play();
+    } catch {}
+  }
 
   const handleSendMessage = async (msg?: string) => {
     const messageToSend = msg ?? inputMessage;
@@ -186,7 +240,7 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
       
       setMessages(prev => [...prev, gabbyResponse]);
       setChatHistory([...updatedHistory, { role: "assistant" as const, content: reply }]);
-      await speakWithOpenAI(reply, language);
+      await speakInModal(reply, language);
 
     } catch (error) {
       console.error('Error getting response:', error);
@@ -195,34 +249,35 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
     }
   };
 
+  useEffect(() => {
+    if (!finalDelta) return;
+    if (sessionOwner !== ownerIdRef.current) return; // ignore deltas not owned by this modal
+    const newPart = (finalDelta || '').replace(lastTranscriptRef.current, '');
+    setInputMessage(prev => (prev + newPart));
+    lastTranscriptRef.current = (lastTranscriptRef.current + newPart);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finalVersion, sessionOwner]);
+
   const handleMicClick = () => {
     if (isListening) {
-      GlobalSpeechRecognition.stop();
-      return;
+      stopListening(ownerIdRef.current);
+    } else {
+      lastTranscriptRef.current = '';
+      startListening(language, ownerIdRef.current);
     }
-
-    setIsListening(true);
-    lastTranscriptRef.current = '';
-    GlobalSpeechRecognition.start(
-      language,
-      (transcript, isFinal) => {
-        // Only append the new part of the transcript
-        const newPart = transcript.replace(lastTranscriptRef.current, '');
-        setInputMessage(prev => prev + newPart);
-        lastTranscriptRef.current = transcript;
-        if (isFinal) {
-          handleSendMessage(transcript);
-        }
-      },
-      () => {
-        setIsListening(false);
-      },
-      (error) => {
-        alert(`Speech recognition error: ${error}`);
-        setIsListening(false);
-      }
-    );
   };
+
+  // Stop listening and audio when modal closes or unmounts
+  useEffect(() => {
+    if (!isOpen) {
+      stopListening(ownerIdRef.current);
+      stopAndCleanupAudio();
+    }
+    return () => {
+      stopListening(ownerIdRef.current);
+      stopAndCleanupAudio();
+    };
+  }, [isOpen]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

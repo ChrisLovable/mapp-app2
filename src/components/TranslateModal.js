@@ -193,44 +193,56 @@ export default function TranslateModal({ isOpen, onClose, currentText }) {
         setIsLoading(true);
         setError('');
         try {
-            const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-            if (!apiKey) {
-                throw new Error('OpenAI API key not found. Please check your .env file.');
-            }
             // Get language names for better prompts
             const fromLang = LANGUAGE_OPTIONS.find(lang => lang.code === fromLanguage)?.name || fromLanguage;
             const toLang = LANGUAGE_OPTIONS.find(lang => lang.code === toLanguage)?.name || toLanguage;
             const prompt = `Translate the following text from ${fromLang} to ${toLang}. Return only the translated text, nothing else.
 
 Text to translate: "${editableText}"`;
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: `You are a professional translator. Translate the given text accurately while preserving the original meaning and tone. Return only the translated text without any explanations or formatting.`
-                        },
-                        {
-                            role: 'user',
-                            content: prompt
-                        }
-                    ],
-                    max_tokens: 500,
-                    temperature: 0.3
-                })
-            });
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(`Translation error: ${errorData.error?.message || response.statusText}`);
+            // Try backend translation route first; fallback to client OpenAI if unavailable
+            let translatedText;
+            try {
+                const resp = await fetch('/api/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                if (resp.ok) {
+                    const json = await resp.json();
+                    translatedText = json.translatedText || json.data?.translatedText || json.choices?.[0]?.message?.content?.trim();
+                }
             }
-            const data = await response.json();
-            const translatedText = data.choices[0]?.message?.content?.trim();
+            catch (_) {
+                // ignore and fallback
+            }
+            if (!translatedText) {
+                const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+                if (!apiKey) {
+                    throw new Error('Translation service unavailable.');
+                }
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                            { role: 'system', content: 'You are a professional translator. Translate the given text accurately while preserving the original meaning and tone. Return only the translated text without any explanations or formatting.' },
+                            { role: 'user', content: prompt }
+                        ],
+                        max_tokens: 500,
+                        temperature: 0.3
+                    })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`Translation error: ${errorData.error?.message || response.statusText}`);
+                }
+                const data = await response.json();
+                translatedText = data.choices[0]?.message?.content?.trim();
+            }
             if (!translatedText) {
                 throw new Error('No translation received');
             }

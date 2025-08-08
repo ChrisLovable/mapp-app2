@@ -1,5 +1,6 @@
 // TTS Utility Module - Implements lazy loading and best practices
 import { apiUsageTracker } from '../lib/ApiUsageTracker';
+import { AZURE_TTS_BASE, AZURE_VOICES_URL } from '../lib/config';
 
 interface TTSOptions {
   text: string;
@@ -46,7 +47,7 @@ class TTSService {
 
   private async performServerCheck(): Promise<boolean> {
     try {
-      const response = await fetch('http://localhost:4000/api/azure-voices', {
+      const response = await fetch(AZURE_VOICES_URL, {
         method: 'GET',
         signal: AbortSignal.timeout(3000)
       });
@@ -75,7 +76,7 @@ class TTSService {
     }
 
     try {
-      const response = await fetch('http://localhost:4000/api/azure-tts', {
+      const response = await fetch(AZURE_TTS_BASE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -98,7 +99,7 @@ class TTSService {
 
       // Track successful Azure TTS usage
       apiUsageTracker.trackAzureUsage(
-        'http://localhost:4000/api/azure-tts',
+        AZURE_TTS_BASE,
         text.trim().length,
         'Text-to-Speech Generation',
         true
@@ -125,7 +126,7 @@ class TTSService {
 
       // Track failed Azure TTS usage
       apiUsageTracker.trackAzureUsage(
-        'http://localhost:4000/api/azure-tts',
+        AZURE_TTS_BASE,
         text.trim().length,
         'Text-to-Speech Generation',
         false,

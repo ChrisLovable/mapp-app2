@@ -20,7 +20,7 @@ class ApiUsageTracker {
     usage = [];
     STORAGE_KEY = 'api_usage_tracker';
     liveLogListeners = [];
-    dashboardBaseUrl = 'http://localhost:3000/api';
+    dashboardBaseUrl = import.meta.env?.VITE_DASHBOARD_API_URL || '/api';
     dashboardEnabled = true;
     constructor() {
         this.loadFromStorage();

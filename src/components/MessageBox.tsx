@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EnhancedTouchDragSelect from './EnhancedTouchDragSelect';
-import { GlobalSpeechRecognition } from '../hooks/useGlobalSpeechRecognition';
+import { useSpeech } from '../contexts/SpeechContext';
 import { TextToSpeechButton, LanguageToggleButton } from './SpeechToTextButton';
 
 import { supabase } from '../lib/supabase';
@@ -236,7 +236,8 @@ export default function MessageBox({
   const { user } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isCorrecting, setIsCorrecting] = useState(false);
-  const [isListening, setIsListening] = useState(false);
+  const { isListening, startListening, stopListening, finalDelta, finalVersion, sessionOwner } = useSpeech();
+  const ownerIdRef = useRef<string>('message-box');
 
   const [thumbnailPosition, setThumbnailPosition] = useState({ x: 50, y: 50 });
 
@@ -406,43 +407,24 @@ export default function MessageBox({
     onChange(syntheticEvent);
   };
 
-  const handleSTTResult = (text: string) => {
+  useEffect(() => {
+    if (!finalDelta) return;
+    if (sessionOwner !== ownerIdRef.current) return; // ignore mic input not owned by MessageBox
     const syntheticEvent = {
-      target: { value: text }
+      target: { value: (value + ' ' + finalDelta).trim() }
     } as React.ChangeEvent<HTMLTextAreaElement>;
     onChange(syntheticEvent);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finalVersion, sessionOwner]);
 
   const lastTranscriptRef = useRef('');
 
   const handleMicClick = () => {
     if (isListening) {
-      GlobalSpeechRecognition.stop();
-      return;
+      stopListening(ownerIdRef.current);
+    } else {
+      startListening(language, ownerIdRef.current);
     }
-
-    const initialText = value;
-    lastTranscriptRef.current = '';
-    setIsListening(true);
-
-    GlobalSpeechRecognition.start(
-      language,
-      (transcript, isFinal) => {
-        if (isFinal) {
-          // Only append the new part of the transcript
-          const newPart = transcript.replace(lastTranscriptRef.current, '');
-          handleSTTResult(initialText + newPart);
-          lastTranscriptRef.current = transcript;
-        }
-      },
-      () => {
-        setIsListening(false);
-      },
-      (error) => {
-        showNotification(`Speech recognition error: ${error}`, 'error');
-        setIsListening(false);
-      }
-    );
   };
 
   const handleTTS = (text: string) => {
@@ -496,8 +478,9 @@ export default function MessageBox({
     try {
       console.log('🔍 [SERPAPI PROXY] Making search request for:', query);
       
-      // Use the local proxy server to avoid CORS issues
-      const proxyUrl = `http://localhost:3001/api/search?query=${encodeURIComponent(query)}`;
+      // Use configured proxy server to avoid CORS issues
+      const { SEARCH_PROXY_URL } = await import('../lib/config');
+      const proxyUrl = `${SEARCH_PROXY_URL}?query=${encodeURIComponent(query)}`;
       console.log('🔍 [SERPAPI PROXY] Proxy URL:', proxyUrl);
       
       const response = await fetch(proxyUrl);

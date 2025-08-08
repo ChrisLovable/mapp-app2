@@ -63,7 +63,7 @@ class ApiUsageTracker {
   private usage: ApiUsage[] = [];
   private readonly STORAGE_KEY = 'api_usage_tracker';
   private liveLogListeners: ((entry: LiveLogEntry) => void)[] = [];
-  private dashboardBaseUrl = 'http://localhost:3000/api';
+  private dashboardBaseUrl = (import.meta as any).env?.VITE_DASHBOARD_API_URL || '/api';
   private dashboardEnabled = true;
 
   constructor() {

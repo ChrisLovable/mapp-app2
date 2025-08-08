@@ -6,8 +6,9 @@ interface SpeechContextValue {
   transcriptFinal: string;     // accumulated final only
   finalDelta: string;          // new final text since previous commit
   finalVersion: number;        // increments on each new finalDelta
-  startListening: (language?: string) => void;
-  stopListening: () => void;
+  sessionOwner: string | null; // which component owns the current mic session
+  startListening: (language?: string, ownerId?: string) => void;
+  stopListening: (ownerId?: string) => void;
 }
 
 const SpeechContext = createContext<SpeechContextValue | undefined>(undefined);
@@ -16,6 +17,7 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
   const recognitionRef = useRef<SpeechRecognition | null>(null as any);
   const [isListening, setIsListening] = useState(false);
   const languageRef = useRef<string>('en-US');
+  const [sessionOwner, setSessionOwner] = useState<string | null>(null);
 
   const accumulatedFinalRef = useRef<string>('');
   const lastResultIndexRef = useRef<number>(0);
@@ -25,7 +27,7 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
   const [finalDelta, setFinalDelta] = useState('');
   const [finalVersion, setFinalVersion] = useState(0);
 
-  const startListening = useCallback((language?: string) => {
+  const startListening = useCallback((language?: string, ownerId?: string) => {
     if (isListening) return; // mic lock
 
     const SpeechRecognitionImpl: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -48,6 +50,7 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
       setTranscriptFinal('');
       setTranscriptLive('');
       setFinalDelta('');
+      setSessionOwner(ownerId || 'global');
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -89,11 +92,13 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     recognition.onend = () => {
       setIsListening(false);
       recognitionRef.current = null;
+      setSessionOwner(null);
     };
 
     recognition.onerror = () => {
       setIsListening(false);
       recognitionRef.current = null;
+      setSessionOwner(null);
     };
 
     try {
@@ -105,12 +110,17 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isListening]);
 
-  const stopListening = useCallback(() => {
+  const stopListening = useCallback((ownerId?: string) => {
+    // If an owner is specified and it's not the current owner, ignore
+    if (ownerId && sessionOwner && ownerId !== sessionOwner) {
+      return;
+    }
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch {}
     }
     setIsListening(false);
-  }, []);
+    setSessionOwner(null);
+  }, [sessionOwner]);
 
   const value: SpeechContextValue = {
     isListening,
@@ -118,6 +128,7 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     transcriptFinal,
     finalDelta,
     finalVersion,
+    sessionOwner,
     startListening,
     stopListening,
   };

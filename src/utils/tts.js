@@ -25,7 +25,8 @@ class TTSService {
     }
     async performServerCheck() {
         try {
-            const response = await fetch('http://localhost:4000/api/azure-voices', {
+            const { AZURE_VOICES_URL } = await import('../lib/config');
+            const response = await fetch(AZURE_VOICES_URL, {
                 method: 'GET',
                 signal: AbortSignal.timeout(3000)
             });
@@ -51,7 +52,8 @@ class TTSService {
             };
         }
         try {
-            const response = await fetch('http://localhost:4000/api/azure-tts', {
+            const { AZURE_TTS_BASE, AZURE_VOICES_URL } = await import('../lib/config');
+            const response = await fetch(AZURE_TTS_BASE, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -70,7 +72,7 @@ class TTSService {
             const audioBlob = await response.blob();
             const audioUrl = URL.createObjectURL(audioBlob);
             // Track successful Azure TTS usage
-            apiUsageTracker.trackAzureUsage('http://localhost:4000/api/azure-tts', text.trim().length, 'Text-to-Speech Generation', true);
+            apiUsageTracker.trackAzureUsage(AZURE_TTS_BASE, text.trim().length, 'Text-to-Speech Generation', true);
             return { success: true, audioUrl };
         }
         catch (error) {
@@ -92,7 +94,7 @@ class TTSService {
                 }
             }
             // Track failed Azure TTS usage
-            apiUsageTracker.trackAzureUsage('http://localhost:4000/api/azure-tts', text.trim().length, 'Text-to-Speech Generation', false, errorMessage);
+            apiUsageTracker.trackAzureUsage(AZURE_TTS_BASE, text.trim().length, 'Text-to-Speech Generation', false, errorMessage);
             return { success: false, error: errorMessage };
         }
     }

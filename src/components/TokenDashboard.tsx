@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { TOKEN_API_BASE } from '../lib/config';
 import { FaDownload, FaRedo, FaChartLine, FaClock, FaExclamationTriangle, FaCheckCircle, FaTimes } from 'react-icons/fa';
 
 interface TokenStats {
@@ -54,7 +55,7 @@ export default function TokenDashboard({ isOpen, onClose }: TokenDashboardProps)
   const [_timeRange, _setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
   
   const liveUpdateInterval = useRef<NodeJS.Timeout | null>(null);
-  const apiBaseUrl = 'http://localhost:4002/api';
+  const apiBaseUrl = TOKEN_API_BASE;
 
   // Fetch token statistics
   const fetchTokenStats = async () => {

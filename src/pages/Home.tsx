@@ -199,6 +199,7 @@ export default function Home({ onShowAuth }: HomeProps) {
   const [showImageChoice, setShowImageChoice] = useState(false);
   const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [showInstallingOverlay, setShowInstallingOverlay] = useState(false);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
 
   // AI Processing Functions
@@ -383,6 +384,12 @@ export default function Home({ onShowAuth }: HomeProps) {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  // Expose a global to show installing overlay from Auth success
+  useEffect(() => {
+    (window as any).showInstallingOverlay = () => setShowInstallingOverlay(true);
+    return () => { delete (window as any).showInstallingOverlay; };
+  }, []);
+
   // Detect if app is installed (standalone mode)
   useEffect(() => {
     const checkInstalled = () => {
@@ -488,7 +495,7 @@ export default function Home({ onShowAuth }: HomeProps) {
             </span>
           </div>
 
-          {/* PWA Install Prompt */}
+          {/* PWA Install Prompt (manual) */}
           {showInstallPrompt && !isAppInstalled && (
             <div className="fixed top-6 right-6 z-[9999]">
               <div className="glassy-btn neon-grid-btn rounded-2xl border-0 p-4 min-w-[220px] max-w-[90vw] ring-2 ring-blue-400 ring-opacity-60 shadow-xl flex items-center gap-3 animate-bounce">
@@ -500,6 +507,24 @@ export default function Home({ onShowAuth }: HomeProps) {
                 >
                   Install
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Installing overlay used right after signup */}
+          {showInstallingOverlay && !isAppInstalled && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+              <div 
+                className="glassy-btn neon-grid-btn rounded-2xl border-0 p-6 min-w-[280px] max-w-[90vw] ring-2 ring-blue-400 ring-opacity-60 text-center"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(0,0,0,0.85), rgba(59,130,246,0.2))',
+                  backdropFilter: 'blur(20px)',
+                  border: '2px solid rgba(255,255,255,0.4)'
+                }}
+              >
+                <div className="text-4xl mb-3 animate-spin">📲</div>
+                <div className="text-white font-bold">App installing…</div>
+                <div className="text-gray-300 text-sm mt-1">Follow the browser prompt to add to your Home Screen</div>
               </div>
             </div>
           )}

@@ -1,5 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React, { useState, useEffect, useRef } from 'react';
+import { DASHBOARD_API_BASE } from '../lib/config';
 import { FaRedo, FaChartLine, FaClock, FaExclamationTriangle, FaCheckCircle, FaDownload } from 'react-icons/fa';
 import ThreeDComponent from './ThreeDComponent';
 import { supabase } from '../lib/supabase';
@@ -33,7 +34,7 @@ export default function AdminDashboard({ isOpen, onClose }) {
     const [refreshing, setRefreshing] = useState(false);
     const [selectedTimeRange, setSelectedTimeRange] = useState('1h');
     const liveUpdateInterval = useRef(null);
-    const apiBaseUrl = 'http://localhost:3000/api';
+    const apiBaseUrl = DASHBOARD_API_BASE;
     // Filter usage data based on selected time range
     const getFilteredUsage = () => {
         const now = new Date();

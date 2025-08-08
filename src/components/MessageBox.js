@@ -1,7 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React, { useState, useEffect, useRef } from 'react';
 import EnhancedTouchDragSelect from './EnhancedTouchDragSelect';
-import { GlobalSpeechRecognition } from '../hooks/useGlobalSpeechRecognition';
+import { useSpeech } from '../contexts/SpeechContext';
 import { TextToSpeechButton, LanguageToggleButton } from './SpeechToTextButton';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -131,7 +131,8 @@ export default function MessageBox({ value, onChange, onTranslateClick, onRewrit
     const { user } = useAuth();
     const textareaRef = useRef(null);
     const [isCorrecting, setIsCorrecting] = useState(false);
-    const [isListening, setIsListening] = useState(false);
+    const { isListening, startListening, stopListening, finalDelta, finalVersion, sessionOwner } = useSpeech();
+    const ownerIdRef = useRef('message-box');
     const [thumbnailPosition, setThumbnailPosition] = useState({ x: 50, y: 50 });
     // Ensure thumbnail starts within textbox bounds when image is uploaded
     useEffect(() => {
@@ -273,34 +274,25 @@ export default function MessageBox({ value, onChange, onTranslateClick, onRewrit
         };
         onChange(syntheticEvent);
     };
-    const handleSTTResult = (text) => {
+    useEffect(() => {
+        if (!finalDelta)
+            return;
+        if (sessionOwner !== ownerIdRef.current)
+            return; // ignore mic input not owned by MessageBox
         const syntheticEvent = {
-            target: { value: text }
+            target: { value: (value + ' ' + finalDelta).trim() }
         };
         onChange(syntheticEvent);
-    };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [finalVersion, sessionOwner]);
     const lastTranscriptRef = useRef('');
     const handleMicClick = () => {
         if (isListening) {
-            GlobalSpeechRecognition.stop();
-            return;
+            stopListening(ownerIdRef.current);
         }
-        const initialText = value;
-        lastTranscriptRef.current = '';
-        setIsListening(true);
-        GlobalSpeechRecognition.start(language, (transcript, isFinal) => {
-            if (isFinal) {
-                // Only append the new part of the transcript
-                const newPart = transcript.replace(lastTranscriptRef.current, '');
-                handleSTTResult(initialText + newPart);
-                lastTranscriptRef.current = transcript;
-            }
-        }, () => {
-            setIsListening(false);
-        }, (error) => {
-            showNotification(`Speech recognition error: ${error}`, 'error');
-            setIsListening(false);
-        });
+        else {
+            startListening(language, ownerIdRef.current);
+        }
     };
     const handleTTS = (text) => {
         if (window.speechSynthesis) {
@@ -344,8 +336,9 @@ export default function MessageBox({ value, onChange, onTranslateClick, onRewrit
     const performRealTimeSearch = async (query) => {
         try {
             console.log('🔍 [SERPAPI PROXY] Making search request for:', query);
-            // Use the local proxy server to avoid CORS issues
-            const proxyUrl = `http://localhost:3001/api/search?query=${encodeURIComponent(query)}`;
+            // Use configured proxy server to avoid CORS issues
+            const { SEARCH_PROXY_URL } = await import('../lib/config');
+            const proxyUrl = `${SEARCH_PROXY_URL}?query=${encodeURIComponent(query)}`;
             console.log('🔍 [SERPAPI PROXY] Proxy URL:', proxyUrl);
             const response = await fetch(proxyUrl);
             if (!response.ok) {
@@ -748,7 +741,7 @@ Text to correct: "${value}"`;
             height: '210px',
             width: '85vw',
             margin: '0 auto'
-        }, children: [_jsxs("div", { className: "relative w-full h-full", children: [_jsx(EnhancedTouchDragSelect, { text: value, onChange: handleTextChange, onSelect: handleTextSelect, placeholder: isAskingAI ? "🤖 AI is thinking..." : "Type or record your message here...", className: "h-full resize-none p-3 pr-36\r\n            text-black placeholder-gray-400 font-semibold shadow-inner text-lg", style: {
+        }, children: [_jsxs("div", { className: "relative w-full h-full", children: [_jsx(EnhancedTouchDragSelect, { text: value, onChange: handleTextChange, onSelect: handleTextSelect, placeholder: isAskingAI ? "🤖 AI is thinking..." : "Type or record your message here...", className: "h-full resize-none p-3 pr-36\n            text-black placeholder-gray-400 font-semibold shadow-inner text-lg", style: {
                             backgroundColor: '#000000 !important',
                             border: '2px solid white !important',
                             borderRadius: '16px',

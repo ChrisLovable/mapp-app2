@@ -4,7 +4,7 @@ export class TokenTracker {
     apiBaseUrl;
     isEnabled;
     constructor() {
-        this.apiBaseUrl = 'http://localhost:4002/api';
+        this.apiBaseUrl = import.meta.env?.VITE_TOKEN_API_URL || '/api';
         this.isEnabled = true; // Set to false to disable tracking
     }
     async logUsage(data) {

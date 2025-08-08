@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import Landing from './pages/Landing';
+// import Landing from './pages/Landing';
 import AuthModal from './components/AuthModal';
 import Home from './pages/Home';
 import { AuthProvider } from './contexts/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
 // import PayFastSandboxMock from './components/PayFastSandboxMock'; // If you have a separate component, otherwise use inline
 import { supabase } from './lib/supabase';
 
@@ -18,10 +19,8 @@ const PayFastSandboxMock = ({ onSuccess, onCancel }: { onSuccess: () => void; on
 );
 
 function App() {
-  const [step, setStep] = useState<'landing' | 'payfast' | 'auth' | 'main'>('landing');
-  const [selectedPlan, setSelectedPlan] = useState<'free' | 'paid' | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [installing, setInstalling] = useState(false);
+  const [step, setStep] = useState<'auth' | 'main'>('auth');
+  // Simplified flow: no plan selection upfront
 
   // Ensure we resume into the main UI after install or refresh if user is authenticated
   useEffect(() => {
@@ -46,47 +45,29 @@ function App() {
     return () => window.removeEventListener('appinstalled', handleAppInstalled);
   }, []);
 
-  // 1. Landing page
-  if (step === 'landing') {
-    return (
-      <Landing
-        onSelectPlan={plan => {
-          setSelectedPlan(plan);
-          if (plan === 'free') {
-            setStep('auth');
-          } else {
-            setStep('payfast');
-          }
-        }}
-      />
-    );
-  }
-
-  // 2. PayFast payment (for paid plan)
-  if (step === 'payfast') {
-    return (
-      <PayFastSandboxMock
-        onSuccess={() => setStep('auth')}
-        onCancel={() => setStep('landing')}
-      />
-    );
-  }
+  // Simplified onboarding: go straight to Auth
 
   // 3. Auth (sign up/in)
   if (step === 'auth') {
     return (
       <AuthModal
         isOpen={true}
-        onClose={() => setStep('landing')}
+        onClose={() => setStep('auth')}
         onAuthSuccess={async (user: any) => {
           setUserEmail(user.email);
-          // Set tokens/plan/email in DB
-          if (selectedPlan === 'free') {
-            await supabase.from('users').upsert({ id: user.id, email: user.email, plan: 'free', tokens: 50000 });
-          } else if (selectedPlan === 'paid') {
-            await supabase.from('users').upsert({ id: user.id, email: user.email, plan: 'paid', tokens: 300000 });
-          }
-          // After successful auth, show main UI
+          // Minimal DB upsert; pricing handled later in-app
+          try {
+            await supabase.from('users').upsert({ id: user.id, email: user.email });
+          } catch {}
+          // Trigger install immediately
+          try {
+            // show installing overlay while prompting install
+            (window as any).showInstallingOverlay?.();
+            if ((window as any).deferredPrompt) {
+              const promptEvent = (window as any).deferredPrompt;
+              await promptEvent.prompt();
+            }
+          } catch {}
           localStorage.setItem('onboardingComplete', '1');
           setStep('main');
         }}
@@ -97,9 +78,11 @@ function App() {
   // 4. Main UI after authentication
   if (step === 'main') {
     return (
-      <AuthProvider>
-        <Home onShowAuth={() => setStep('auth')} />
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <Home onShowAuth={() => setStep('auth')} />
+        </AuthProvider>
+      </ErrorBoundary>
     );
   }
 

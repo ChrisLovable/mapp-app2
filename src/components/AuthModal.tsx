@@ -60,6 +60,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
           setShowVerificationMessage(true);
           setMessage('Please check your email for a verification link.');
           setMessageType('success');
+          // Immediately proceed to onboarding flow (install inside onAuthSuccess)
+          onAuthSuccess(data.user);
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({

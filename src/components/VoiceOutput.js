@@ -11,43 +11,43 @@ export default function VoiceOutput({ message, language }) {
         }
         setSpeaking(true);
         try {
-            const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-            if (!apiKey) {
-                alert('OpenAI API key not found. Please check your configuration.');
-                return;
-            }
-            // Use OpenAI TTS directly
-            const response = await fetch('https://api.openai.com/v1/audio/speech', {
+            // Use backend TTS proxy instead of exposing API key
+            const { AZURE_TTS_BASE } = await import('../lib/config');
+            const response = await fetch(AZURE_TTS_BASE, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    model: 'tts-1',
-                    input: message,
-                    voice: 'alloy', // You can change this to: alloy, echo, fable, onyx, nova, shimmer
-                    response_format: 'mp3',
-                    speed: 1.0
-                })
+                body: JSON.stringify({ text: message, language, voice: 'alloy' })
             });
-            if (!response.ok) {
-                throw new Error(`OpenAI TTS error: ${response.status}`);
+            if (response.ok) {
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                audio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    setSpeaking(false);
+                };
+                audio.onerror = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    setSpeaking(false);
+                    alert('Failed to play audio. Please try again.');
+                };
+                await audio.play();
+                console.log('TTS playing:', message);
+                return;
             }
-            const audioBlob = await response.blob();
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const audio = new Audio(audioUrl);
-            audio.onended = () => {
-                URL.revokeObjectURL(audioUrl);
+            // Fallback to browser speech synthesis
+            if ('speechSynthesis' in window) {
+                const utter = new SpeechSynthesisUtterance(message);
+                utter.lang = language || 'en-US';
+                utter.onend = () => setSpeaking(false);
+                utter.onerror = () => setSpeaking(false);
+                window.speechSynthesis.speak(utter);
+            } else {
                 setSpeaking(false);
-            };
-            audio.onerror = () => {
-                URL.revokeObjectURL(audioUrl);
-                setSpeaking(false);
-                alert('Failed to play audio. Please try again.');
-            };
-            await audio.play();
-            console.log('OpenAI TTS playing:', message);
+                alert('Speech is not available.');
+            }
         }
         catch (error) {
             console.error('OpenAI TTS Error:', error);
