@@ -5,7 +5,8 @@ import ExpenseJournalModal from './ExpenseJournalModal';
 import { useAuth } from '../contexts/AuthContext';
 import { ExpenseAnalytics } from '../services/ExpenseAnalytics';
 import { OpenAIService } from '../services/OpenAIService';
-import { GlobalSpeechRecognition } from '../hooks/useGlobalSpeechRecognition';
+// Local Web SpeechRecognition shim to replace removed GlobalSpeechRecognition
+// Provides start/stop with simple EN/AF handling and duplication-safe streaming
 import { QuestionProcessor } from '../services/QuestionProcessor';
 
 // Temporary placeholder functions for missing dependencies
@@ -72,6 +73,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, currentLan
   const [quickAnswer, setQuickAnswer] = useState('');
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [expenseCache, setExpenseCache] = useState<Expense[]>([]);
   const [cacheTimestamp, setCacheTimestamp] = useState<number>(0);
@@ -826,24 +828,77 @@ Return ONLY the JSON array:`;
     }
   };
 
+  const LocalSpeechRecognition = {
+    start: (
+      lang: string,
+      onResult: (transcript: string) => void,
+      onEnd: () => void,
+      onError: (error: string) => void
+    ) => {
+      const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SR) {
+        onError('Speech recognition not supported');
+        onEnd();
+        return;
+      }
+      const recognition = new SR();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = lang || 'en-US';
+
+      recognition.onresult = (event: any) => {
+        // Rebuild stream to avoid mobile duplication
+        let finalTranscript = '';
+        let interimTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          const t = event.results[i][0]?.transcript || '';
+          if (event.results[i].isFinal) finalTranscript += t;
+          else interimTranscript = t; // keep latest interim only
+        }
+        const combined = `${finalTranscript}${interimTranscript}`.trim();
+        if (combined) onResult(combined);
+      };
+
+      recognition.onerror = (e: any) => {
+        onError(e?.error || 'unknown');
+      };
+
+      recognition.onend = () => {
+        onEnd();
+      };
+
+      try {
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch (err) {
+        onError('Failed to start recognition');
+        onEnd();
+      }
+    },
+    stop: () => {
+      try { recognitionRef.current?.stop(); } catch {}
+      recognitionRef.current = null;
+    }
+  };
+
   const handleMicClick = () => {
     if (isListening) {
-      GlobalSpeechRecognition.stop();
+      LocalSpeechRecognition.stop();
       return;
     }
 
-      setIsListening(true);
-    GlobalSpeechRecognition.start(
+    setIsListening(true);
+    LocalSpeechRecognition.start(
       currentLanguage,
-      (transcript) => {
+      (transcript: string) => {
         setQuickQuestion(transcript);
       },
       () => {
-      setIsListening(false);
+        setIsListening(false);
       },
-      (error) => {
+      (error: string) => {
         alert(`Speech recognition error: ${error}`);
-      setIsListening(false);
+        setIsListening(false);
       }
     );
   };
