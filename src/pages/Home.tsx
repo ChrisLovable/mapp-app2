@@ -456,10 +456,7 @@ export default function Home({ onShowAuth }: HomeProps) {
 
       {/* Main Content */}
       <div className="pt-20 pb-8 px-4">
-        {/* Big 1 at the top */}
-        <div className="max-w-4xl mx-auto mb-4">
-          <div className="text-white text-6xl font-extrabold text-center">9</div>
-        </div>
+        {/* Removed big number header */}
         {/* New big standalone STT button (independent logic) */}
         <div className="max-w-4xl mx-auto mb-4 flex justify-center">
           <StandaloneSttButton
