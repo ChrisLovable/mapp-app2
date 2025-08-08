@@ -18,6 +18,7 @@ const StandaloneSttButton: React.FC<StandaloneSttButtonProps> = ({
   const [isListening, setIsListening] = React.useState(false);
   const recognitionRef = React.useRef<any>(null);
   const baseTextRef = React.useRef<string>('');
+  const lastEmittedRef = React.useRef<string>('');
 
   const start = React.useCallback(() => {
     const SpeechRecognition: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -31,27 +32,31 @@ const StandaloneSttButton: React.FC<StandaloneSttButtonProps> = ({
     recognition.interimResults = true;
     recognition.lang = language;
 
-    // Store only the text that existed BEFORE STT started
+    // Fix base at session start to avoid double-concatenation
     baseTextRef.current = (currentText || '').trim();
+    lastEmittedRef.current = baseTextRef.current;
 
     recognition.onresult = (event: any) => {
-      let finalChunk = '';
-      let interimChunk = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0]?.transcript || '';
-        if (event.results[i].isFinal) finalChunk += transcript;
-        else interimChunk += transcript;
+      // Rebuild from ALL results every time (mobile often resets resultIndex)
+      let finalTranscript = '';
+      let interimTranscript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        const transcript: string = event.results[i][0]?.transcript || '';
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          // Keep the latest interim only
+          interimTranscript = transcript;
+        }
       }
 
-      const sttCombined = (finalChunk + interimChunk).trim();
-      const prefix = baseTextRef.current;
-      const newText = prefix ? `${prefix} ${sttCombined}`.trim() : sttCombined;
-      onTextUpdate(newText);
+      const combinedSTT = `${finalTranscript}${interimTranscript}`.trim();
+      const nextText = [baseTextRef.current, combinedSTT].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
 
-      // Advance base only on final results to prevent duplication
-      if (finalChunk.trim()) {
-        baseTextRef.current = newText;
-      }
+      // Suppress duplicate emissions
+      if (nextText === lastEmittedRef.current) return;
+      onTextUpdate(nextText);
+      lastEmittedRef.current = nextText;
     };
 
     recognition.onerror = (e: any) => {
