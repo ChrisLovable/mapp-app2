@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EnhancedTouchDragSelect from './EnhancedTouchDragSelect';
-import { TextToSpeechButton, LanguageToggleButton, ContinuousSpeechToTextButton } from './SpeechToTextButton';
+import { TextToSpeechButton, LanguageToggleButton, SpeechToTextButton } from './SpeechToTextButton';
 
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -235,7 +235,7 @@ export default function MessageBox({
   const { user } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isCorrecting, setIsCorrecting] = useState(false);
-  const ownerIdRef = useRef<string>('message-box');
+  // STT removed from main textbox
 
   const [thumbnailPosition, setThumbnailPosition] = useState({ x: 50, y: 50 });
 
@@ -405,35 +405,18 @@ export default function MessageBox({
     onChange(syntheticEvent);
   };
 
-  // STT dedupe, same approach as Schedule New Event and Image Generator
-  const currentValueRef = React.useRef(value);
-  useEffect(() => { currentValueRef.current = value; }, [value]);
-  const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
+  // STT for main textbox using same approach as Schedule New Event
+  const lastTranscriptRef = useRef('');
   const handleMainSTTResult = (text: string) => {
-    const curr = normalize(text);
-    const prev = normalize(lastTranscriptRef.current);
-    // Fast path
-    let delta = '';
-    if (curr.startsWith(prev)) {
-      delta = curr.slice(prev.length);
-    } else {
-      // Longest common prefix fallback
-      let i = 0;
-      const max = Math.min(curr.length, prev.length);
-      while (i < max && curr.charCodeAt(i) === prev.charCodeAt(i)) i++;
-      delta = curr.slice(i);
-    }
-    delta = normalize(delta);
-    if (!delta) return;
-    const next = normalize((currentValueRef.current + ' ' + delta));
+    const newPart = text.replace(lastTranscriptRef.current, '');
+    if (!newPart.trim()) return;
+    const next = (value + ' ' + newPart).trim();
     const syntheticEvent = { target: { value: next } } as React.ChangeEvent<HTMLTextAreaElement>;
     onChange(syntheticEvent);
-    lastTranscriptRef.current = curr;
+    lastTranscriptRef.current = text;
   };
 
-  const lastTranscriptRef = useRef('');
-
-  // Mic handled by SpeechToTextButton (local hook) to avoid duplication
+  // STT removed
 
   const handleTTS = (text: string) => {
     if (window.speechSynthesis) {
@@ -1003,12 +986,13 @@ Text to correct: "${value}"`;
             variant="primary"
             className="shadow-lg glassy-btn neon-grid-btn"
           />
-          {/* Speech-to-Text Button using continuous local STT */}
-          <ContinuousSpeechToTextButton
+          {/* STT mic (same logic as Schedule New Event) */}
+          <SpeechToTextButton
             onResult={handleMainSTTResult}
             onError={(err) => showNotification(err, 'error')}
-            onStart={() => { lastTranscriptRef.current = ''; currentValueRef.current = value; }}
             language={language}
+            continuous={true}
+            interimResults={true}
             className="w-8 h-8 glassy-btn neon-grid-btn rounded-full border-0 flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-lg active:scale-95 relative overflow-visible"
             size="sm"
             variant="default"
