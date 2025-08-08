@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EnhancedTouchDragSelect from './EnhancedTouchDragSelect';
-import { TextToSpeechButton, LanguageToggleButton, SpeechToTextButton } from './SpeechToTextButton';
+import { TextToSpeechButton, LanguageToggleButton } from './SpeechToTextButton';
 
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -235,35 +235,6 @@ export default function MessageBox({
   const { user } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isCorrecting, setIsCorrecting] = useState(false);
-
-  const [isListening, setIsListening] = useState(false);
-const lastTranscriptRef = useRef('');
-
-const handleSTTStart = () => {
-  lastTranscriptRef.current = value; // value = current textbox value
-  setIsListening(true);
-};
-
-const handleSTTResult = (text: string) => {
-  // Append only the new part of the transcript
-  const newText = lastTranscriptRef.current ? `${lastTranscriptRef.current} ${text}` : text;
-  const syntheticEvent = { target: { value: newText } } as React.ChangeEvent<HTMLTextAreaElement>;
-  onChange(syntheticEvent);
-};
-
-const handleSTTStop = () => {
-  setIsListening(false);
-  lastTranscriptRef.current = '';
-};
-
-// Usage in JSX:
-<SpeechToTextButton
-  onStart={handleSTTStart}
-  onResult={handleSTTResult}
-  onStop={handleSTTStop}
-  isListening={isListening}
-  // ...other props
-/>
   
   const [thumbnailPosition, setThumbnailPosition] = useState({ x: 50, y: 50 });
 
@@ -1001,20 +972,6 @@ Text to correct: "${value}"`;
             onLanguageChange={onLanguageChange || handleLanguageChange}
             size="sm"
             variant="primary"
-            className="shadow-lg glassy-btn neon-grid-btn"
-          />
-          {/* STT Mic Button */}
-          <SpeechToTextButton
-            onStart={handleSTTStart}
-            onResult={handleSTTResult}
-            onStop={handleSTTStop}
-            onError={(err) => showNotification(err, 'error')}
-            isListening={isListening}
-            language={language}
-            continuous={true}
-            interimResults={true}
-            size="sm"
-            variant="default"
             className="shadow-lg glassy-btn neon-grid-btn"
           />
           {/* Text-to-Speech Button */}
