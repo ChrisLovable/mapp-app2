@@ -54,7 +54,6 @@ function App() {
         isOpen={true}
         onClose={() => setStep('auth')}
         onAuthSuccess={async (user: any) => {
-          setUserEmail(user.email);
           // Minimal DB upsert; pricing handled later in-app
           try {
             await supabase.from('users').upsert({ id: user.id, email: user.email });
