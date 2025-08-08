@@ -35,6 +35,7 @@ export const useSpeechToText = (options: UseSpeechToTextOptions = {}): UseSpeech
   const recognitionRef = useRef<any>(null);
   const shouldContinueRef = useRef(false);
   const accumulatedTextRef = useRef('');
+  const lastResultIndexRef = useRef(0);
 
   // Check if speech recognition is supported
   const isSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -42,6 +43,7 @@ export const useSpeechToText = (options: UseSpeechToTextOptions = {}): UseSpeech
   const resetTranscript = useCallback(() => {
     setTranscript('');
     accumulatedTextRef.current = '';
+    lastResultIndexRef.current = 0;
   }, []);
 
   const startListening = useCallback(() => {
@@ -62,13 +64,16 @@ export const useSpeechToText = (options: UseSpeechToTextOptions = {}): UseSpeech
     recognition.interimResults = interimResults;
     recognition.lang = language;
 
+    // Reset accumulation for a fresh session
+    accumulatedTextRef.current = '';
+    lastResultIndexRef.current = 0;
+
     // Handle recognition results
     recognition.onresult = (event: any) => {
       let interimTranscript = '';
       let finalTranscript = '';
-      
-      // Process all results
-      for (let i = 0; i < event.results.length; i++) {
+      // Only process new results to prevent duplication
+      for (let i = lastResultIndexRef.current; i < event.results.length; i++) {
         const result = event.results.item(i);
         const transcript = result.item(0).transcript;
         
@@ -78,6 +83,8 @@ export const useSpeechToText = (options: UseSpeechToTextOptions = {}): UseSpeech
           interimTranscript += transcript;
         }
       }
+      // Update the last processed index
+      lastResultIndexRef.current = event.results.length;
       
       // Add only new final results to accumulated text
       if (finalTranscript) {

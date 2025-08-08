@@ -378,7 +378,7 @@ export default function Home({ onShowAuth }: HomeProps) {
     const handler = (e: any) => {
       e.preventDefault();
       setInstallPromptEvent(e);
-      setShowInstallPrompt(true);
+      setShowInstallPrompt(true); // ensure visible immediately on first availability
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -408,7 +408,8 @@ export default function Home({ onShowAuth }: HomeProps) {
   const handleInstallClick = () => {
     if (installPromptEvent) {
       installPromptEvent.prompt();
-      // Do not hide the prompt if dismissed; only hide if installed
+      // optional: reset so prompt can re-fire later if dismissed
+      setInstallPromptEvent(null);
     }
   };
 

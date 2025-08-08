@@ -110,7 +110,8 @@ async function chatWithOpenAI(message: string, history: { role: "user"|"assistan
 
 export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: GabbyChatModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
+  // Voice-only: we stream into chat bubbles, no input box
+  const [pendingUserText, setPendingUserText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const { isListening, startListening, stopListening, finalDelta, finalVersion, sessionOwner } = useSpeech();
   const [chatHistory, setChatHistory] = useState<{ role: "user"|"assistant", content: string }[]>([]);
@@ -121,6 +122,7 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
   const ownerIdRef = useRef<string>('gabby-modal');
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const currentAudioUrlRef = useRef<string | null>(null);
+  const composingUserIdRef = useRef<string | null>(null);
 
   // Debug logging
   useEffect(() => {
@@ -141,7 +143,8 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
       // Clear previous conversation when modal opens
       setMessages([]);
       setChatHistory([]);
-      setInputMessage('');
+      setPendingUserText('');
+      composingUserIdRef.current = null;
       initializeGabby();
       // Start continuous listening owned by this modal
       ownerIdRef.current = 'gabby-modal';
@@ -206,7 +209,7 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
   }
 
   const handleSendMessage = async (msg?: string) => {
-    const messageToSend = msg ?? inputMessage;
+    const messageToSend = (msg ?? pendingUserText).trim();
     if (!messageToSend.trim()) return;
 
     const userMessage: ChatMessage = {
@@ -217,7 +220,8 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
+    setPendingUserText('');
+    composingUserIdRef.current = null;
     setIsTyping(true);
 
     const updatedHistory = [...chatHistory, { role: "user" as const, content: messageToSend }];
@@ -244,26 +248,37 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
     }
   };
 
-  // Continuously accumulate final STT into inputMessage, then send as messages and clear
+  // Continuously accumulate final STT directly into a composing user bubble
   useEffect(() => {
     if (sessionOwner !== 'gabby-modal') return;
     if (!finalDelta) return;
-    // append delta to input
-    setInputMessage(prev => (prev ? (prev + ' ' + finalDelta.trim()).trim() : finalDelta.trim()));
+    const delta = finalDelta.trim();
+    if (!delta) return;
+    // Initialize a composing bubble if needed
+    if (!composingUserIdRef.current) {
+      const newId = `compose-${Date.now()}`;
+      composingUserIdRef.current = newId;
+      setMessages(prev => [...prev, { id: newId, text: delta, sender: 'user', timestamp: new Date() }]);
+      setPendingUserText(delta);
+    } else {
+      // Append to existing composing bubble
+      setMessages(prev => prev.map(m => m.id === composingUserIdRef.current ? { ...m, text: (m.text + ' ' + delta).trim() } : m));
+      setPendingUserText(prev => (prev + ' ' + delta).trim());
+    }
   }, [finalVersion, finalDelta, sessionOwner]);
 
-  // Remove autosend on mic stop. Instead, when we detect a long pause (no deltas for 2s) we send.
+  // After 2s pause (no new deltas), finalize the composing bubble and send to AI
   useEffect(() => {
     if (sessionOwner !== 'gabby-modal') return;
-    if (!inputMessage.trim()) return;
+    if (!pendingUserText.trim()) return;
     const timer = setTimeout(() => {
-      // send current input after pause
-      handleSendMessage(inputMessage.trim());
-      setInputMessage('');
+      handleSendMessage(pendingUserText.trim());
+      setPendingUserText('');
+      composingUserIdRef.current = null;
       lastTranscriptRef.current = '';
     }, 2000);
     return () => clearTimeout(timer);
-  }, [inputMessage, sessionOwner]);
+  }, [pendingUserText, sessionOwner]);
 
   const handleMicClick = () => {
     // Mic button becomes a no-op; we keep continuous recording. Provide visual feedback only.
@@ -282,12 +297,7 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
     };
   }, [isOpen]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
+  // No keyboard input handling in voice-only mode
 
   if (!isOpen) return null;
 
@@ -431,29 +441,23 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
+        {/* Mic control only; voice transcription streams into chat bubbles */}
         <div className="p-4 border-t border-white/20">
-          <div className="flex gap-2">
+          <div className="flex justify-center">
             <button
               onClick={handleMicClick}
-              disabled={false}
-              className="px-3 py-2 rounded-xl transition-colors flex items-center justify-center"
+              className="px-4 py-3 rounded-full transition-colors flex items-center justify-center"
               style={{
-                background: isListening ? '#dc2626' : '#00cfff',
+                background: isListening ? '#dc2626' : '#2563eb',
                 color: '#fff',
                 border: 'none',
                 cursor: 'pointer',
-                minWidth: '40px',
-                opacity: 1
+                minWidth: '56px'
               }}
-              aria-label={isListening ? "Listening..." : "Listening"}
+              aria-label={isListening ? 'Listening…' : 'Start listening'}
             >
-              {isListening ? "🎙️" : "🎤"}
+              {isListening ? '🎙️' : '🎤'}
             </button>
-            {/* Voice-only. Transcription will appear as messages automatically */}
-          </div>
-          <div className="mt-2 text-xs text-gray-400 text-center">
-            Click 🎤 to speak
           </div>
         </div>
       </div>
