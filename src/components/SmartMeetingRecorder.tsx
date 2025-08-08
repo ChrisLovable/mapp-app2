@@ -40,6 +40,7 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
   // Refs for speech recognition
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const lastTranscriptRef = useRef('');
+  const shouldContinueRef = useRef<boolean>(false);
   
   // Ref to track current state values for onend handler
   const stateRef = useRef({
@@ -115,6 +116,16 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
       };
 
       recognition.onend = () => {
+        // Auto-restart if we are supposed to continue recording
+        if (shouldContinueRef.current && !stateRef.current.isPaused) {
+          try {
+            recognition.start();
+            setIsRecording(true);
+            return;
+          } catch (err) {
+            console.error('Auto-restart failed:', err);
+          }
+        }
         setIsRecording(false);
         setIsPaused(false);
       };
@@ -143,6 +154,7 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
       if (recognitionRef.current) {
         try {
           console.log('Starting speech recognition...');
+          shouldContinueRef.current = true;
           recognitionRef.current.start();
           setIsRecording(true);
           setIsPaused(false);
@@ -253,6 +265,7 @@ const SmartMeetingRecorder: React.FC<SmartMeetingRecorderProps> = ({ isOpen, onC
     // Stop speech recognition
     if (recognitionRef.current) {
       try {
+        shouldContinueRef.current = false;
         recognitionRef.current.stop();
       } catch (error) {
         console.error('Error stopping speech recognition:', error);
@@ -769,7 +782,7 @@ Please format the minutes in a clear, professional structure with proper heading
               <button
                 onClick={() => safeExecute(startRecording, 'start', 'Start recording')}
                 disabled={isRecording || isPaused || !isSpeechRecognitionSupported}
-                className={`flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
+                className={`flex-1 px-3 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
                   isRecording ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 style={{ background: isRecording ? '#dc2626' : '#111', border: '1px solid #666666' }}
@@ -780,7 +793,7 @@ Please format the minutes in a clear, professional structure with proper heading
               <button
                 onClick={handlePauseResume}
                 disabled={!isRecording && !isPaused}
-                className={`flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
+                className={`flex-1 px-3 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
                   !isRecording && !isPaused ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 style={{ background: '#111', border: '1px solid #666666' }}
@@ -791,7 +804,7 @@ Please format the minutes in a clear, professional structure with proper heading
               <button
                 onClick={endRecording}
                 disabled={!isRecording && !isPaused}
-                className={`flex-1 px-6 py-3 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
+                className={`flex-1 px-3 py-2 glassy-btn neon-grid-btn text-white font-bold rounded-2xl transition-all border-0 ${
                   !isRecording && !isPaused ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 style={{ background: '#111', border: '1px solid #666666' }}

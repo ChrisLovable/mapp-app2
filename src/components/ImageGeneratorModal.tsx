@@ -282,9 +282,9 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
 
   // Handle STT result
   const handleSTTResult = (text: string) => {
-    // Only append the new part of the transcript
+    // Only append incremental delta and trim
     const newPart = text.replace(lastTranscriptRef.current, '');
-    setPrompt(prev => prev + newPart);
+    setPrompt(prev => (prev + newPart).trim());
     lastTranscriptRef.current = text;
   };
 
@@ -716,14 +716,7 @@ The image should be designed to inspire and uplift, with the quote prominently d
           <div className="flex items-center justify-between mb-3">
                          <label className="block text-white text-[11px] text-left">Describe your image (prompt):</label>
             <div className="flex gap-2">
-              <SpeechToTextButton
-                onResult={handleSTTResult}
-                onError={(error) => alert(error)}
-                size="md"
-                className="px-4 py-3 border border-gray-500"
-                interimResults={true}
-                continuous={true}
-              />
+              {/* Removed STT button to avoid prompt duplication */}
             <button
                  onClick={() => setPrompt('')}
                  className="px-4 py-3 glassy-btn neon-grid-btn text-white rounded-lg transition-all border border-gray-500"
@@ -787,8 +780,10 @@ The image should be designed to inspire and uplift, with the quote prominently d
                  Prompt tips
                </button>
           </div>
-                     <div className="grid grid-cols-4 gap-0">
-            {styleCategories.map((category) => {
+                      <div className="grid grid-cols-4 gap-0">
+            {styleCategories
+              .filter(cat => cat.id !== 'avatar' && cat.id !== 'none')
+              .map((category) => {
               return (
               <button
                 key={category.id}
@@ -932,14 +927,7 @@ The image should be designed to inspire and uplift, with the quote prominently d
                       className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
                       onClick={() => showEnlargedImage("/gabby_avatar.jpg")}
                     />
-                  ) : category.id === 'none' ? (
-                    <img 
-                      src="/Gabby.jpg" 
-                      alt="No Style" 
-                      className="w-12 h-12 rounded border border-gray-600 object-cover cursor-pointer hover:opacity-80"
-                      onClick={() => showEnlargedImage("/Gabby.jpg")}
-                    />
-                                  ) : (
+                  ) : (
                     <img 
                       src="/gabby_cartoon.jpg" 
                       alt="Default Style" 
@@ -948,87 +936,14 @@ The image should be designed to inspire and uplift, with the quote prominently d
                     />
                   )}
                                  <span className="text-[10px] text-white mt-0.5 font-medium truncate w-full text-center">
-                   {category.id === 'none' ? 'None' : category.name.split(' ')[0]}
+                   {category.name.split(' ')[0]}
                  </span>
               </button>
               )})}
           </div>
 
           {/* Thought for the Day Button - Positioned to the right of Avatar */}
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={async () => {
-                const quotes = [
-                  'Let your kindness be the sunshine that warms another\'s day.',
-                  'Grace is found in the quiet moments of faith.',
-                  'Lift others with your words and actions.',
-                  'Even the smallest light can break the deepest darkness.',
-                  'Start your day with hope and spread it generously.',
-                  'You are loved, chosen, and created with purpose.',
-                  'Find beauty in the ordinary and gratitude in every breath.',
-                  'Live with an open heart and watch the world change.',
-                  'Your presence is a gift to this world.',
-                  'Choose joy, spread love, and trust the journey.',
-                  'In every moment, there is beauty waiting to be discovered.',
-                  'You have the power to make someone\'s day brighter.',
-                  'Faith is the bridge between dreams and reality.',
-                  'Kindness is the language that everyone understands.',
-                  'Your potential is greater than any obstacle you face.'
-                ];
-                const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-                setSelectedQuote(randomQuote);
-                
-                setIsGenerating(true);
-                setIsThoughtForDayGenerating(true);
-                setError('');
-                setProgress('');
-                setGeneratedImage(null);
-
-                try {
-                  // Generate prompt with the selected quote
-                  const thoughtPrompt = `Create a beautiful "Thought for the Day" inspirational image with the following quote prominently displayed: "${randomQuote}"
-
-Background: ${['sunrise over mountains', 'glowing forest', 'peaceful beach at dawn', 'golden meadow', 'cozy sunlit home', 'vibrant city morning', 'tranquil lake', 'radiant light streaming through clouds', 'wildflowers', 'gentle rain with sun rays', 'majestic landscape'][Math.floor(Math.random() * 11)]}
-
-Style requirements:
-- High-resolution, vibrant, emotionally uplifting design
-- The quote should be clearly visible and readable in elegant typography
-- Use white text with subtle shadow or outline for readability
-- Instagram story/post size format (vertical or square, e.g. 1080x1350 or 1084x1080)
-- Professional quality suitable for social media sharing
-- The quote should be the focal point, centered and well-positioned
-- Beautiful, inspiring background that complements the message
-
-The image should be designed to inspire and uplift, with the quote prominently displayed against a beautiful background.`;
-
-                  const options: ImageGenerationOptions = {
-                    prompt: thoughtPrompt,
-                    size: '1024x1024',
-                    quality: 'standard',
-                    style: 'vivid'
-                  };
-
-                  const result = await openAIImageService.generateImage(options);
-                  
-                  if (result.success && result.imageUrl) {
-                    setGeneratedImage(result.imageUrl);
-                  } else {
-                    throw new Error(result.error || 'Failed to generate image');
-                  }
-                } catch (err) {
-                  console.error('Generation error:', err);
-                  setError(err instanceof Error ? err.message : 'Failed to generate image');
-                } finally {
-                  setIsGenerating(false);
-                  setIsThoughtForDayGenerating(false);
-                }
-              }}
-              className="px-3 py-2 glassy-btn neon-grid-btn text-black font-bold rounded-xl transition-all border-0 text-xs flex items-center justify-center gap-1 hover:scale-105 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 shadow-lg backdrop-blur-sm border border-yellow-300/50"
-            >
-              <span className="text-xs">✨</span>
-              <span>Thought for the Day</span>
-            </button>
-          </div>
+          {/* Thought for the Day removed */}
           
           {/* Selected Style Display */}
            {selectedStyle !== 'none' ? (
@@ -1181,10 +1096,7 @@ The image should be designed to inspire and uplift, with the quote prominently d
           </ul>
               </div>
               
-              <div className="p-4 bg-blue-900 bg-opacity-20 border border-blue-500 rounded-xl">
-                <p className="font-bold text-blue-200 text-base mb-2">🚀 AI Image Generation</p>
-                <p className="text-blue-100 text-sm">Using OpenAI DALL-E 3 for high-quality image generation. Make sure your VITE_OPENAI_API_KEY is set in your .env file.</p>
-               </div>
+              {/* Removed bottom info box */}
             </div>
           </div>
         </div>

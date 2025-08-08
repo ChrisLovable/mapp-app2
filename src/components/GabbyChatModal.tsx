@@ -117,6 +117,7 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastTranscriptRef = useRef('');
+  const prevListeningRef = useRef<boolean>(false);
   const ownerIdRef = useRef<string>('gabby-modal');
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const currentAudioUrlRef = useRef<string | null>(null);
@@ -257,6 +258,16 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
     lastTranscriptRef.current = (lastTranscriptRef.current + newPart);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finalVersion, sessionOwner]);
+
+  // Auto-send when mic stops and we have input
+  useEffect(() => {
+    const wasListening = prevListeningRef.current;
+    if (wasListening && !isListening && inputMessage.trim()) {
+      handleSendMessage();
+      lastTranscriptRef.current = '';
+    }
+    prevListeningRef.current = isListening;
+  }, [isListening]);
 
   const handleMicClick = () => {
     if (isListening) {
@@ -431,21 +442,6 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
         {/* Input */}
         <div className="p-4 border-t border-white/20">
           <div className="flex gap-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
-              className="flex-1 px-4 py-2 rounded-xl text-white placeholder-gray-400"
-              style={{
-                background: 'rgba(0, 0, 0, 0.6)',
-                border: '1px solid rgba(255, 255, 255, 0.3)'
-              }}
-              disabled={isTyping}
-            />
-            {/* Microphone Button */}
             <button
               onClick={handleMicClick}
               disabled={isTyping || isListening}
@@ -462,16 +458,10 @@ export default function GabbyChatModal({ isOpen, onClose, language = 'en-US' }: 
             >
               {isListening ? "🎙️" : "🎤"}
             </button>
-            <button
-              onClick={() => handleSendMessage()}
-              disabled={isTyping || !inputMessage.trim()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl transition-colors"
-            >
-              Send
-            </button>
+            {/* Removed typing/send to enforce voice-only */}
           </div>
           <div className="mt-2 text-xs text-gray-400 text-center">
-            Click 🎤 to speak or type your message
+            Click 🎤 to speak
           </div>
         </div>
       </div>

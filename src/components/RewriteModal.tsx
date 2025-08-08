@@ -274,7 +274,7 @@ export default function RewriteModal({ isOpen, onClose, currentText, onTextChang
                       onChange={(e) => setRewrittenText(e.target.value)}
                       className={`w-full h-full bg-black text-white text-sm rounded-xl border-2 border-white resize-none outline-none font-bold px-3 py-2${selectAllActive ? ' custom-selection' : ''}`}
                       placeholder="Rewritten text will appear here..."
-                      style={{ minHeight: '120px', maxHeight: '150px' }}
+                      style={{ minHeight: '110px', maxHeight: '140px' }}
                       onBlur={() => setSelectAllActive(false)}
                       readOnly
                     />

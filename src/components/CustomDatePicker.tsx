@@ -61,7 +61,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, se
          className="date-picker-input"
         style={{
           cursor: 'pointer',
-          width: '120px',
+          width: '180px',
           background: '#111',
           color: '#fff',
           borderRadius: 16,
