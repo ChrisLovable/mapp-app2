@@ -236,28 +236,34 @@ export default function MessageBox({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isCorrecting, setIsCorrecting] = useState(false);
 
-  // Speech-to-text (mic) logic – deduplicates like Schedule New Event
   const [isListening, setIsListening] = useState(false);
-  const lastTranscriptRef = useRef('');
+const lastTranscriptRef = useRef('');
 
-  const handleSTTStart = () => {
-    lastTranscriptRef.current = value || '';
-    setIsListening(true);
-  };
+const handleSTTStart = () => {
+  lastTranscriptRef.current = value; // value = current textbox value
+  setIsListening(true);
+};
 
-  const handleSTTResult = (text: string) => {
-    const newPart = text.substring(lastTranscriptRef.current.length);
-    if (!newPart.trim()) return;
+const handleSTTResult = (text: string) => {
+  // Append only the new part of the transcript
+  const newText = lastTranscriptRef.current ? `${lastTranscriptRef.current} ${text}` : text;
+  const syntheticEvent = { target: { value: newText } } as React.ChangeEvent<HTMLTextAreaElement>;
+  onChange(syntheticEvent);
+};
 
-    const updated = `${lastTranscriptRef.current}${newPart}`;
-    const syntheticEvent = { target: { value: updated } } as React.ChangeEvent<HTMLTextAreaElement>;
-    onChange(syntheticEvent);
-    lastTranscriptRef.current = updated;
-  };
+const handleSTTStop = () => {
+  setIsListening(false);
+  lastTranscriptRef.current = '';
+};
 
-  const handleSTTStop = () => {
-    setIsListening(false);
-  };
+// Usage in JSX:
+<SpeechToTextButton
+  onStart={handleSTTStart}
+  onResult={handleSTTResult}
+  onStop={handleSTTStop}
+  isListening={isListening}
+  // ...other props
+/>
   
   const [thumbnailPosition, setThumbnailPosition] = useState({ x: 50, y: 50 });
 
