@@ -3,7 +3,6 @@ import Header from '../components/Header';
 import AppGrid from '../components/AppGrid';
 import MessageBox from '../components/MessageBox';
 import { SpeechProvider } from '../contexts/SpeechContext';
-import { useSpeech } from '../contexts/SpeechContext';
 import CommandButtons from '../components/CommandButtons';
 import ImageChoiceModal from '../components/ImageChoiceModal';
 
@@ -161,7 +160,6 @@ interface HomeProps {
 
 export default function Home({ onShowAuth }: HomeProps) {
   const { user, loading } = useAuth();
-  const speechCtx = useSpeech();
   const [message, setMessage] = useState('');
   const [language, setLanguage] = useState('en-US');
   const [_languages, setLanguages] = useState<LanguageOption[]>([]);
@@ -210,8 +208,6 @@ export default function Home({ onShowAuth }: HomeProps) {
   const topBaseTextRef = useRef<string>('');
 
   const startTopSTT = () => {
-    try { speechCtx?.stopListening?.(); } catch {}
-
     const SpeechRecognition: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       console.warn('Speech recognition is not supported in this browser');
