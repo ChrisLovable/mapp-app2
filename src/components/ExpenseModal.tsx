@@ -84,6 +84,175 @@ const { user } = useAuth();
   const openAI = new OpenAIService();
   const questionProcessor = new QuestionProcessor(analytics, openAI);
 
+  // Add helper to save image and get its id
+  async function saveReceiptImageToDB(userId: string, base64: string) {
+    const { data, error } = await supabase
+      .from('receipt_images')
+      .insert([{ user_id: userId, image_data: base64 }])
+      .select('id')
+      .single();
+    if (error) throw error;
+    return data.id;
+  }
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      setNewExpenses([]);
+      setImagePreview(null);
+      setIsProcessing(true);
+      processImage(file);
+    }
+  };
+
+  const handleManualEntry = () => {
+    setShowImageUpload(false);
+    setNewExpenses([{
+      expense_date: new Date().toISOString().split('T')[0],
+      vendor: '',
+      amount: 0,
+      quantity: 1,
+      description: '',
+      category: '',
+      receipt_image_id: null
+    }]);
+    setImagePreview(null);
+  };
+
+  const addNewExpense = () => {
+    setNewExpenses([...newExpenses, {
+      expense_date: new Date().toISOString().split('T')[0],
+      vendor: '',
+      amount: 0,
+      quantity: 1,
+      description: '',
+      category: '',
+      receipt_image_id: null
+    }]);
+  };
+
+  const updateNewExpense = (index: number, field: keyof ParsedExpense, value: string | number) => {
+    const updated = [...newExpenses];
+    updated[index] = { ...updated[index], [field]: value };
+    setNewExpenses(updated);
+  };
+
+  const removeNewExpense = (index: number) => {
+    setNewExpenses(newExpenses.filter((_, i) => i !== index));
+  };
+
+  const saveIndividualExpense = async (expense: ParsedExpense, index: number) => {
+    try {
+      setIsLoading(true);
+      const userId = user?.id || '00000000-0000-0000-0000-000000000000';
+      
+      const { data, error } = await supabase
+        .from('expense_tracker')
+        .insert([{
+          user_id: userId,
+          expense_date: expense.expense_date,
+          vendor: expense.vendor,
+          amount: expense.amount,
+          quantity: expense.quantity,
+          description: expense.description,
+          category: expense.category,
+          receipt_image_id: expense.receipt_image_id
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving expense:', error);
+        return;
+      }
+
+      setNewExpenses(prev => prev.filter((_, i) => i !== index));
+      setExpenses(prev => {
+        const updated = [data, ...prev];
+        saveExpenseCache(updated);
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error saving expense:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchExpenses = async (forceRefresh: boolean = false) => {
+    try {
+      setIsLoading(true);
+      setIsCacheLoading(true);
+      const userId = user?.id || '00000000-0000-0000-0000-000000000000';
+      
+      const { data, error } = await supabase
+        .from('expense_tracker')
+        .select('id, expense_date, vendor, amount, quantity, description, category, receipt_image_id, user_id, created_at')
+        .eq('user_id', userId)
+        .order('expense_date', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Database error:', error);
+        if (expenseCache.length > 0) {
+          setExpenses(expenseCache);
+        }
+        return;
+      }
+
+      setExpenses(data || []);
+      if (data) {
+        saveExpenseCache(data);
+      }
+    } catch (error) {
+      console.error('Error in fetchExpenses:', error);
+      if (expenseCache.length > 0) {
+        setExpenses(expenseCache);
+      }
+    } finally {
+      setIsLoading(false);
+      setIsCacheLoading(false);
+    }
+  };
+
+  const handleDeleteClick = (expenseId: string) => {
+    setDeleteConfirmModal({ show: true, expenseId });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteConfirmModal.expenseId) {
+      await deleteExpense(deleteConfirmModal.expenseId);
+    }
+    setDeleteConfirmModal({ show: false, expenseId: null });
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmModal({ show: false, expenseId: null });
+  };
+
+  const handleQuickQuestion = async () => {
+    if (!quickQuestion.trim()) return;
+
+    setIsAskingQuestion(true);
+    setQuickAnswer('');
+
+    try {
+      const userId = user?.id || '00000000-0000-0000-0000-000000000000';
+      const result = await questionProcessor.processQuestion({
+        userId,
+        question: quickQuestion,
+        dataLimit: 50
+      });
+      setQuickAnswer(result.response);
+    } catch (error) {
+      console.error('Error processing quick question:', error);
+      setQuickAnswer(`Error: ${error instanceof Error ? error.message : 'Failed to get answer'}`);
+    } finally {
+      setIsAskingQuestion(false);
+    }
+  };
+
   const handleMicClick = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
