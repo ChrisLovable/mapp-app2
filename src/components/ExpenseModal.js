@@ -5,7 +5,6 @@ import ExpenseJournalModal from './ExpenseJournalModal';
 import { useAuth } from '../contexts/AuthContext';
 import { ExpenseAnalytics } from '../services/ExpenseAnalytics';
 import { OpenAIService } from '../services/OpenAIService';
-import { GlobalSpeechRecognition } from '../hooks/useGlobalSpeechRecognition';
 import { QuestionProcessor } from '../services/QuestionProcessor';
 // Temporary placeholder functions for missing dependencies
 const askOpenAIVision = async (prompt, base64Image) => {
@@ -730,20 +729,38 @@ Return ONLY the JSON array:`;
             setIsAskingQuestion(false);
         }
     };
+    const recognitionRef = useRef(null);
     const handleMicClick = () => {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (isListening) {
-            GlobalSpeechRecognition.stop();
+            try { recognitionRef.current && recognitionRef.current.stop(); } catch {}
+            setIsListening(false);
             return;
         }
-        setIsListening(true);
-        GlobalSpeechRecognition.start(currentLanguage, (transcript) => {
-            setQuickQuestion(transcript);
-        }, () => {
+        if (!SR) {
+            alert('Speech recognition not supported');
+            return;
+        }
+        const r = new SR();
+        r.continuous = true;
+        r.interimResults = true;
+        r.lang = currentLanguage || 'en-US';
+        r.onresult = (event) => {
+            let finalT = '';
+            let interimT = '';
+            for (let i = 0; i < event.results.length; i++) {
+                const t = event.results[i][0]?.transcript || '';
+                if (event.results[i].isFinal) finalT += t; else interimT = t;
+            }
+            const combined = `${finalT}${interimT}`.trim();
+            if (combined) setQuickQuestion(combined);
+        };
+        r.onerror = (e) => {
+            alert(`Speech recognition error: ${e?.error || 'unknown'}`);
             setIsListening(false);
-        }, (error) => {
-            alert(`Speech recognition error: ${error}`);
-            setIsListening(false);
-        });
+        };
+        r.onend = () => setIsListening(false);
+        try { r.start(); recognitionRef.current = r; setIsListening(true); } catch {}
     };
     if (!isOpen)
         return null;
