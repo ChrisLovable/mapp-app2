@@ -6,6 +6,7 @@ interface SpeechToTextButtonProps {
   onResult: (text: string) => void;
   onError?: (error: string) => void;
   onStart?: () => void;
+  onStop?: () => void;
   language?: string;
   continuous?: boolean;
   interimResults?: boolean;
@@ -22,6 +23,7 @@ export const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
   onResult,
   onError,
   onStart,
+  onStop,
   language = 'en-US',
   continuous = false,
   interimResults = false,
@@ -42,7 +44,8 @@ export const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
     interimResults,
     onResult,
     onError,
-    onStart
+    onStart,
+    onStop
   });
 
   const speechCtx = useSpeech();

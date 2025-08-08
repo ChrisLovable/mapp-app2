@@ -406,22 +406,28 @@ export default function MessageBox({
   };
 
   const [isListening, setIsListening] = useState(false);
-  const lastTranscriptRef = useRef('');
+  const lastTranscriptRef = useRef<string | null>(null);
 
   const handleSTTStart = () => {
-    lastTranscriptRef.current = value; // Capture the current text before new speech starts
+    lastTranscriptRef.current = value;
     setIsListening(true);
   };
 
   const handleSTTResult = (text: string) => {
-    // Append only the new part of the transcript
-    const newText = lastTranscriptRef.current + ' ' + text.substring(lastTranscriptRef.current.length);
-    const syntheticEvent = { target: { value: newText.trim() } } as React.ChangeEvent<HTMLTextAreaElement>;
-    onChange(syntheticEvent);
+    if (lastTranscriptRef.current) {
+      const newText = `${lastTranscriptRef.current} ${text}`;
+      const syntheticEvent = { target: { value: newText } } as React.ChangeEvent<HTMLTextAreaElement>;
+      onChange(syntheticEvent);
+      lastTranscriptRef.current = null; // Clear after use
+    } else {
+      const syntheticEvent = { target: { value: text } } as React.ChangeEvent<HTMLTextAreaElement>;
+      onChange(syntheticEvent);
+    }
   };
 
   const handleSTTStop = () => {
     setIsListening(false);
+    lastTranscriptRef.current = null;
   };
 
   // STT removed
@@ -1004,10 +1010,6 @@ Text to correct: "${value}"`;
             language={language}
             continuous={true}
             interimResults={true}
-            className="w-8 h-8 glassy-btn neon-grid-btn rounded-full border-0 flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-lg active:scale-95 relative overflow-visible"
-            size="sm"
-            variant="default"
-          />
           {/* Text-to-Speech Button */}
           <TextToSpeechButton
             onSpeak={handleTTS}
