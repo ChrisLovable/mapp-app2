@@ -456,6 +456,10 @@ export default function Home({ onShowAuth }: HomeProps) {
 
       {/* Main Content */}
       <div className="pt-20 pb-8 px-4">
+        {/* Big 1 at the top */}
+        <div className="max-w-4xl mx-auto mb-4">
+          <div className="text-white text-6xl font-extrabold text-center">1</div>
+        </div>
         <Header onDashboardClick={() => {}} onAdminDashboardClick={() => setIsAdminDashboardOpen(true)} />
         
         <div className="max-w-4xl mx-auto">
