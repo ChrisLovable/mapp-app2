@@ -165,9 +165,6 @@ export default function Home({ onShowAuth }: HomeProps) {
   const [language, setLanguage] = useState('en-US');
   const [_languages, setLanguages] = useState<LanguageOption[]>([]);
   const [isDiaryModalOpen, setIsDiaryModalOpen] = useState(false);
-
-  const [_isAlarmModalOpen, _setIsAlarmModalOpen] = useState(false);
-  const [_isAlarmPopupOpen, _setIsAlarmPopupOpen] = useState(false);
   const [isTranslateModalOpen, setIsTranslateModalOpen] = useState(false);
   const [isRewriteModalOpen, setIsRewriteModalOpen] = useState(false);
   const [isImageToTextModalOpen, setIsImageToTextModalOpen] = useState(false);

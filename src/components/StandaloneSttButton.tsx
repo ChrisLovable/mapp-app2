@@ -8,6 +8,8 @@ export interface StandaloneSttButtonProps {
   className?: string;
 }
 
+const isMobileUA = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 const StandaloneSttButton: React.FC<StandaloneSttButtonProps> = ({
   onTextUpdate,
   currentText,
@@ -17,8 +19,10 @@ const StandaloneSttButton: React.FC<StandaloneSttButtonProps> = ({
 }) => {
   const [isListening, setIsListening] = React.useState(false);
   const recognitionRef = React.useRef<any>(null);
-  const baseTextRef = React.useRef<string>('');
+  const globalBaseRef = React.useRef<string>(''); // persists across auto-restarts
   const lastEmittedRef = React.useRef<string>('');
+  const prevCombinedRef = React.useRef<string>('');
+  const shouldContinueRef = React.useRef<boolean>(false);
 
   const start = React.useCallback(() => {
     const SpeechRecognition: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -28,16 +32,20 @@ const StandaloneSttButton: React.FC<StandaloneSttButtonProps> = ({
     }
 
     const recognition = new SpeechRecognition();
+    const mobile = isMobileUA();
     recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.interimResults = !mobile; // final-only on mobile to reduce duplication
     recognition.lang = language;
 
-    // Fix base at session start to avoid double-concatenation
-    baseTextRef.current = (currentText || '').trim();
-    lastEmittedRef.current = baseTextRef.current;
+    // Initialize session base only once per overarching session
+    if (!shouldContinueRef.current) {
+      globalBaseRef.current = (currentText || '').trim();
+      lastEmittedRef.current = globalBaseRef.current;
+      prevCombinedRef.current = '';
+    }
 
     recognition.onresult = (event: any) => {
-      // Rebuild from ALL results every time (mobile often resets resultIndex)
+      // Rebuild from all results each time for robustness
       let finalTranscript = '';
       let interimTranscript = '';
       for (let i = 0; i < event.results.length; i++) {
@@ -45,18 +53,39 @@ const StandaloneSttButton: React.FC<StandaloneSttButtonProps> = ({
         if (event.results[i].isFinal) {
           finalTranscript += transcript;
         } else {
-          // Keep the latest interim only
-          interimTranscript = transcript;
+          interimTranscript = transcript; // keep the latest interim
         }
       }
 
-      const combinedSTT = `${finalTranscript}${interimTranscript}`.trim();
-      const nextText = [baseTextRef.current, combinedSTT].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+      const combined = (recognition.interimResults
+        ? `${finalTranscript}${interimTranscript}`
+        : `${finalTranscript}`).trim();
 
-      // Suppress duplicate emissions
-      if (nextText === lastEmittedRef.current) return;
-      onTextUpdate(nextText);
-      lastEmittedRef.current = nextText;
+      // Guard: avoid regressions and repeats
+      if (combined === prevCombinedRef.current) return;
+      prevCombinedRef.current = combined;
+
+      const nextText = [globalBaseRef.current, combined]
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (nextText !== lastEmittedRef.current) {
+        onTextUpdate(nextText);
+        lastEmittedRef.current = nextText;
+      }
+
+      // Advance the global base only when new finals arrive (stabilized text)
+      if (finalTranscript.trim()) {
+        globalBaseRef.current = [globalBaseRef.current, finalTranscript]
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        // After advancing base, reset prevCombined to the remaining interim to avoid double-adding
+        prevCombinedRef.current = recognition.interimResults ? interimTranscript.trim() : '';
+      }
     };
 
     recognition.onerror = (e: any) => {
@@ -64,16 +93,23 @@ const StandaloneSttButton: React.FC<StandaloneSttButtonProps> = ({
     };
 
     recognition.onend = () => {
-      setIsListening(false);
       recognitionRef.current = null;
+      if (shouldContinueRef.current) {
+        // Auto-restart to keep continuous session on mobile
+        start();
+      } else {
+        setIsListening(false);
+      }
     };
 
     recognitionRef.current = recognition;
+    shouldContinueRef.current = true;
     recognition.start();
     setIsListening(true);
   }, [currentText, language, onTextUpdate]);
 
   const stop = React.useCallback(() => {
+    shouldContinueRef.current = false;
     try { recognitionRef.current?.stop(); } catch {}
     setIsListening(false);
   }, []);
@@ -85,6 +121,7 @@ const StandaloneSttButton: React.FC<StandaloneSttButtonProps> = ({
 
   React.useEffect(() => {
     return () => {
+      shouldContinueRef.current = false;
       try { recognitionRef.current?.stop(); } catch {}
     };
   }, []);
