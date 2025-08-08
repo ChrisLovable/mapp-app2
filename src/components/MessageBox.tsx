@@ -408,13 +408,29 @@ export default function MessageBox({
   // STT for main textbox using same approach as Schedule New Event
   const lastTranscriptRef = useRef('');
   const handleMainSTTResult = (text: string) => {
-    const newPart = text.replace(lastTranscriptRef.current, '');
-    if (!newPart.trim()) return;
-    const next = (value + ' ' + newPart).trim();
+    // Only process if we have new content
+    if (text === lastTranscriptRef.current) return;
+    
+    // Get only the new part by removing what we've seen before
+    const newPart = text.replace(lastTranscriptRef.current, '').trim();
+    if (!newPart) return;
+
+    // Update the textbox with just the new content
+    const next = ((value || '') + ' ' + newPart).trim();
     const syntheticEvent = { target: { value: next } } as React.ChangeEvent<HTMLTextAreaElement>;
     onChange(syntheticEvent);
+    
+    // Save what we've processed
     lastTranscriptRef.current = text;
   };
+
+  // Reset transcript ref when component mounts/unmounts
+  useEffect(() => {
+    lastTranscriptRef.current = '';
+    return () => {
+      lastTranscriptRef.current = '';
+    };
+  }, []);
 
   // STT removed
 
