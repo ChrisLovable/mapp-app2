@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import AppGrid from '../components/AppGrid';
 import MessageBox from '../components/MessageBox';
 import { SpeechProvider } from '../contexts/SpeechContext';
+import { useSpeech } from '../contexts/SpeechContext';
 import CommandButtons from '../components/CommandButtons';
 import ImageChoiceModal from '../components/ImageChoiceModal';
 
@@ -160,6 +161,7 @@ interface HomeProps {
 
 export default function Home({ onShowAuth }: HomeProps) {
   const { user, loading } = useAuth();
+  const speechCtx = useSpeech();
   const [message, setMessage] = useState('');
   const [language, setLanguage] = useState('en-US');
   const [_languages, setLanguages] = useState<LanguageOption[]>([]);
@@ -201,6 +203,73 @@ export default function Home({ onShowAuth }: HomeProps) {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [showInstallingOverlay, setShowInstallingOverlay] = useState(false);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
+
+  // Top STT button (separate logic from existing mic)
+  const [isTopSTTListening, setIsTopSTTListening] = useState(false);
+  const topRecognitionRef = useRef<any>(null);
+  const topBaseTextRef = useRef<string>('');
+
+  const startTopSTT = () => {
+    try { speechCtx?.stopListening?.(); } catch {}
+
+    const SpeechRecognition: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn('Speech recognition is not supported in this browser');
+      setNotification({ message: 'Speech recognition not supported on this device.', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = language;
+
+    topBaseTextRef.current = (message || '').trim();
+
+    recognition.onresult = (event: any) => {
+      let finalChunk = '';
+      let interimChunk = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0]?.transcript || '';
+        if (event.results[i].isFinal) finalChunk += transcript;
+        else interimChunk += transcript;
+      }
+
+      const sttCombined = (finalChunk + interimChunk).trim();
+      const newText = [topBaseTextRef.current, sttCombined].filter(Boolean).join(' ').trim();
+      setMessage(newText);
+
+      if (finalChunk.trim()) {
+        topBaseTextRef.current = newText; // advance base only on final
+      }
+    };
+
+    recognition.onerror = (e: any) => {
+      console.error('Top STT error:', e);
+      setNotification({ message: `Mic error: ${e?.error || 'unknown'}`, type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
+    };
+
+    recognition.onend = () => {
+      setIsTopSTTListening(false);
+      topRecognitionRef.current = null;
+    };
+
+    topRecognitionRef.current = recognition;
+    recognition.start();
+    setIsTopSTTListening(true);
+  };
+
+  const stopTopSTT = () => {
+    try { topRecognitionRef.current?.stop(); } catch {}
+    setIsTopSTTListening(false);
+  };
+
+  const toggleTopSTT = () => {
+    if (isTopSTTListening) stopTopSTT();
+    else startTopSTT();
+  };
 
   // AI Processing Functions
   const processAIQuestion = async (question: string) => {
@@ -458,7 +527,24 @@ export default function Home({ onShowAuth }: HomeProps) {
       <div className="pt-20 pb-8 px-4">
         {/* Big 1 at the top */}
         <div className="max-w-4xl mx-auto mb-4">
-          <div className="text-white text-6xl font-extrabold text-center">8</div>
+          <div className="text-white text-6xl font-extrabold text-center">9</div>
+        </div>
+        {/* Big Top STT Button (separate from existing mic) */}
+        <div className="max-w-4xl mx-auto mb-4 flex justify-center">
+          <button
+            onClick={toggleTopSTT}
+            className="w-full max-w-md py-4 px-6 rounded-2xl font-extrabold text-xl shadow-2xl transition-all active:scale-95"
+            style={{
+              background: isTopSTTListening
+                ? 'linear-gradient(135deg, rgba(220,38,38,0.95), rgba(220,38,38,0.8), rgba(0,0,0,0.4))'
+                : 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(0,0,0,0.8), rgba(59,130,246,0.2))',
+              color: '#fff',
+              border: '2px solid rgba(255,255,255,0.4)',
+              backdropFilter: 'blur(20px)'
+            }}
+          >
+            {isTopSTTListening ? '■ Stop Top Mic' : '🎙️ Start Top Mic (Web)'}
+          </button>
         </div>
         <Header onDashboardClick={() => {}} onAdminDashboardClick={() => setIsAdminDashboardOpen(true)} />
         
