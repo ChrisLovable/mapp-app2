@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EnhancedTouchDragSelect from './EnhancedTouchDragSelect';
-import { useSpeech } from '../contexts/SpeechContext';
-import { TextToSpeechButton, LanguageToggleButton } from './SpeechToTextButton';
+import { TextToSpeechButton, LanguageToggleButton, SpeechToTextButton } from './SpeechToTextButton';
 
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -236,7 +235,6 @@ export default function MessageBox({
   const { user } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isCorrecting, setIsCorrecting] = useState(false);
-  const { isListening, startListening, stopListening, finalDelta, finalVersion, sessionOwner } = useSpeech();
   const ownerIdRef = useRef<string>('message-box');
 
   const [thumbnailPosition, setThumbnailPosition] = useState({ x: 50, y: 50 });
@@ -407,42 +405,21 @@ export default function MessageBox({
     onChange(syntheticEvent);
   };
 
-  // Keep a live ref to the latest textbox value to avoid stale-closure duplication
+  // STT dedupe, same approach as Schedule New Event and Image Generator
   const currentValueRef = React.useRef(value);
   useEffect(() => { currentValueRef.current = value; }, [value]);
-
-  useEffect(() => {
-    if (!finalDelta) return;
-    if (sessionOwner !== ownerIdRef.current) return; // ignore mic input not owned by MessageBox
-
-    const base = (currentValueRef.current || '').trim();
-    const next = (base ? base + ' ' : '') + finalDelta.trim();
-
-    // Avoid duplicate append if the textbox already ends with this delta
-    if (base.endsWith(finalDelta.trim())) return;
-
-    const syntheticEvent = {
-      target: { value: next }
-    } as React.ChangeEvent<HTMLTextAreaElement>;
+  const handleMainSTTResult = (text: string) => {
+    const newPart = text.replace(lastTranscriptRef.current, '');
+    if (!newPart.trim()) return;
+    const next = (currentValueRef.current + ' ' + newPart).trim();
+    const syntheticEvent = { target: { value: next } } as React.ChangeEvent<HTMLTextAreaElement>;
     onChange(syntheticEvent);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finalVersion, sessionOwner]);
+    lastTranscriptRef.current = text;
+  };
 
   const lastTranscriptRef = useRef('');
 
-  const handleMicClick = () => {
-    if (isListening) {
-      if (sessionOwner !== ownerIdRef.current) {
-        // Preempt other owners: force stop, then start for this owner
-        stopListening();
-        setTimeout(() => startListening(language, ownerIdRef.current), 150);
-      } else {
-        stopListening(ownerIdRef.current);
-      }
-    } else {
-      startListening(language, ownerIdRef.current);
-    }
-  };
+  // Mic handled by SpeechToTextButton (local hook) to avoid duplication
 
   const handleTTS = (text: string) => {
     if (window.speechSynthesis) {
@@ -1012,29 +989,17 @@ Text to correct: "${value}"`;
             variant="primary"
             className="shadow-lg glassy-btn neon-grid-btn"
           />
-          {/* Mobile-optimized Speech-to-Text Button */}
-          <button
-            onClick={handleMicClick}
+          {/* Speech-to-Text Button using local STT (no global context) */}
+          <SpeechToTextButton
+            onResult={handleMainSTTResult}
+            onError={(err) => showNotification(err, 'error')}
+            language={language}
+            continuous={true}
+            interimResults={true}
             className="w-8 h-8 glassy-btn neon-grid-btn rounded-full border-0 flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-lg active:scale-95 relative overflow-visible"
-            style={{
-              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(59, 130, 246, 0.15))',
-              backdropFilter: 'blur(20px)',
-              border: '2px solid rgba(255, 255, 255, 0.4)',
-              boxShadow: '0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(0, 255, 247, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2)',
-              filter: 'drop-shadow(0 0 5px rgba(0, 255, 247, 0.5)) drop-shadow(0 0 10px rgba(0, 255, 247, 0.4)) drop-shadow(0 0 15px rgba(0, 255, 247, 0.3))',
-              transform: 'translateZ(20px) perspective(1000px) rotateX(5deg)',
-              borderRadius: '50%',
-              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-              aspectRatio: '1.15',
-              minWidth: '32px',
-              minHeight: '28px',
-              width: '32px',
-              height: '28px'
-            }}
-            title="Speech to text"
-          >
-            {isListening ? '🛑' : '🎤'}
-          </button>
+            size="sm"
+            variant="default"
+          />
           {/* Text-to-Speech Button */}
           <TextToSpeechButton
             onSpeak={handleTTS}
