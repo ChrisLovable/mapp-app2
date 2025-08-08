@@ -405,32 +405,24 @@ export default function MessageBox({
     onChange(syntheticEvent);
   };
 
-  // STT for main textbox using same approach as Schedule New Event
+  const [isListening, setIsListening] = useState(false);
   const lastTranscriptRef = useRef('');
-  const handleMainSTTResult = (text: string) => {
-    // Only process if we have new content
-    if (text === lastTranscriptRef.current) return;
-    
-    // Get only the new part by removing what we've seen before
-    const newPart = text.replace(lastTranscriptRef.current, '').trim();
-    if (!newPart) return;
 
-    // Update the textbox with just the new content
-    const next = ((value || '') + ' ' + newPart).trim();
-    const syntheticEvent = { target: { value: next } } as React.ChangeEvent<HTMLTextAreaElement>;
-    onChange(syntheticEvent);
-    
-    // Save what we've processed
-    lastTranscriptRef.current = text;
+  const handleSTTStart = () => {
+    lastTranscriptRef.current = value; // Capture the current text before new speech starts
+    setIsListening(true);
   };
 
-  // Reset transcript ref when component mounts/unmounts
-  useEffect(() => {
-    lastTranscriptRef.current = '';
-    return () => {
-      lastTranscriptRef.current = '';
-    };
-  }, []);
+  const handleSTTResult = (text: string) => {
+    // Append only the new part of the transcript
+    const newText = lastTranscriptRef.current + ' ' + text.substring(lastTranscriptRef.current.length);
+    const syntheticEvent = { target: { value: newText.trim() } } as React.ChangeEvent<HTMLTextAreaElement>;
+    onChange(syntheticEvent);
+  };
+
+  const handleSTTStop = () => {
+    setIsListening(false);
+  };
 
   // STT removed
 
@@ -1004,8 +996,11 @@ Text to correct: "${value}"`;
           />
           {/* STT mic (same logic as Schedule New Event) */}
           <SpeechToTextButton
-            onResult={handleMainSTTResult}
+            onResult={handleSTTResult}
+            onStart={handleSTTStart}
+            onStop={handleSTTStop}
             onError={(err) => showNotification(err, 'error')}
+            isListening={isListening}
             language={language}
             continuous={true}
             interimResults={true}

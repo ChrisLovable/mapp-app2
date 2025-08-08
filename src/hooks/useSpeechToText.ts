@@ -55,6 +55,8 @@ export const useSpeechToText = (options: UseSpeechToTextOptions = {}): UseSpeech
     if (isListening) {
       return; // Already listening
     }
+    
+    onStart?.();
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
@@ -72,8 +74,9 @@ export const useSpeechToText = (options: UseSpeechToTextOptions = {}): UseSpeech
     recognition.onresult = (event: any) => {
       let interimTranscript = '';
       let finalTranscript = '';
-      // Only process new results to prevent duplication
-      for (let i = lastResultIndexRef.current; i < event.results.length; i++) {
+      
+      // Always build from the full results to avoid duplication
+      for (let i = 0; i < event.results.length; i++) {
         const result = event.results.item(i);
         const transcript = result.item(0).transcript;
         
@@ -83,41 +86,22 @@ export const useSpeechToText = (options: UseSpeechToTextOptions = {}): UseSpeech
           interimTranscript += transcript;
         }
       }
-      // Update the last processed index
-      lastResultIndexRef.current = event.results.length;
       
-      // Add only new final results to accumulated text
-      if (finalTranscript) {
-        accumulatedTextRef.current = (accumulatedTextRef.current + ' ' + finalTranscript).trim();
-      }
+      const fullTranscript = (finalTranscript + interimTranscript).trim();
       
-      // For real-time display: show accumulated final text + current interim text
-      // But don't include accumulated text in interim results to prevent loops
-      const realTimeTranscript = interimTranscript 
-        ? (accumulatedTextRef.current + ' ' + interimTranscript).trim()
-        : accumulatedTextRef.current;
-      
-      // Update transcript
-      setTranscript(realTimeTranscript);
-      
-      // Call onResult callback if provided (for both interim and final results)
-      if (onResult) {
-        onResult(realTimeTranscript);
-      }
+      // Update transcript state and notify parent
+      setTranscript(fullTranscript);
+      onResult?.(fullTranscript);
     };
 
     // Handle recognition start
     recognition.onstart = () => {
-      console.log('Recognition started! Setting isListening to true');
       setIsListening(true);
-      shouldContinueRef.current = true;
-      onStart?.();
     };
 
     // Handle recognition end
     recognition.onend = () => {
       setIsListening(false);
-      shouldContinueRef.current = false;
       onStop?.();
     };
 
@@ -125,7 +109,7 @@ export const useSpeechToText = (options: UseSpeechToTextOptions = {}): UseSpeech
     recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
       setIsListening(false);
-      shouldContinueRef.current = false;
+      onStop?.(); // Ensure stop is called on error too
       onError?.(event.error);
     };
 
