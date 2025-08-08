@@ -235,8 +235,30 @@ export default function MessageBox({
   const { user } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isCorrecting, setIsCorrecting] = useState(false);
-  // STT removed from main textbox
 
+  // Speech-to-text (mic) logic – deduplicates like Schedule New Event
+  const [isListening, setIsListening] = useState(false);
+  const lastTranscriptRef = useRef('');
+
+  const handleSTTStart = () => {
+    lastTranscriptRef.current = value || '';
+    setIsListening(true);
+  };
+
+  const handleSTTResult = (text: string) => {
+    const newPart = text.substring(lastTranscriptRef.current.length);
+    if (!newPart.trim()) return;
+
+    const updated = `${lastTranscriptRef.current}${newPart}`;
+    const syntheticEvent = { target: { value: updated } } as React.ChangeEvent<HTMLTextAreaElement>;
+    onChange(syntheticEvent);
+    lastTranscriptRef.current = updated;
+  };
+
+  const handleSTTStop = () => {
+    setIsListening(false);
+  };
+  
   const [thumbnailPosition, setThumbnailPosition] = useState({ x: 50, y: 50 });
 
   // Ensure thumbnail starts within textbox bounds when image is uploaded
@@ -405,32 +427,7 @@ export default function MessageBox({
     onChange(syntheticEvent);
   };
 
-  const [isListening, setIsListening] = useState(false);
-  const lastTranscriptRef = useRef<string | null>(null);
 
-  const handleSTTStart = () => {
-    lastTranscriptRef.current = value;
-    setIsListening(true);
-  };
-
-  const handleSTTResult = (text: string) => {
-    if (lastTranscriptRef.current) {
-      const newText = `${lastTranscriptRef.current} ${text}`;
-      const syntheticEvent = { target: { value: newText } } as React.ChangeEvent<HTMLTextAreaElement>;
-      onChange(syntheticEvent);
-      lastTranscriptRef.current = null; // Clear after use
-    } else {
-      const syntheticEvent = { target: { value: text } } as React.ChangeEvent<HTMLTextAreaElement>;
-      onChange(syntheticEvent);
-    }
-  };
-
-  const handleSTTStop = () => {
-    setIsListening(false);
-    lastTranscriptRef.current = null;
-  };
-
-  // STT removed
 
   const handleTTS = (text: string) => {
     if (window.speechSynthesis) {
@@ -1000,16 +997,20 @@ Text to correct: "${value}"`;
             variant="primary"
             className="shadow-lg glassy-btn neon-grid-btn"
           />
-          {/* STT mic (same logic as Schedule New Event) */}
+          {/* STT Mic Button */}
           <SpeechToTextButton
-            onResult={handleSTTResult}
             onStart={handleSTTStart}
+            onResult={handleSTTResult}
             onStop={handleSTTStop}
             onError={(err) => showNotification(err, 'error')}
             isListening={isListening}
             language={language}
             continuous={true}
             interimResults={true}
+            size="sm"
+            variant="default"
+            className="shadow-lg glassy-btn neon-grid-btn"
+          />
           {/* Text-to-Speech Button */}
           <TextToSpeechButton
             onSpeak={handleTTS}
