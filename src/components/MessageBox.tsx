@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EnhancedTouchDragSelect from './EnhancedTouchDragSelect';
-import { TextToSpeechButton, LanguageToggleButton, SpeechToTextButton } from './SpeechToTextButton';
+import { TextToSpeechButton, LanguageToggleButton, ContinuousSpeechToTextButton } from './SpeechToTextButton';
 
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -408,13 +408,27 @@ export default function MessageBox({
   // STT dedupe, same approach as Schedule New Event and Image Generator
   const currentValueRef = React.useRef(value);
   useEffect(() => { currentValueRef.current = value; }, [value]);
+  const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
   const handleMainSTTResult = (text: string) => {
-    const newPart = text.replace(lastTranscriptRef.current, '');
-    if (!newPart.trim()) return;
-    const next = (currentValueRef.current + ' ' + newPart).trim();
+    const curr = normalize(text);
+    const prev = normalize(lastTranscriptRef.current);
+    // Fast path
+    let delta = '';
+    if (curr.startsWith(prev)) {
+      delta = curr.slice(prev.length);
+    } else {
+      // Longest common prefix fallback
+      let i = 0;
+      const max = Math.min(curr.length, prev.length);
+      while (i < max && curr.charCodeAt(i) === prev.charCodeAt(i)) i++;
+      delta = curr.slice(i);
+    }
+    delta = normalize(delta);
+    if (!delta) return;
+    const next = normalize((currentValueRef.current + ' ' + delta));
     const syntheticEvent = { target: { value: next } } as React.ChangeEvent<HTMLTextAreaElement>;
     onChange(syntheticEvent);
-    lastTranscriptRef.current = text;
+    lastTranscriptRef.current = curr;
   };
 
   const lastTranscriptRef = useRef('');
@@ -989,13 +1003,12 @@ Text to correct: "${value}"`;
             variant="primary"
             className="shadow-lg glassy-btn neon-grid-btn"
           />
-          {/* Speech-to-Text Button using local STT (no global context) */}
-          <SpeechToTextButton
+          {/* Speech-to-Text Button using continuous local STT */}
+          <ContinuousSpeechToTextButton
             onResult={handleMainSTTResult}
             onError={(err) => showNotification(err, 'error')}
+            onStart={() => { lastTranscriptRef.current = ''; currentValueRef.current = value; }}
             language={language}
-            continuous={true}
-            interimResults={true}
             className="w-8 h-8 glassy-btn neon-grid-btn rounded-full border-0 flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-lg active:scale-95 relative overflow-visible"
             size="sm"
             variant="default"

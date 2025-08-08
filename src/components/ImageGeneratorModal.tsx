@@ -259,6 +259,12 @@ export default function ImageGeneratorModal({ isOpen, onClose }: ImageGeneratorM
   const [saveSuccess, setSaveSuccess] = useState(false);
   const lastTranscriptRef = useRef('');
 
+  useEffect(() => {
+    if (isOpen) {
+      lastTranscriptRef.current = '';
+    }
+  }, [isOpen]);
+
   // Test image loading on component mount
   useEffect(() => {
     console.log('🔍 Testing Gabby image accessibility...');

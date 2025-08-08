@@ -420,21 +420,7 @@ export default function Home({ onShowAuth }: HomeProps) {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black text-white">
-        <div className="text-center">
-          <h1 className="text-2xl mb-4">Please sign in to continue</h1>
-          <button 
-            onClick={onShowAuth}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-          >
-            Sign In
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Render main app UI regardless of auth status (sign-in removed)
 
   return (
     <SpeechProvider>
