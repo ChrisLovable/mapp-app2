@@ -16,4 +16,8 @@ export const AZURE_TTS_BASE =
 export const AZURE_VOICES_URL =
   import.meta.env.VITE_AZURE_VOICES_URL || '/api/azure-voices';
 
+// n8n webhook base (e.g., https://n8n.yourdomain.com/webhook)
+export const N8N_WEBHOOK_BASE =
+  import.meta.env.VITE_N8N_WEBHOOK_BASE || '';
+
 
