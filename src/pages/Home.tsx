@@ -463,8 +463,7 @@ export default function Home({ onShowAuth }: HomeProps) {
             onTextUpdate={setMessage}
             currentText={message}
             language={language as any}
-            buttonText={language === 'af-ZA' ? '🎤 Stem (AF)' : '🎤 Voice (EN)'}
-            className="w-full max-w-md py-4 px-6"
+            className="w-12 h-12"
           />
         </div>
         <Header onDashboardClick={() => {}} onAdminDashboardClick={() => setIsAdminDashboardOpen(true)} />

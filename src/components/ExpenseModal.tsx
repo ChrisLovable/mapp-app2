@@ -5,8 +5,7 @@ import ExpenseJournalModal from './ExpenseJournalModal';
 import { useAuth } from '../contexts/AuthContext';
 import { ExpenseAnalytics } from '../services/ExpenseAnalytics';
 import { OpenAIService } from '../services/OpenAIService';
-// Local Web SpeechRecognition shim to replace removed GlobalSpeechRecognition
-// Provides start/stop with simple EN/AF handling and duplication-safe streaming
+import { GlobalSpeechRecognition } from '../hooks/useGlobalSpeechRecognition';
 import { QuestionProcessor } from '../services/QuestionProcessor';
 
 // Temporary placeholder functions for missing dependencies
@@ -73,7 +72,6 @@ const { user } = useAuth();
   const [quickAnswer, setQuickAnswer] = useState('');
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [expenseCache, setExpenseCache] = useState<Expense[]>([]);
   const [cacheTimestamp, setCacheTimestamp] = useState<number>(0);
@@ -238,7 +236,7 @@ ${extractedText}`;
           imageId = await saveReceiptImageToDB(user.id, base64);
         }
         
-        const expensesWithImageRef = parsedData.map(expense => ({
+        const expensesWithImageRef = parsedData.map((expense: ParsedExpense) => ({
           ...expense,
           receipt_image_id: imageId
         }));
@@ -445,44 +443,25 @@ ${extractedText}`;
   };
 
   const handleMicClick = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Speech recognition is not supported in this browser.');
-      return;
-    }
-
     if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
+      GlobalSpeechRecognition.stop();
       return;
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = currentLanguage;
-
-    recognition.onresult = (event: any) => {
-      let transcript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        transcript += event.results[i][0].transcript;
-      }
-      setQuickQuestion(transcript);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      recognitionRef.current = null;
-    };
-    
-    recognition.onerror = (event: any) => {
-        alert(`Speech recognition error: ${event.error}`);
-        setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
     setIsListening(true);
+    GlobalSpeechRecognition.start(
+      currentLanguage,
+      (transcript: string) => {
+        setQuickQuestion(transcript);
+      },
+      () => {
+        setIsListening(false);
+      },
+      (error: string) => {
+        alert(`Speech recognition error: ${error}`);
+        setIsListening(false);
+      }
+    );
   };
 
 

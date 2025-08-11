@@ -90,12 +90,15 @@ export default function CreateDiaryEntryModal({ isOpen, onClose, currentText }: 
   const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
   const [pendingEntryData, setPendingEntryData] = useState<any>(null);
 
-  // Update diary entry when modal opens or currentText changes
+  // On open, copy text from main textbox only if the diary entry is empty.
+  // Do not overwrite user edits or clear text on subsequent currentText updates.
   useEffect(() => {
     if (isOpen) {
-      setDiaryEntry(currentText);
+      setDiaryEntry(prev => (prev && prev.trim().length > 0 ? prev : currentText));
     }
-  }, [isOpen, currentText]);
+    // Depend only on open state so HMR or message changes don't wipe user text
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // When modal opens, always reset selectedChapter to empty string
   useEffect(() => {
@@ -256,8 +259,9 @@ export default function CreateDiaryEntryModal({ isOpen, onClose, currentText }: 
             setUploadedPhotos([]);
           }
         } else {
+          // No existing entries for this date/chapter. Preserve any text that was
+          // carried over from the main textbox instead of clearing it.
           setExistingEntries([]);
-          setDiaryEntry('');
           setSelectedChapter('');
           setUploadedPhotos([]);
         }

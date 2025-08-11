@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EnhancedTouchDragSelect from './EnhancedTouchDragSelect';
 import { TextToSpeechButton, LanguageToggleButton } from './SpeechToTextButton';
+import StandaloneSttButton from './StandaloneSttButton';
 
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -936,13 +937,13 @@ Text to correct: "${value}"`;
   });
 
   return (
+    <div className="relative w-full h-full">{/* Modal container, relative for absolute positioning */}
+      {/* Remove the Comment/Report Button from here entirely */}
     <div className="textbox-container photo-frame-3d rounded-2xl overflow-hidden" style={{ 
       height: '210px', 
       width: '85vw', 
       margin: '0 auto'
     }}>
-
-      <div className="relative w-full h-full">
         <EnhancedTouchDragSelect
           text={value}
           onChange={handleTextChange}
@@ -964,8 +965,9 @@ Text to correct: "${value}"`;
             selectionMode: 'custom'
           }}
         />
-        {/* Language Toggle and Speech Buttons */}
-        <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-row justify-between gap-4 py-2 px-4" style={{ height: 'auto' }}>
+        {/* Icon row inside the textbox area */}
+        <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-row justify-between gap-4 py-2 px-2" style={{ height: 'auto' }}>
+          <div className="w-full bg-gray-200 rounded-xl flex flex-row justify-between items-center px-2 py-2 shadow-md border border-gray-300">
           {/* Language Toggle Button */}
           <LanguageToggleButton
             currentLanguage={language}
@@ -974,6 +976,18 @@ Text to correct: "${value}"`;
             variant="primary"
             className="shadow-lg glassy-btn neon-grid-btn"
           />
+            {/* Mic Button - styled like other icons */}
+            <StandaloneSttButton
+              onTextUpdate={(newText) => {
+                const syntheticEvent = {
+                  target: { value: newText }
+                } as React.ChangeEvent<HTMLTextAreaElement>;
+                onChange(syntheticEvent);
+              }}
+              currentText={value}
+              language={language}
+              className="w-8 h-8 glassy-btn neon-grid-btn rounded-full border-0 flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-lg active:scale-95 relative overflow-visible"
+            />
           {/* Text-to-Speech Button */}
           <TextToSpeechButton
             onSpeak={handleTTS}
@@ -1030,25 +1044,7 @@ Text to correct: "${value}"`;
           >
             📷
           </button>
-          {/* Save Comment Button (replaces old send button) */}
-          <button
-            onClick={handleSaveComment}
-            className="glassy-btn neon-grid-btn px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center transition-all duration-200 shadow-lg active:scale-95 relative overflow-visible"
-            style={{
-              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(59, 130, 246, 0.7))',
-              color: '#fff',
-              border: '2px solid rgba(255, 255, 255, 0.4)',
-              boxShadow: '0 15px 30px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 0 rgba(59, 130, 246, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4)',
-              backdropFilter: 'blur(20px)',
-              minWidth: '120px',
-              minHeight: '32px',
-              fontSize: '1rem',
-              fontWeight: 700
-            }}
-            title="Submit your comment or report"
-          >
-            Comment/Report
-          </button>
+          </div>
         </div>
         
         {/* Hidden file inputs */}
@@ -1067,8 +1063,6 @@ Text to correct: "${value}"`;
           onChange={handleFileChange}
           style={{ display: 'none' }}
         />
-        
-
         
                  {/* Image Thumbnail Display */}
 

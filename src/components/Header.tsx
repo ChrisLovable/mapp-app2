@@ -708,11 +708,11 @@ export default function Header({ onDashboardClick, onAdminDashboardClick }: Head
   }, [open]);
 
   return (
-    <div className="relative flex items-center justify-center">
-      {/* Hamburger Menu */}
-                  <div className="absolute top-0 flex items-center h-full" ref={menuRef} style={{ width: '80vw', left: '30px', top: '-50px' }}>
+    <div className="relative flex items-center justify-start">
+      {/* Hamburger Menu - now at the left border */}
+      <div className="flex items-center" ref={menuRef}>
         <button
-          className="glassy-btn neon-grid-btn p-2 rounded-lg border-0 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400 mt-4 active:scale-95 relative overflow-visible"
+          className="glassy-btn neon-grid-btn p-2 rounded-lg border-0 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400 active:scale-95 relative overflow-visible"
           style={{ 
             border: '2px solid rgba(255, 255, 255, 0.4)', 
             position: 'relative', 
@@ -721,7 +721,8 @@ export default function Header({ onDashboardClick, onAdminDashboardClick }: Head
             backdropFilter: 'blur(10px)',
             boxShadow: '0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.3)',
             filter: 'drop-shadow(0 0 10px rgba(30, 58, 138, 0.5))',
-            transform: 'translateZ(10px)'
+            transform: 'translateZ(10px)',
+            marginLeft: 0
           }}
           onClick={() => setOpen((v) => !v)}
           aria-label="Open menu"

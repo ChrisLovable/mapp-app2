@@ -52,16 +52,16 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, se
   };
 
   return (
-    <div style={{ position: 'relative', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
+    <div style={{ position: 'relative', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', width: '100%' }}>
              <input
          type="text"
          value={formatDate(selected || value || new Date())}
          readOnly
          onClick={() => setShowCalendar((v) => !v)}
          className="date-picker-input"
-        style={{
+         style={{
           cursor: 'pointer',
-          width: '150px',
+           width: '240px',
           background: '#111',
           color: '#fff',
           borderRadius: 16,

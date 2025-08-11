@@ -126,7 +126,7 @@ const StandaloneSttButton: React.FC<StandaloneSttButtonProps> = ({
     };
   }, []);
 
-  const label = buttonText || (language === 'af-ZA' ? '🎤 Stem (AF)' : '🎤 Voice (EN)');
+  const label = buttonText || '🎤';
 
   return (
     <button
@@ -134,12 +134,13 @@ const StandaloneSttButton: React.FC<StandaloneSttButtonProps> = ({
       onClick={toggle}
       className={`glassy-btn neon-grid-btn rounded-2xl font-extrabold text-xl shadow-2xl transition-all active:scale-95 ${className}`}
       style={{
-        background: isListening
-          ? 'linear-gradient(135deg, rgba(220,38,38,0.95), rgba(220,38,38,0.8), rgba(0,0,0,0.4))'
-          : 'linear-gradient(135deg, rgba(0,0,0,0.95), rgba(0,0,0,0.8), rgba(59,130,246,0.2))',
+        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8), rgba(220,38,38,0.2))',
         color: '#fff',
         border: '2px solid rgba(255,255,255,0.4)',
-        backdropFilter: 'blur(20px)'
+        backdropFilter: 'blur(20px)',
+        filter: 'drop-shadow(0 0 8px rgba(220,38,38,0.7)) drop-shadow(0 0 16px rgba(220,38,38,0.4))',
+        boxShadow: '0 15px 30px rgba(0,0,0,0.6), 0 8px 16px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.3), inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.4), 0 0 0 2px rgba(220,38,38,0.3), 0 0 0 1px rgba(255,255,255,0.2)',
+        transform: 'translateZ(20px) perspective(1000px) rotateX(5deg)'
       }}
       aria-label={isListening ? 'Stop standalone mic' : 'Start standalone mic'}
     >
