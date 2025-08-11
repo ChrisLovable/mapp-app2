@@ -37,9 +37,22 @@ export class CalendarEventService {
 
   static async saveEvent(eventData: any): Promise<void> {
     try {
+      // Map app model (camelCase) to DB schema (snake_case)
+      const row = {
+        title: eventData.title,
+        description: eventData.description ?? null,
+        start_time: eventData.start ?? eventData.start_time,
+        end_time: eventData.end ?? eventData.end_time,
+        all_day: eventData.allDay ?? eventData.all_day ?? false,
+        event_type: eventData.event_type ?? null,
+        location: eventData.location ?? null,
+        attendees: eventData.attendees ?? [],
+        reminder_minutes: eventData.reminder_minutes ?? 0,
+      };
+
       const { error } = await supabase
         .from('calendar_events')
-        .insert([eventData]);
+        .insert([row]);
 
       if (error) {
         console.error('Error saving event:', error);
@@ -53,9 +66,24 @@ export class CalendarEventService {
 
   static async updateEvent(eventId: string, updates: any): Promise<void> {
     try {
+      // Map app model updates (camelCase) to DB schema (snake_case)
+      const rowUpdates: any = {};
+      if (typeof updates.title !== 'undefined') rowUpdates.title = updates.title;
+      if (typeof updates.description !== 'undefined') rowUpdates.description = updates.description;
+      if (typeof updates.start !== 'undefined') rowUpdates.start_time = updates.start;
+      if (typeof updates.start_time !== 'undefined') rowUpdates.start_time = updates.start_time;
+      if (typeof updates.end !== 'undefined') rowUpdates.end_time = updates.end;
+      if (typeof updates.end_time !== 'undefined') rowUpdates.end_time = updates.end_time;
+      if (typeof updates.allDay !== 'undefined') rowUpdates.all_day = updates.allDay;
+      if (typeof updates.all_day !== 'undefined') rowUpdates.all_day = updates.all_day;
+      if (typeof updates.event_type !== 'undefined') rowUpdates.event_type = updates.event_type;
+      if (typeof updates.location !== 'undefined') rowUpdates.location = updates.location;
+      if (typeof updates.attendees !== 'undefined') rowUpdates.attendees = updates.attendees;
+      if (typeof updates.reminder_minutes !== 'undefined') rowUpdates.reminder_minutes = updates.reminder_minutes;
+
       const { error } = await supabase
         .from('calendar_events')
-        .update(updates)
+        .update(rowUpdates)
         .eq('id', eventId);
 
       if (error) {
