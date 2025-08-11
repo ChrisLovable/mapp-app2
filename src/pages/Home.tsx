@@ -579,15 +579,7 @@ export default function Home({ onShowAuth }: HomeProps) {
             onTranslateClick={handleTranslateClick}
             onRewriteClick={handleRewriteClick}
             onDiaryClick={() => setIsDiaryModalOpen(true)}
-            onCalendarClick={() => {
-              if (message && message.trim().length > 0) {
-                const parsed = parseDiaryFromText(message);
-                setDiaryPrefill(parsed);
-                setIsDiaryModalOpen(true);
-              } else {
-                setIsCalendarModalOpen(true);
-              }
-            }}
+            onCalendarClick={() => setIsCalendarModalOpen(true)}
             onExpenseClick={handleExpenseClick}
             onTodoClick={handleTodoClick}
             onShoppingClick={handleShoppingListClick}
@@ -651,9 +643,10 @@ export default function Home({ onShowAuth }: HomeProps) {
           onClose={() => setIsSmartMeetingRecorderOpen(false)}
         />
         
-        <CalendarModal 
+          <CalendarModal 
           isOpen={isCalendarModalOpen} 
           onClose={() => setIsCalendarModalOpen(false)}
+          inputText={message}
         />
         
         <DiaryModal 
