@@ -19,8 +19,7 @@ import AdminDashboard from '../components/AdminDashboard';
 import CalendarModal from '../components/CalendarModal';
 import DiaryModal from '../components/CreateDiaryEntryModal';
 import RealtimeConfirmationModal from '../components/RealtimeConfirmationModal';
-import GabbyChatModal from '../components/GabbyChatModal';
-import StandaloneSttButton from '../components/StandaloneSttButton';
+import VoiceOnlyChatModal from '../components/VoiceOnlyChatModal';
 
 import { useAuth } from '../contexts/AuthContext';
 import { AskMeLogic } from '../lib/AskMeLogic';
@@ -165,6 +164,7 @@ export default function Home({ onShowAuth }: HomeProps) {
   const [language, setLanguage] = useState('en-US');
   const [_languages, setLanguages] = useState<LanguageOption[]>([]);
   const [isDiaryModalOpen, setIsDiaryModalOpen] = useState(false);
+  const [diaryPrefill, setDiaryPrefill] = useState<{ date?: Date; chapter?: string; content?: string }>({});
   const [isTranslateModalOpen, setIsTranslateModalOpen] = useState(false);
   const [isRewriteModalOpen, setIsRewriteModalOpen] = useState(false);
   const [isImageToTextModalOpen, setIsImageToTextModalOpen] = useState(false);
@@ -176,8 +176,7 @@ export default function Home({ onShowAuth }: HomeProps) {
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [isImageGeneratorModalOpen, setIsImageGeneratorModalOpen] = useState(false);
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
-  const [isGabbyChatModalOpen, setIsGabbyChatModalOpen] = useState(false);
-  const [_isTokenDashboardOpen, _setIsTokenDashboardOpen] = useState(false);
+  const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
   // Excel feature removed
 
   const [_selectedModel, _setSelectedModel] = useState<string>('openai/gpt-4o');
@@ -334,7 +333,7 @@ export default function Home({ onShowAuth }: HomeProps) {
   };
 
   const handleGabbyChatClick = () => {
-    setIsGabbyChatModalOpen(true);
+    setIsVoiceChatOpen(true);
   };
 
   // Image choice modal handlers
@@ -413,6 +412,48 @@ export default function Home({ onShowAuth }: HomeProps) {
     }
   };
 
+  // Simple diary text parser
+  const parseDiaryFromText = (text: string): { date?: Date; chapter?: string; content?: string } => {
+    let date: Date | undefined;
+    let chapter: string | undefined;
+    let content = text.trim();
+
+    const isoMatch = text.match(/(20\d{2}-\d{2}-\d{2})/);
+    if (isoMatch) {
+      const d = new Date(isoMatch[1]);
+      if (!isNaN(d.getTime())) {
+        date = d;
+        content = content.replace(isoMatch[1], '').trim();
+      }
+    } else {
+      const dmyMatch = text.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
+      if (dmyMatch) {
+        const day = parseInt(dmyMatch[1], 10);
+        const month = parseInt(dmyMatch[2], 10) - 1;
+        const year = parseInt(dmyMatch[3], 10);
+        const d = new Date(year, month, day);
+        if (!isNaN(d.getTime())) {
+          date = d;
+          content = content.replace(dmyMatch[0], '').trim();
+        }
+      }
+    }
+
+    const bracket = text.match(/\[(.*?)\]/);
+    if (bracket && bracket[1]) {
+      chapter = bracket[1].trim();
+      content = content.replace(bracket[0], '').trim();
+    } else {
+      const chapterColon = text.match(/(?:^|\s)Chapter\s*:\s*([^\n]+)/i);
+      if (chapterColon && chapterColon[1]) {
+        chapter = chapterColon[1].trim();
+        content = content.replace(chapterColon[0], '').trim();
+      }
+    }
+
+    return { date, chapter, content };
+  };
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
@@ -426,49 +467,60 @@ export default function Home({ onShowAuth }: HomeProps) {
   return (
     <SpeechProvider>
     <div className="min-h-screen bg-black relative">
-      {/* Gabby Chat Button - Floating */}
-      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40">
-        <button
-          onClick={handleGabbyChatClick}
-          className="relative w-16 h-16 rounded-full transition-all duration-300 hover:scale-110 shadow-2xl"
-          style={{
-            background: 'transparent',
-            border: '2px solid #808080',
-            boxShadow: 'none',
-            filter: 'none',
-            transform: 'none'
-          }}
-        >
-          {/* Gabby Image Overlay */}
-          <div className="absolute inset-0 rounded-full overflow-hidden">
-            <img 
-              src="/Gabby.jpg"
-              alt="Gabby Chat" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-        </button>
-      </div>
-
-
-
-
-
-      {/* Main Content */}
-      <div className="pt-20 pb-8 px-4">
-        {/* Big number removed */}
-        {/* New big standalone STT button (independent logic) */}
-        <div className="max-w-4xl mx-auto mb-4 flex justify-center">
-          <StandaloneSttButton
-            onTextUpdate={setMessage}
-            currentText={message}
-            language={language as any}
-            className="w-12 h-12"
-          />
+      {/* Top Row: Hamburger, Gabby Image (center), Comment Button (all perfectly aligned) */}
+      <div className="flex items-center justify-between w-full max-w-4xl mx-auto mb-6 relative z-40" style={{ minHeight: '64px', marginTop: '30px' }}>
+        {/* Hamburger Menu (left) */}
+        <div className="flex-shrink-0 flex items-center justify-start" style={{ minWidth: '64px', marginTop: '70px', marginLeft: '10px' }}>
+          <Header />
         </div>
-        <Header onDashboardClick={() => {}} onAdminDashboardClick={() => setIsAdminDashboardOpen(true)} />
-        
-        <div className="max-w-4xl mx-auto">
+        {/* Gabby Image (center) */}
+        <div className="flex-shrink-0 flex items-center justify-center" style={{ flex: 1, marginLeft: '30px' }}>
+          <button
+            onClick={handleGabbyChatClick}
+            className="relative w-16 h-16 rounded-full transition-all duration-300 hover:scale-110 shadow-2xl"
+            style={{
+              background: 'transparent',
+              border: '2px solid #808080',
+              boxShadow: 'none',
+              filter: 'none',
+              transform: 'none'
+            }}
+          >
+            {/* Gabby Image Overlay */}
+            <div className="absolute inset-0 rounded-full overflow-hidden">
+              <img src="/Gabby.jpg" alt="Gabby" className="w-full h-full object-cover" />
+            </div>
+          </button>
+        </div>
+        {/* Comment Button (right) */}
+        <div className="flex-shrink-0 flex items-center justify-end" style={{ minWidth: '120px', marginRight: '20px' }}>
+          <button
+            onClick={async () => {
+              const event = new CustomEvent('triggerSaveComment');
+              window.dispatchEvent(event);
+            }}
+            className="glassy-btn neon-grid-btn px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center transition-all duration-200 shadow-lg active:scale-95"
+            style={{
+              minWidth: '100px',
+              minHeight: '40px',
+              fontSize: '18px',
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              border: '1px solid #888',
+              color: 'white',
+              marginRight: '20px'
+            }}
+          >
+            Comment
+          </button>
+        </div>
+      </div>
+      {/* Main Content */}
+      <div className="pt-20 pb-8 px-4 relative">
+        {/* Comment/Report Button - top right of main content area, outside MessageBox and its container */}
+        {/* This button is now floated to the top right */}
+        <div className="relative w-full max-w-4xl mx-auto" style={{ marginTop: '-70px' }}>
+          {/* Main Content */}
           <MessageBox 
             value={message} 
             onChange={(e) => setMessage(e.target.value)}
@@ -479,7 +531,10 @@ export default function Home({ onShowAuth }: HomeProps) {
             onCameraCapture={handleCameraCapture}
             language={language}
             onLanguageChange={handleLanguageChange}
+            showMic={true}
+            onMicClick={() => {}}
           />
+          {/* Remove StandaloneSttButton from here */}
           <CommandButtons 
             message={message} 
             setMessage={setMessage} 
@@ -524,7 +579,15 @@ export default function Home({ onShowAuth }: HomeProps) {
             onTranslateClick={handleTranslateClick}
             onRewriteClick={handleRewriteClick}
             onDiaryClick={() => setIsDiaryModalOpen(true)}
-            onCalendarClick={() => setIsCalendarModalOpen(true)}
+            onCalendarClick={() => {
+              if (message && message.trim().length > 0) {
+                const parsed = parseDiaryFromText(message);
+                setDiaryPrefill(parsed);
+                setIsDiaryModalOpen(true);
+              } else {
+                setIsCalendarModalOpen(true);
+              }
+            }}
             onExpenseClick={handleExpenseClick}
             onTodoClick={handleTodoClick}
             onShoppingClick={handleShoppingListClick}
@@ -597,13 +660,12 @@ export default function Home({ onShowAuth }: HomeProps) {
           isOpen={isDiaryModalOpen} 
           onClose={() => setIsDiaryModalOpen(false)}
           currentText={message}
+          initialDate={diaryPrefill.date}
+          initialChapter={diaryPrefill.chapter}
+          initialContent={diaryPrefill.content}
         />
         
-        <GabbyChatModal 
-          isOpen={isGabbyChatModalOpen} 
-          onClose={() => setIsGabbyChatModalOpen(false)}
-          language={language}
-        />
+        <VoiceOnlyChatModal isOpen={isVoiceChatOpen} onClose={() => setIsVoiceChatOpen(false)} language={language} />
         
         <ImageGeneratorModal
           isOpen={isImageGeneratorModalOpen}

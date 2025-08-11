@@ -55,6 +55,9 @@ interface CreateDiaryEntryModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentText: string;
+  initialDate?: Date;
+  initialChapter?: string;
+  initialContent?: string;
 }
 
 interface PhotoFile {
@@ -72,7 +75,7 @@ interface DiaryEntry {
   created_at: string;
 }
 
-export default function CreateDiaryEntryModal({ isOpen, onClose, currentText }: CreateDiaryEntryModalProps) {
+export default function CreateDiaryEntryModal({ isOpen, onClose, currentText, initialDate, initialChapter, initialContent }: CreateDiaryEntryModalProps) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [diaryEntry, setDiaryEntry] = useState(currentText);
   const [chapters, setChapters] = useState<string[]>([]);
@@ -90,21 +93,33 @@ export default function CreateDiaryEntryModal({ isOpen, onClose, currentText }: 
   const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
   const [pendingEntryData, setPendingEntryData] = useState<any>(null);
 
-  // On open, copy text from main textbox only if the diary entry is empty.
-  // Do not overwrite user edits or clear text on subsequent currentText updates.
+  // On open, prefill using provided initialContent/initialDate/initialChapter when available.
+  // Otherwise copy text from main textbox only if entry is empty.
   useEffect(() => {
-    if (isOpen) {
-      setDiaryEntry(prev => (prev && prev.trim().length > 0 ? prev : currentText));
+    if (!isOpen) return;
+    // Prefill date
+    if (initialDate instanceof Date && !isNaN(initialDate.getTime())) {
+      setSelectedDate(initialDate);
     }
-    // Depend only on open state so HMR or message changes don't wipe user text
+    // Prefill chapter
+    if (typeof initialChapter === 'string' && initialChapter.trim().length > 0) {
+      setSelectedChapter(initialChapter.trim());
+    }
+    // Prefill content with priority to initialContent
+    setDiaryEntry(prev => {
+      if (prev && prev.trim().length > 0) return prev;
+      if (typeof initialContent === 'string' && initialContent.trim().length > 0) return initialContent;
+      return currentText;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // When modal opens, always reset selectedChapter to empty string
+  // When modal opens, reset selectedChapter only if no initialChapter provided
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && (!initialChapter || initialChapter.trim() === '')) {
       setSelectedChapter('');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Fetch existing entries when modal opens
