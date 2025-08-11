@@ -35,7 +35,7 @@ function getWeeks(year: number, month: number) {
   return weeks;
 }
 
-const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, selected }) => {
+const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, selected, className }) => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [viewDate, setViewDate] = useState(new Date(selected || value || new Date()));
 
@@ -52,7 +52,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, se
   };
 
   return (
-    <div style={{ position: 'relative', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', width: '100%' }}>
+    <div className={className} style={{ position: 'relative', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', width: '100%' }}>
              <input
          type="text"
          value={formatDate(selected || value || new Date())}
@@ -61,7 +61,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, se
          className="date-picker-input"
          style={{
           cursor: 'pointer',
-           width: '240px',
+           width: '100%',
           background: '#111',
           color: '#fff',
           borderRadius: 16,
