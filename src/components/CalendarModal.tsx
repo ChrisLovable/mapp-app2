@@ -884,6 +884,12 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
       const startTime = new Date(eventData.start);
       const endTime = new Date(startTime.getTime() + (eventData.duration * 60 * 1000)); // Convert minutes to milliseconds
 
+      const attendeesArray = Array.isArray(eventData.attendees)
+        ? eventData.attendees
+        : (typeof eventData.attendees === 'string' && eventData.attendees.trim().length > 0
+            ? eventData.attendees.split(',').map((a: string) => a.trim())
+            : []);
+
       const eventToSave = {
         title: eventData.title,
         description: eventData.description,
@@ -892,7 +898,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
         allDay: eventData.allDay,
         event_type: eventData.event_type,
         location: eventData.location,
-        attendees: eventData.attendees ? eventData.attendees.split(',').map((a: string) => a.trim()) : [],
+        attendees: attendeesArray,
         reminder_minutes: eventData.reminder_minutes
       };
 
@@ -920,6 +926,12 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
       const startTime = new Date(updates.start);
       const endTime = new Date(startTime.getTime() + (updates.duration * 60 * 1000)); // Convert minutes to milliseconds
 
+      const attendeesArray = Array.isArray(updates.attendees)
+        ? updates.attendees
+        : (typeof updates.attendees === 'string' && updates.attendees.trim().length > 0
+            ? updates.attendees.split(',').map((a: string) => a.trim())
+            : []);
+
       const eventUpdates = {
         title: updates.title,
         description: updates.description,
@@ -928,7 +940,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, inputTex
         allDay: updates.allDay,
         event_type: updates.event_type,
         location: updates.location,
-        attendees: updates.attendees ? updates.attendees.split(',').map((a: string) => a.trim()) : [],
+        attendees: attendeesArray,
         reminder_minutes: updates.reminder_minutes
       };
 
