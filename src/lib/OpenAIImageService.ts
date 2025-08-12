@@ -25,22 +25,14 @@ export class OpenAIImageService {
   private apiKey: string;
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    // Initialize with API key but don't warn - handled in generateImage method
-    if (!this.apiKey) {
-      this.apiKey = '';
-    }
+    // Client no longer needs an API key; we use backend proxy
+    this.apiKey = '';
   }
 
   async generateImage(options: ImageGenerationOptions): Promise<ImageGenerationResponse> {
     const { prompt, size = '1024x1024', quality = 'standard', style = 'vivid', referenceImage, styleInfo } = options;
 
-    if (!this.apiKey) {
-      return {
-        success: false,
-        error: 'OpenAI API key not found. Please check your .env file.'
-      };
-    }
+    // API key is managed on the server; ensure backend is running
 
     if (!prompt.trim() && !referenceImage) {
       return {
@@ -78,9 +70,7 @@ export class OpenAIImageService {
       }
 
       const requestBody = {
-        model: 'dall-e-3',
         prompt: finalPrompt,
-        n: 1,
         size: size,
         quality: quality,
         style: style
@@ -90,11 +80,10 @@ export class OpenAIImageService {
       console.log('Request Body:', JSON.stringify(requestBody, null, 2));
       console.log('====================');
 
-      const response = await fetch('https://api.openai.com/v1/images/generations', {
+      const response = await fetch('/api/openai/images/generations', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestBody)
       });
@@ -114,7 +103,7 @@ export class OpenAIImageService {
         // Track failed API usage
         const operationType = referenceImage ? 'Image Transformation' : 'Image Generation';
         apiUsageTracker.trackOpenAIUsage(
-          'https://api.openai.com/v1/images/generations',
+          '/api/openai/images/generations',
           'dall-e-3',
           0,
           0,
@@ -151,9 +140,9 @@ export class OpenAIImageService {
       console.log('Generated Image URL:', imageUrl);
 
       // Track successful API usage
-      apiUsageTracker.trackOpenAIUsage(
-        'https://api.openai.com/v1/images/generations',
-        'dall-e-3',
+        apiUsageTracker.trackOpenAIUsage(
+          '/api/openai/images/generations',
+          'dall-e-3',
         usage?.prompt_tokens || 0,
         usage?.completion_tokens || 0,
         operationType,
@@ -175,7 +164,7 @@ export class OpenAIImageService {
       
       // Track failed API usage
       apiUsageTracker.trackOpenAIUsage(
-        'https://api.openai.com/v1/images/generations',
+        '/api/openai/images/generations',
         'dall-e-3',
         0,
         0,

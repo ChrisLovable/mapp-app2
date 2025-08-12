@@ -20,9 +20,8 @@ export default defineConfig(({ mode }) => ({
     host: '0.0.0.0',
     proxy: mode === 'development' ? {
       '/api': {
-        target: 'http://192.168.101.105:3000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        target: 'http://localhost:3000',
+        changeOrigin: true
       }
     } : undefined
   }

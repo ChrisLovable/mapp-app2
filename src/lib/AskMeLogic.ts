@@ -43,7 +43,8 @@ export interface AIResponse {
 }
 
 export class AskMeLogic {
-  private static readonly API_URL = 'https://api.openai.com/v1/chat/completions';
+  // Route through backend to keep keys server-side
+  private static readonly API_URL = '/api/openai-chat';
 
   /**
    * Detects if a question requires real-time or up-to-date information
@@ -79,16 +80,7 @@ export class AskMeLogic {
 
   static async sendQuestionToAI(question: string, imageFile?: File): Promise<AIResponse> {
     try {
-      // Check if OpenAI API key is configured
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      if (!apiKey || apiKey === 'your_openai_api_key_here') {
-        return {
-          success: false,
-          error: 'OpenAI API key not configured. Please create a .env file with VITE_OPENAI_API_KEY=your_actual_api_key and restart the server.'
-        };
-      }
-
-      console.log('🤖 Sending question to OpenAI:', question);
+      console.log('🤖 Sending question to backend proxy:', question);
       
       // Convert image to base64 if provided
       let base64Image = null;
@@ -125,23 +117,18 @@ export class AskMeLogic {
         userMessage.content = question;
       }
 
+      // For now we support text Q&A through the backend proxy.
+      // If image is provided, include a hint so the backend can be extended later.
       const response = await fetch(this.API_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: imageFile ? 'gpt-4o' : 'gpt-4o-mini', // Use vision model if image provided
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a helpful AI assistant. Provide clear, concise, and accurate responses to user questions. Be friendly and informative. If an image is provided, analyze it carefully and include relevant details in your response.'
-            },
-            userMessage
-          ],
-          max_tokens: imageFile ? 800 : 500, // More tokens for image analysis
-          temperature: 0.7
+          message: question,
+          history: [],
+          language: 'en-US',
+          hasImage: !!imageFile
         })
       });
 
@@ -151,14 +138,14 @@ export class AskMeLogic {
       }
 
       const data = await response.json();
-      console.log('✅ OpenAI response received:', data);
+      console.log('✅ Proxy response received:', data);
 
-      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        throw new Error('No response received from OpenAI');
+      if (!data || typeof data.reply !== 'string') {
+        throw new Error('No response received from chat proxy');
       }
 
-      const aiResponse = data.choices[0].message.content;
-      const tokensUsed = data.usage?.total_tokens || 0;
+      const aiResponse = data.reply;
+      const tokensUsed = 0; // backend can track tokens separately
       // Cost will be calculated by ApiUsageTracker using proper Rand pricing
 
       // Track successful API usage
@@ -172,14 +159,7 @@ export class AskMeLogic {
       console.log('🔍 [ASK ME LOGIC] Token split:', { inputTokens, outputTokens });
       console.log('🔍 [ASK ME LOGIC] Calling apiUsageTracker.trackOpenAIUsage...');
       
-      apiUsageTracker.trackOpenAIUsage(
-        this.API_URL,
-        'gpt-4o-mini',
-        inputTokens,
-        outputTokens,
-        'Ask Me Question',
-        true
-      );
+      apiUsageTracker.trackOpenAIUsage(this.API_URL, 'proxy', inputTokens, outputTokens, 'Ask Me Question', true);
 
       console.log('✅ [ASK ME LOGIC] API Usage tracking called successfully');
       console.log('📊 [ASK ME LOGIC] Usage details:', {
@@ -201,15 +181,7 @@ export class AskMeLogic {
       console.error('❌ Error sending question to AI:', error);
       
       // Track failed API usage
-      apiUsageTracker.trackOpenAIUsage(
-        this.API_URL,
-        'gpt-4o-mini',
-        0, // No input tokens used on failure
-        0, // No output tokens used on failure
-        'Ask Me Question',
-        false,
-        error instanceof Error ? error.message : 'Unknown error occurred'
-      );
+      apiUsageTracker.trackOpenAIUsage(this.API_URL, 'proxy', 0, 0, 'Ask Me Question', false, error instanceof Error ? error.message : 'Unknown error occurred');
 
       return {
         success: false,

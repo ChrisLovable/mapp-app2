@@ -161,72 +161,21 @@ const { user } = useAuth();
         reader.readAsDataURL(processedFile);
       });
 
-      setProcessingStep('Extracting text from image...');
-      
-      const extractedText = await askOpenAIVision(
-        'Extract all text from this receipt image. Include all text visible on the receipt including vendor name, items, prices, dates, and any other relevant information.',
-        base64
-      );
-
-      if (!extractedText) {
-        throw new Error('Failed to extract text from image');
-      }
-
       setProcessingStep('Parsing expense data...');
-      
-      const parsePrompt = `Parse the following receipt text into structured expense entries. Extract multiple expense items if present. For each item, provide:
-- expense_date: Date from receipt (YYYY-MM-DD format)
-- vendor: Store/business name
-- amount: Price/amount (number only)
-- quantity: Quantity of items (default to 1 if not specified)
-- description: Item description
-- category: Categorize as: Food, Transportation, Shopping, Entertainment, Health, Utilities, Other
 
-Receipt text to parse:
-${extractedText}`;
-
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      if (!apiKey) {
-        throw new Error('OpenAI API key not configured');
-      }
-
-      const parseApiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      // Send to backend for parsing (keeps API key server-side and supports image+text parsing)
+      const resp = await fetch('/api/parse-receipt', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            {
-              role: 'system',
-              content: 'Parse receipt text into structured JSON format. Return only valid JSON arrays.'
-            },
-            {
-              role: 'user',
-              content: parsePrompt
-            }
-          ],
-          max_tokens: 2000,
-          temperature: 0.1
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageData: base64 })
       });
-
-      if (!parseApiResponse.ok) {
-        const errorData = await parseApiResponse.json().catch(() => ({}));
-        throw new Error(`OpenAI API error: ${errorData.error?.message || parseApiResponse.statusText}`);
+      if (!resp.ok) {
+        const detail = await resp.text().catch(() => '');
+        throw new Error(`Receipt parse failed: ${detail || resp.statusText}`);
       }
-
-      const data = await parseApiResponse.json();
-      const parseResponse = data.choices[0]?.message?.content;
-
-      if (!parseResponse) {
-        throw new Error('No response received from OpenAI');
-      }
-
+      const parsed = await resp.json();
       try {
-        let parsedData = JSON.parse(parseResponse);
+        let parsedData = Array.isArray(parsed?.items) ? parsed.items : parsed;
         if (!Array.isArray(parsedData)) {
           parsedData = [parsedData];
         }

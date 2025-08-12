@@ -525,6 +525,196 @@ app.post('/api/azure-tts', async (req, res) => {
   }
 });
 
+// ElevenLabs TTS alias endpoint (same implementation, clearer name)
+app.post('/api/elevenlabs-tts', async (req, res) => {
+  try {
+    const { text, language, voiceId } = req.body || {};
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'Text is required' });
+    }
+    if (!ELEVEN_API_KEY) {
+      return res.status(500).json({ error: 'ELEVENLABS_API_KEY not configured' });
+    }
+
+    const isAfrikaans = String(language || '').toLowerCase().startsWith('af');
+    const resolvedVoiceId = voiceId || (isAfrikaans ? ELEVEN_VOICE_ID_AF : ELEVEN_VOICE_ID_EN);
+
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${resolvedVoiceId}?optimize_streaming_latency=0`;
+    const elevenResp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': ELEVEN_API_KEY,
+        'Accept': 'audio/mpeg',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text: text.trim(),
+        model_id: ELEVEN_MODEL,
+        voice_settings: { stability: 0.5, similarity_boost: 0.7 }
+      })
+    });
+
+    if (!elevenResp.ok) {
+      const errText = await elevenResp.text().catch(() => '');
+      return res.status(elevenResp.status).json({ error: 'ElevenLabs TTS failed', details: errText });
+    }
+
+    const buf = Buffer.from(await elevenResp.arrayBuffer());
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(buf);
+  } catch (error) {
+    console.error('❌ ElevenLabs TTS error:', error);
+    return res.status(500).json({ error: 'TTS failed', details: error?.message || String(error) });
+  }
+});
+
+// ===== SIMPLE OPENAI CHAT PROXY =====
+// Allows the frontend to chat without exposing client-side API keys.
+app.post('/api/openai-chat', async (req, res) => {
+  try {
+    const { message, history = [], language = 'en-US' } = req.body || {};
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    if (!OPENAI_API_KEY) {
+      return res.status(500).json({ error: 'OPENAI_API_KEY not configured on server' });
+    }
+
+    const systemPrompt = String(language).toLowerCase().startsWith('af')
+      ? "Jy is Gabby, 'n vriendelike en behulpsame AI-assistent. Hou antwoorde bondig en gesprekke. Antwoord altyd in Afrikaans."
+      : 'You are Gabby, a friendly and helpful AI assistant. Keep responses concise and conversational.';
+
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...history,
+          { role: 'user', content: message }
+        ],
+        max_tokens: 300,
+        temperature: 0.6
+      })
+    });
+
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '');
+      return res.status(resp.status).json({ error: 'OpenAI chat failed', details: detail });
+    }
+
+    const data = await resp.json();
+    const reply = data?.choices?.[0]?.message?.content?.trim() || '';
+    return res.json({ reply });
+  } catch (err) {
+    console.error('❌ OpenAI chat proxy error:', err);
+    return res.status(500).json({ error: 'Chat proxy failed', details: err?.message || String(err) });
+  }
+});
+
+// Helpful GET for humans testing in browser
+app.get('/api/openai-chat', (_req, res) => {
+  return res.status(405).json({
+    error: 'Method not allowed',
+    hint: 'Use POST with JSON body { message: "..." }'
+  });
+});
+
+// ===== RECEIPT PARSING (IMAGE → STRUCTURED EXPENSES) =====
+// Accepts base64 data URL image and returns parsed expense items
+app.post('/api/parse-receipt', async (req, res) => {
+  try {
+    const { imageData } = req.body || {};
+    if (!imageData || typeof imageData !== 'string') {
+      return res.status(400).json({ error: 'imageData (base64 data URL) is required' });
+    }
+
+    if (!OPENAI_API_KEY) {
+      return res.status(500).json({ error: 'OPENAI_API_KEY not configured on server' });
+    }
+
+    const systemPrompt = 'Extract expense line items from a receipt image. Return ONLY a JSON array of objects with fields: expense_date (YYYY-MM-DD), vendor, amount (number), quantity (number, default 1), description, category (Food, Transportation, Shopping, Entertainment, Health, Utilities, Other). No commentary.';
+
+    // Compose a vision-enabled request using the image data URL
+    const body = {
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Parse this receipt into structured JSON as specified.' },
+            { type: 'image_url', image_url: { url: imageData } }
+          ]
+        }
+      ],
+      max_tokens: 1200,
+      temperature: 0.0
+    };
+
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '');
+      return res.status(resp.status).json({ error: 'OpenAI vision parse failed', details: detail });
+    }
+
+    const data = await resp.json();
+    const content = data?.choices?.[0]?.message?.content || '';
+    let items;
+    try {
+      items = JSON.parse(content);
+    } catch (_) {
+      // Attempt to extract JSON block if model added formatting
+      const match = content.match(/\[([\s\S]*?)\]/);
+      if (match) {
+        try { items = JSON.parse(match[0]); } catch (e) { /* ignore */ }
+      }
+    }
+
+    if (!Array.isArray(items)) {
+      return res.status(500).json({ error: 'Failed to parse receipt JSON', raw: content });
+    }
+
+    // Normalize fields
+    const normalized = items.map((it) => ({
+      expense_date: it.expense_date || new Date().toISOString().split('T')[0],
+      vendor: it.vendor || 'Unknown Vendor',
+      amount: Number(it.amount) || 0,
+      quantity: Number(it.quantity) || 1,
+      description: it.description || '',
+      category: it.category || 'Other'
+    }));
+
+    return res.json({ items: normalized });
+  } catch (err) {
+    console.error('❌ Receipt parse proxy error:', err);
+    return res.status(500).json({ error: 'Receipt parse failed', details: err?.message || String(err) });
+  }
+});
+
+// Simple health endpoint for quick checks
+app.get('/api/health', (_req, res) => {
+  return res.json({
+    ok: true,
+    openai: !!OPENAI_API_KEY,
+    time: new Date().toISOString()
+  });
+});
+
 // ===== TOKEN TRACKING API WITH SUPABASE =====
 
 // Today's session tracking - in-memory storage for this testing session

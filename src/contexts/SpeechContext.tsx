@@ -53,8 +53,10 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     recognition.lang = languageRef.current;
     recognition.continuous = true;
     recognition.interimResults = true;
+    try { (recognition as any).maxAlternatives = 1; } catch {}
 
     recognition.onstart = () => {
+      console.log('[SpeechContext] recognition.onstart');
       setIsListening(true);
       accumulatedFinalRef.current = '';
       lastResultIndexRef.current = 0;
@@ -65,10 +67,12 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const startIndex = (event as any).resultIndex ?? 0;
+      console.log('[SpeechContext] recognition.onresult results:', event.results.length, 'starting at index', startIndex);
       let interimTranscript = '';
       let newFinalChunk = '';
 
-      for (let i = lastResultIndexRef.current; i < event.results.length; i++) {
+      for (let i = startIndex; i < event.results.length; i++) {
         const result = event.results.item(i);
         const text = result.item(0).transcript;
         if (result.isFinal) {
@@ -101,12 +105,14 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     };
 
     recognition.onend = () => {
+      console.log('[SpeechContext] recognition.onend');
       setIsListening(false);
       recognitionRef.current = null;
       setSessionOwner(null);
     };
 
-    recognition.onerror = () => {
+    recognition.onerror = (e: any) => {
+      console.error('[SpeechContext] recognition.onerror', e?.error || e);
       setIsListening(false);
       recognitionRef.current = null;
       setSessionOwner(null);
