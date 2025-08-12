@@ -471,7 +471,7 @@ export default function Home({ onShowAuth }: HomeProps) {
       <div className="flex items-center justify-between w-full max-w-4xl mx-auto mb-6 relative z-40" style={{ minHeight: '64px', marginTop: '30px' }}>
         {/* Hamburger Menu (left) */}
         <div className="flex-shrink-0 flex items-center justify-start" style={{ minWidth: '64px', marginTop: '70px', marginLeft: '10px' }}>
-          <Header />
+          <Header onDashboardClick={() => setIsAdminDashboardOpen(true)} />
         </div>
         {/* Gabby Image (center) */}
         <div className="flex-shrink-0 flex items-center justify-center" style={{ flex: 1, marginLeft: '30px' }}>
@@ -531,8 +531,6 @@ export default function Home({ onShowAuth }: HomeProps) {
             onCameraCapture={handleCameraCapture}
             language={language}
             onLanguageChange={handleLanguageChange}
-            showMic={true}
-            onMicClick={() => {}}
           />
           {/* Remove StandaloneSttButton from here */}
           <CommandButtons 

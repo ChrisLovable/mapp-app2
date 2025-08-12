@@ -109,69 +109,7 @@ const { user } = useAuth();
     }
   };
 
-<<<<<<< HEAD
   const deleteExpense = async (id: string) => {
-=======
-  const loadExpenseCache = () => {
-    const cache = localStorage.getItem('expenseCache');
-    const ts = localStorage.getItem('expenseCacheTimestamp');
-    if (cache) {
-      try {
-        const parsedCache = JSON.parse(cache);
-        setExpenseCache(parsedCache);
-      } catch (error) {
-        console.warn('Failed to parse expense cache:', error);
-        // Clear corrupted cache
-        localStorage.removeItem('expenseCache');
-        localStorage.removeItem('expenseCacheTimestamp');
-      }
-    }
-    if (ts) setCacheTimestamp(Number(ts));
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchExpenses();
-      setShowImageUpload(true);
-      setSelectedImage(null);
-      setImagePreview(null);
-      setNewExpenses([]);
-      setProcessingSuccess(false);
-      setProcessingStep('');
-      setShowQuickQuestion(false);
-      setQuickQuestion('');
-      setQuickAnswer('');
-
-      // Start realtime subscription when modal opens and user exists
-      if (user?.id && !realtimeUnsubRef.current) {
-        realtimeUnsubRef.current = subscribeToUserExpenses(
-          user.id,
-          (row) => {
-            setExpenses((prev) => {
-              const updated = [row, ...prev];
-              saveExpenseCache(updated);
-              return updated;
-            });
-          },
-          (err) => console.warn('Realtime subscription error:', err)
-        );
-      }
-    }
-    return () => {
-      try { realtimeUnsubRef.current?.(); } catch {}
-      realtimeUnsubRef.current = null;
-    };
-  }, [isOpen, user?.id]);
-
-  // Debug expenses state changes
-  useEffect(() => {
-    console.log('Expenses state changed:', expenses);
-    console.log('Expenses count:', expenses.length);
-  }, [expenses]);
-
-  // Update fetchExpenses to use cache
-  const fetchExpenses = async (forceRefresh: boolean = false) => {
->>>>>>> 99e422f (feat(expenses): n8n webhook integration + realtime subscription)
     try {
       const userId = user?.id || '00000000-0000-0000-0000-000000000000';
       
@@ -216,60 +154,7 @@ const { user } = useAuth();
         reader.readAsDataURL(processedFile);
       });
 
-<<<<<<< HEAD
-=======
-      // Save image first and get imageId (even for dummy user)
-      setProcessingStep('Saving receipt image...');
-      const userIdForImage = user?.id || '00000000-0000-0000-0000-000000000000';
-      const imageId = await saveReceiptImageToDB(userIdForImage, base64);
-
-      // If n8n is configured, delegate OCR+parse+insert to n8n
-      if (N8N_WEBHOOK_BASE) {
-        setProcessingStep('Sending to automation (n8n)...');
-        try {
-          const resp = await fetch(`${N8N_WEBHOOK_BASE.replace(/\/$/, '')}/expense/ingest`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(import.meta.env.VITE_N8N_SECRET ? { 'X-Webhook-Secret': import.meta.env.VITE_N8N_SECRET } : {})
-            },
-            body: JSON.stringify({
-              userId: userIdForImage,
-              imageId,
-              // optionally send imageData to skip fetch on n8n side
-              // imageData: base64,
-            })
-          });
-          if (!resp.ok) {
-            console.warn('n8n webhook returned non-OK. Falling back to local OCR.', resp.status);
-          } else {
-            // Let Realtime refresh handle the UI
-            setProcessingStep('✅ Submitted to automation. Waiting for save...');
-            // Kick a refresh after short delay
-            setTimeout(() => { void fetchExpenses(true); }, 1200);
-            setShowImageUpload(true);
-            setImagePreview(base64);
-            setProcessingSuccess(true);
-            return;
-          }
-        } catch (err) {
-          console.warn('n8n webhook failed. Falling back to local OCR.', err);
-        }
-      }
-
-      setProcessingStep('Extracting text from image...');
       
-      // Step 1: Extract text from image using OpenAI Vision
-      const extractedText = await askOpenAIVision(
-        'Extract all text from this receipt image. Include all text visible on the receipt including vendor name, items, prices, dates, and any other relevant information. Return only the extracted text without any additional formatting or commentary.',
-        base64
-      );
-
-      if (!extractedText) {
-        throw new Error('Failed to extract text from image');
-      }
-
->>>>>>> 99e422f (feat(expenses): n8n webhook integration + realtime subscription)
       setProcessingStep('Parsing expense data...');
 
       // Send to backend for parsing (keeps API key server-side and supports image+text parsing)
@@ -282,146 +167,11 @@ const { user } = useAuth();
         const detail = await resp.text().catch(() => '');
         throw new Error(`Receipt parse failed: ${detail || resp.statusText}`);
       }
-<<<<<<< HEAD
       const parsed = await resp.json();
       try {
         let parsedData = Array.isArray(parsed?.items) ? parsed.items : parsed;
         if (!Array.isArray(parsedData)) {
           parsedData = [parsedData];
-=======
-
-      const data = await parseApiResponse.json();
-      const parseResponse = data.choices[0]?.message?.content;
-
-      if (!parseResponse) {
-        throw new Error('No response received from OpenAI');
-      }
-
-      if (parseResponse) {
-        try {
-          // Try multiple approaches to extract JSON
-          let parsedData = null;
-          
-          // Approach 1: Look for JSON array pattern
-          const jsonMatch = parseResponse.match(/\[[\s\S]*\]/);
-          if (jsonMatch) {
-            try {
-              parsedData = JSON.parse(jsonMatch[0]);
-            } catch (e) {
-              console.log('Failed to parse JSON array match:', e);
-            }
-          }
-          
-          // Approach 2: Try to parse the entire response as JSON
-          if (!parsedData) {
-            try {
-              parsedData = JSON.parse(parseResponse);
-            } catch (e) {
-              console.log('Failed to parse entire response as JSON:', e);
-            }
-          }
-          
-          // Approach 3: Try to extract JSON object and convert to array
-          if (!parsedData) {
-            const objectMatch = parseResponse.match(/\{[\s\S]*\}/);
-            if (objectMatch) {
-              try {
-                const singleObject = JSON.parse(objectMatch[0]);
-                parsedData = [singleObject]; // Convert single object to array
-              } catch (e) {
-                console.log('Failed to parse JSON object match:', e);
-              }
-            }
-          }
-          
-          // Approach 4: Create a fallback expense from the extracted text
-          if (!parsedData) {
-            console.log('Creating fallback expense from extracted text');
-            parsedData = [{
-              expense_date: new Date().toISOString().split('T')[0],
-              vendor: 'Unknown Vendor',
-              amount: 0,
-              quantity: 1,
-              description: extractedText.substring(0, 100) + '...',
-              category: 'Other'
-            }];
-          }
-          
-          if (Array.isArray(parsedData)) {
-            // Always attach the known imageId
-            const expensesWithImageRef = parsedData.map(expense => ({
-              ...expense,
-              receipt_image_id: imageId as string | null
-            }));
-
-            // Auto-save to DB immediately
-            const targetUserId = user?.id || '00000000-0000-0000-0000-000000000000';
-            const expensesToInsert = expensesWithImageRef.map(expense => ({
-              user_id: targetUserId,
-              expense_date: expense.expense_date,
-              vendor: expense.vendor,
-              amount: expense.amount,
-              quantity: expense.quantity,
-              description: expense.description,
-              category: expense.category,
-              receipt_image_id: expense.receipt_image_id
-            }));
-
-            const { error: insertError } = await supabase
-              .from('expense_tracker')
-              .insert(expensesToInsert);
-
-            if (insertError) {
-              console.error('Error auto-saving parsed expenses:', insertError);
-            }
-
-            // Refresh saved list and show success
-            await fetchExpenses(true);
-            setNewExpenses([]); // no manual confirmation needed
-            setShowImageUpload(true); // return to main state
-            setImagePreview(base64); // keep preview available
-            setProcessingSuccess(true);
-            setProcessingStep('✅ Processing complete! Saved automatically.');
-          } else {
-            throw new Error('Parsed data is not an array');
-          }
-        } catch (parseError) {
-          console.error('Error parsing JSON response:', parseError);
-          console.log('Raw parse response:', parseResponse);
-
-          // Create and save a fallback expense entry linked to the saved photo
-          const fallbackExpense = [{
-            expense_date: new Date().toISOString().split('T')[0],
-            vendor: 'Unknown Vendor',
-            amount: 0,
-            quantity: 1,
-            description: 'Failed to parse expense data. Please edit manually.',
-            category: 'Other',
-            receipt_image_id: imageId as string | null
-          }];
-
-          try {
-            const targetUserId = user?.id || '00000000-0000-0000-0000-000000000000';
-            const { error: fallbackError } = await supabase
-              .from('expense_tracker')
-              .insert(fallbackExpense.map(expense => ({
-                user_id: targetUserId,
-                ...expense
-              })));
-            if (fallbackError) {
-              console.error('Error saving fallback expense:', fallbackError);
-            }
-          } catch (e) {
-            console.error('Unexpected error saving fallback expense:', e);
-          }
-
-          await fetchExpenses(true);
-          setNewExpenses([]);
-          setShowImageUpload(true);
-          setImagePreview(base64);
-          setProcessingSuccess(true);
-          setProcessingStep('⚠️ Parsing failed. Saved placeholder linked to photo.');
->>>>>>> 99e422f (feat(expenses): n8n webhook integration + realtime subscription)
         }
         
         let imageId = null;

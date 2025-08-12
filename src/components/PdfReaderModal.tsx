@@ -536,10 +536,11 @@ export default function PdfReaderModal({ isOpen, onClose }: PdfReaderModalProps)
 
       const renderContext = {
         canvasContext: context,
-        viewport: viewport
-      };
+        viewport: viewport,
+        canvas
+      } as any;
 
-      await page.render(renderContext).promise;
+      await page.render(renderContext as any).promise;
     } catch (error) {
       console.error('Error rendering page:', error);
       setError('Error rendering PDF page');

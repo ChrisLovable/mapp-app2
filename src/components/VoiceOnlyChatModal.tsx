@@ -15,25 +15,36 @@ type ChatMessage = {
 };
 
 async function speakWithElevenLabs(text: string, language?: string) {
-  const resp = await fetch('/api/elevenlabs-tts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, language })
-  });
-  if (!resp.ok) {
-    throw new Error(`ElevenLabs TTS failed: ${resp.status}`);
+  try {
+    const resp = await fetch('/api/elevenlabs-tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, language })
+    });
+    if (!resp.ok) {
+      throw new Error(`ElevenLabs TTS failed: ${resp.status}`);
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    await new Promise<void>((resolve, reject) => {
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+      audio.onerror = () => reject(new Error('Audio playback error'));
+      audio.play().catch(reject);
+    });
+  } catch (err) {
+    // Fallback to browser TTS if API fails
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language || 'en-US';
+      window.speechSynthesis.speak(utterance);
+    } else {
+      throw err;
+    }
   }
-  const blob = await resp.blob();
-  const url = URL.createObjectURL(blob);
-  const audio = new Audio(url);
-  await new Promise<void>((resolve, reject) => {
-    audio.onended = () => {
-      URL.revokeObjectURL(url);
-      resolve();
-    };
-    audio.onerror = () => reject(new Error('Audio playback error'));
-    audio.play().catch(reject);
-  });
 }
 
 async function fetchChatReply(message: string, history: { role: 'user' | 'assistant'; content: string }[], language: string) {

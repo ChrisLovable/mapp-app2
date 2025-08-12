@@ -157,12 +157,12 @@ export const trackTextGeneration = (prompt: string, sourceModal: string) => {
 export const trackTextToSpeech = (text: string, sourceModal: string) => {
   return tokenTracker.trackApiCall(
     'text_to_speech',
-    '/api/azure/tts',
+    '/api/elevenlabs-tts',
     sourceModal,
     2, // Estimated tokens for TTS
     async () => {
       // Your TTS API call here
-      const response = await fetch('/api/azure/tts', {
+      const response = await fetch('/api/elevenlabs-tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
